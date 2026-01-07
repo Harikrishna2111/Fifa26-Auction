@@ -1,16 +1,16 @@
 from flask import Flask, render_template, request, redirect, session
 from flask_socketio import SocketIO, emit, join_room, leave_room
-import eventlet
 import time
 import sqlite3
+import uuid
 
 
-eventlet.monkey_patch()
 
 app = Flask(__name__)
 app.secret_key = "auction_secret"
 
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+
 
 def get_db():
     conn = sqlite3.connect("auction.db")
@@ -24,9 +24,12 @@ def is_admin(lobby_code):
     return session.get("username") == lobbies[lobby_code]["admin"]
 
 
-@app.route("/", methods=["GET"])
+@app.route("/")
 def index():
     return render_template("index.html")
+
+
+
 
 
 @app.route("/login", methods=["POST"])
@@ -44,19 +47,27 @@ def login():
     new_lobby_id = str(uuid.uuid4())[:6]
     return redirect(f"/lobby/{new_lobby_id}")
 
+@app.route('/lobby') 
+def lobby_home(): 
+    if 'username' not in session: 
+        return redirect('/') 
+    return render_template('lobby.html')
 
 
 @app.route("/lobby/<lobby_id>")
-def lobby(lobby_id):
+def lobby_room(lobby_id):
     if "username" not in session:
         return redirect("/")
     return render_template(
         "lobby.html",
         lobby_id=lobby_id,
-        username=session["username"]
+        username=session["username"],
+        is_admin=is_admin(lobby_id)
     )
 
 lobbies = {}
+trade_requests = {}
+
 
 @socketio.on("join_lobby")
 def handle_join(data):
@@ -89,12 +100,6 @@ def handle_upload(data):
 def handle_start(data):
     lobby = data["lobby"]
     emit("auction_started", room=lobby)
-
-@app.route('/lobby')
-def lobby():
-    if 'username' not in session:
-        return redirect('/')
-    return render_template('lobby.html')
 
 
 @app.route('/auction/<lobby_code>')
@@ -170,6 +175,49 @@ def trade(lobby_code):
         incoming_trades=incoming_trades
     )
 
+@app.route("/create_lobby", methods=["GET", "POST"])
+def create_lobby():
+    if "username" not in session:
+        return redirect("/")
+
+    lobby_code = str(uuid.uuid4())[:6]
+
+    lobbies[lobby_code] = {
+        "admin": session["username"],
+        "players": [session["username"]],
+        "teams": {
+            session["username"]: {
+                "budget": 1000,
+                "players": []
+            }
+        },
+        "players_data": [],
+        "current_bid": 0,
+        "highest_bidder": None,
+        "timer": 10,
+        "paused": False,
+        "skips": set(),
+        "unsold": [],
+        "current_index": 0,
+        "status": "waiting"
+    }
+
+    trade_requests[lobby_code] = []
+
+    return redirect(f"/lobby/{lobby_code}")
+
+
+@app.route("/join_lobby", methods=["POST"])
+def join_lobby_http():
+    if "username" not in session:
+        return redirect("/")
+
+    lobby_code = request.form.get("lobby_code")
+
+    if lobby_code not in lobbies:
+        return "Lobby not found", 404
+
+    return redirect(f"/lobby/{lobby_code}")
 
 
 @app.route('/summary/<lobby_code>')

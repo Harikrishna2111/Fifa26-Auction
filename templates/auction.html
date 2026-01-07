@@ -155,6 +155,19 @@ socket.on("kicked", data => {
     }
 });
 </script>
+<!-- Socket.IO CDN -->
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+<script>
+const socket = io();
+
+socket.on("kicked", data => {
+    if (data.username === "{{ username }}") {
+        alert("You were removed by admin");
+        window.location.href = "/";
+    }
+});
+</script>
 
 
 </body>
