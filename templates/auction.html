@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FC26 Live Auction</title>
+
+    <!-- Bootstrap CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body style="background-color:#0b132b; color:white;">
+
+<nav class="navbar navbar-dark bg-dark px-4">
+    <span class="navbar-brand">⚽ FC26 Auction Room</span>
+
+    {% if is_admin %}
+    <div>
+        <button onclick="socket.emit('force_next', {lobby_code:'{{ lobby_code }}'})"
+        class="btn btn-warning btn-sm">Force Next</button>
+
+<button onclick="socket.emit('toggle_lobby_lock', {lobby_code:'{{ lobby_code }}'})"
+        class="btn btn-secondary btn-sm">Lock Lobby</button>
+
+<button onclick="socket.emit('end_auction', {lobby_code:'{{ lobby_code }}'})"
+        class="btn btn-danger btn-sm">End Auction</button>
+
+    </div>
+    {% endif %}
+</nav>
+
+<div class="container-fluid mt-4">
+
+    <div class="row">
+
+        <!-- Player Card -->
+        <div class="col-md-4">
+            <div class="card text-dark p-3 shadow"
+                 style="border-radius:15px;">
+                <h4 class="text-center">Current Player</h4>
+
+                <img src="{{ player.image }}"
+                     class="img-fluid rounded mb-3"
+                     alt="Player">
+
+                <h5 class="text-center">{{ player.name }}</h5>
+
+                <ul class="list-group mt-3">
+                    <li class="list-group-item">Overall: {{ player.ovr }}</li>
+                    <li class="list-group-item">Position: {{ player.position }}</li>
+                    <li class="list-group-item">Pace: {{ player.pace }}</li>
+                    <li class="list-group-item">Shooting: {{ player.shooting }}</li>
+                    <li class="list-group-item">Passing: {{ player.passing }}</li>
+                    <li class="list-group-item">Dribbling: {{ player.dribbling }}</li>
+                    <li class="list-group-item">Defending: {{ player.defending }}</li>
+                    <li class="list-group-item">Physical: {{ player.physical }}</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Bidding Panel -->
+        <div class="col-md-4">
+            <div class="card p-3 shadow"
+                 style="border-radius:15px;">
+                <h4 class="text-center">Live Bidding</h4>
+
+                <h5 class="text-center text-success mt-2">
+                    ₹ {{ current_bid }}
+                </h5>
+
+                <p class="text-center">
+                    Highest Bidder: <b>{{ highest_bidder }}</b>
+                </p>
+
+                <div class="d-grid gap-2 mt-3">
+                    <button class="btn btn-primary">+10</button>
+                    <button class="btn btn-primary">+20</button>
+                    <button class="btn btn-primary">+50</button>
+                </div>
+
+                <input type="number"
+                       class="form-control mt-3"
+                       placeholder="Custom Bid">
+
+                <button class="btn btn-success w-100 mt-2">
+                    Place Bid
+                </button>
+
+                <button class="btn btn-secondary w-100 mt-3">
+                    Skip Player
+                </button>
+
+                <div class="text-center mt-3">
+                    ⏱ Time Left: <b>10s</b>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teams Overview -->
+        <div class="col-md-4">
+            <div class="card p-3 shadow"
+                 style="border-radius:15px;">
+                <h4 class="text-center">Teams & Budgets</h4>
+
+                {% for team in teams %}
+                <div class="border rounded p-2 mb-2">
+                    <b>{{ team.name }}</b><br>
+                    Budget: ₹ {{ team.budget }}<br>
+                    Players: {{ team.players|length }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+    const socket = io();
+
+    socket.emit("join_lobby", {
+        lobby_code: "{{ lobby_code }}"
+    });
+
+    socket.on("bid_update", data => {
+        console.log("New bid:", data);
+    });
+
+    socket.on("timer_update", data => {
+        console.log("Time left:", data.time);
+    });
+</script>
+<script>
+socket.on("new_player", player => {
+    document.querySelector("h5.text-center").innerText = player.name;
+    console.log("Now auctioning:", player);
+});
+
+socket.on("player_finalized", data => {
+    alert(
+        data.winner
+        ? `${data.player.name} sold to ${data.winner} for ₹${data.price}`
+        : `${data.player.name} UNSOLD`
+    );
+});
+
+socket.on("auction_finished", () => {
+    window.location.href = "/summary/{{ lobby_code }}";
+});
+
+socket.on("kicked", data => {
+    if (data.username === "{{ username }}") {
+        alert("You were removed by admin");
+        window.location.href = "/";
+    }
+});
+</script>
+
+
+</body>
+</html>
