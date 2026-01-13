@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Discover FootyAuction | Platform Overview</title>
+
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#0df259",
+            "background-dark": "#0a0f0c",
+            "card-dark": "#151b17",
+          },
+          fontFamily: {
+            display: ["Lexend", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style type="text/tailwindcss">
+    body {
+      font-family: 'Lexend', sans-serif;
+    }
+    .glass-nav {
+      backdrop-filter: blur(16px);
+      background-color: rgba(10, 15, 12, 0.8);
+    }
+    .stadium-bg {
+      background-image: linear-gradient(to bottom, rgba(10, 15, 12, 0.8), rgba(10, 15, 12, 0.95)),
+      url('https://lh3.googleusercontent.com/aida-public/AB6AXuCRV5sXcjjTqmLaaGe9utlAnl5lovRfEJoSPUXZ4lO9Hjsb-pQay7jnfnkzEFFPOx4fEDQGbSyA4vGJ_fajCpCJnhpbOHFxG_vQg65wTEKX7iXDeyECDwil_ffys8dTGbsJPUW05hEqDyz1FmkC7cxCQncw5tIjbc1ZofhSiRXr-W3l8bMale3HCjn7ktjupl3kxwbbx1VsNyhhb8Bsi1TFVt_ncY1uobQsWUkmSudaDzlo2itg85sVdSanEQe7raN13LcIdgaFYm4');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+    .video-container {
+      background: linear-gradient(145deg, #151b17 0%, #0a0f0c 100%);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+
+<body class="bg-background-dark text-white min-h-screen stadium-bg">
+
+<!-- Top Navigation Bar -->
+<nav class="sticky top-0 z-50 glass-nav border-b border-white/10">
+<div class="max-w-[1440px] mx-auto px-6 h-20 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-background-dark font-bold">sports_soccer</span>
+</div>
+<h1 class="text-xl font-black tracking-tight uppercase italic">Footy<span class="text-primary">Auction</span></h1>
+</div>
+<div class="hidden md:flex items-center gap-10">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="landing_page.html">Home</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="player_stats.html">Players</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="auction_rules.html">Auction Rules</a>
+<a class="text-sm font-medium text-primary border-b-2 border-primary pb-1" href="discover.html">Discover</a>
+</div>
+<div class="flex items-center gap-4">
+<a href="login.html"><button class="px-5 py-2 text-sm font-bold hover:text-primary transition-colors">Login</button></a>
+<a href="login.html"><button class="bg-primary text-background-dark px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-white transition-all">Sign Up</button></a>
+</div>
+</div>
+</nav>
+
+<!-- MAIN -->
+<main class="pt-10 pb-20 px-4 lg:px-20 max-w-[1440px] mx-auto">
+
+  <!-- HERO -->
+  <section class="text-center mb-16 max-w-4xl mx-auto">
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-bold mb-8">
+      Platform Tour
+    </div>
+
+    <h1 class="text-6xl lg:text-8xl font-black mb-6">
+      Discover <span class="text-primary">FootyAuction</span>
+    </h1>
+
+    <p class="text-slate-400 text-xl max-w-2xl mx-auto">
+      The world’s most immersive real-time football auction platform.
+    </p>
+  </section>
+
+  <!-- 🔥 VIDEO SECTION (MOVED TO TOP + BIGGER) -->
+  <section class="mb-24">
+    <div class="relative group max-w-6xl mx-auto">
+      <div class="absolute -inset-1 bg-primary/20 rounded-[2.5rem] blur opacity-30"></div>
+
+      <div class="relative video-container rounded-[2rem] border border-white/10 overflow-hidden">
+        <video
+          class="w-full h-[70vh] object-cover"
+          src="../static/Demo_Video.mp4"
+          autoplay
+          loop
+          muted
+          playsinline
+        ></video>
+
+        <div class="absolute bottom-0 left-0 right-0 glass-nav border-t border-white/10 p-6 flex justify-between">
+          <div>
+            <p class="font-bold">Platform Walkthrough</p>
+            <p class="text-xs text-slate-400">Live auction gameplay demo</p>
+          </div>
+          <span class="px-3 py-1 bg-white/5 rounded text-xs">LOOPING DEMO</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="p-6 bg-card-dark/40 rounded-2xl border border-white/5 hover:bg-card-dark/60 transition-colors">
+<span class="material-symbols-outlined text-primary mb-4 text-3xl">live_tv</span>
+<h4 class="font-bold mb-2">Live Auctions</h4>
+<p class="text-sm text-slate-400">Experience the thrill of live bidding with low-latency data streams.</p>
+</div>
+<div class="p-6 bg-card-dark/40 rounded-2xl border border-white/5 hover:bg-card-dark/60 transition-colors">
+<span class="material-symbols-outlined text-primary mb-4 text-3xl">strategy</span>
+<h4 class="font-bold mb-2">Squad Building</h4>
+<p class="text-sm text-slate-400">Manage positions and budgets to build a balanced, winning squad.</p>
+</div>
+<div class="p-6 bg-card-dark/40 rounded-2xl border border-white/5 hover:bg-card-dark/60 transition-colors">
+<span class="material-symbols-outlined text-primary mb-4 text-3xl">trophy</span>
+<h4 class="font-bold mb-2">Real-Time Competition</h4>
+<p class="text-sm text-slate-400">Go head-to-head with other managers in instant leaderboard battles.</p>
+</div>
+<div class="p-6 bg-card-dark/40 rounded-2xl border border-white/5 hover:bg-card-dark/60 transition-colors">
+<span class="material-symbols-outlined text-primary mb-4 text-3xl">admin_panel_settings</span>
+<h4 class="font-bold mb-2">Admin Lobbies</h4>
+<p class="text-sm text-slate-400">Full control over players, timers, and participants for league owners.</p>
+</div>
+</div>
+</main>
+
+<!-- Footer -->
+<footer class="border-t border-white/5 bg-background-dark py-12 px-4 lg:px-20 text-center">
+<div class="flex flex-col items-center gap-6">
+<div class="flex items-center gap-2 opacity-50">
+<span class="material-symbols-outlined">gavel</span>
+<p class="text-sm font-medium">Football Auction System v1.0.0</p>
+</div>
+
+<p class="text-slate-600 text-xs">© 2026 Football Auction Engine. All rights reserved.</p>
+</div>
+</footer>
+
+</body>
+</html>

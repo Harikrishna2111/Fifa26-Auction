@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Available Football Players Directory | FootyAuction</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>.glass-nav {
+    background: rgba(16, 34, 22, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px)
+    }
+.player-card-hover:hover {
+    box-shadow: 0 0 20px rgba(13, 242, 89, 0.2);
+    transform: translatey(-4px);
+    transition: all 0.3s ease
+    }
+.stadium-bg {
+    background-image: linear-gradient(rgba(16, 34, 22, 0.9), rgba(16, 34, 22, 0.95)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuBvRFeWwkkYBLV_Vj9stN3epDn8tFuDwIncgNDHfraCy44UgTprIjx8bUUzh0N_otcjWepf2FXmHpvIK2ZD_D614kMsBIP3EdpQ2oFnXHwqvlxdrJ42cMPt9evIHWfI2fVMFxd-HJkdTFZ8OARnh2xxN7WFlIpA32xp_NMhxrQ6OfH-ppHkO1guoslaQmKB4r8E_WE6YraRBmoOrZw9JhowBr9meQSCp7Mn3JRp6hdgm0NWjL5RFOqx_0wVdh2QY9QQI9sCqhpslbw);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed
+    }
+        .glass-nav {
+      backdrop-filter: blur(16px);
+      background-color: rgba(10, 15, 12, 0.8);
+    }</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen stadium-bg">
+<!-- Top Navigation Bar -->
+<nav class="sticky top-0 z-50 glass-nav border-b border-white/10">
+<div class="max-w-[1440px] mx-auto px-6 h-20 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-background-dark font-bold">sports_soccer</span>
+</div>
+<h1 class="text-xl font-black tracking-tight uppercase italic">Footy<span class="text-primary">Auction</span></h1>
+</div>
+<div class="hidden md:flex items-center gap-10">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="landing_page.html">Home</a>
+<a class="text-sm font-medium text-primary border-b-2 border-primary pb-1" href="player_stats.html">Players</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="auction_rules.html">Auction Rules</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="discover.html">Discover</a>
+</div>
+<div class="flex items-center gap-4">
+<a href="login.html"><button class="px-5 py-2 text-sm font-bold hover:text-primary transition-colors">Login</button></a>
+<a href="login.html"><button class="bg-primary text-background-dark px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-white transition-all">Sign Up</button></a>
+</div>
+</div>
+</nav>
+<main class="max-w-[1280px] mx-auto px-6 py-12">
+<!-- Page Heading -->
+<div class="mb-10 text-center md:text-left">
+<h2 class="text-5xl font-black leading-tight tracking-tighter mb-4">
+                Available <span class="text-primary">Football Players</span>
+</h2>
+<p class="text-slate-400 text-lg max-w-2xl">
+                Scout the global elite and prepare your bids. 
+            </p>
+</div>
+<!-- Search & Filter Bar -->
+<div class="flex flex-col lg:flex-row gap-6 mb-12 bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
+<div class="flex-1 relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+<input class="w-full bg-background-dark/50 border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:ring-primary focus:border-primary transition-all" placeholder="Search players by name, club, or nationality..." type="text"/>
+</div>
+<div class="flex items-center gap-3 overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
+<div class="bg-primary text-background-dark px-5 py-3 rounded-xl text-sm font-bold cursor-pointer whitespace-nowrap">
+                    All Positions
+                </div>
+<div class="bg-white/5 border border-white/10 hover:border-primary text-white px-5 py-3 rounded-xl text-sm font-bold cursor-pointer whitespace-nowrap transition-colors">
+                    Forward
+                </div>
+<div class="bg-white/5 border border-white/10 hover:border-primary text-white px-5 py-3 rounded-xl text-sm font-bold cursor-pointer whitespace-nowrap transition-colors">
+                    Midfielder
+                </div>
+<div class="bg-white/5 border border-white/10 hover:border-primary text-white px-5 py-3 rounded-xl text-sm font-bold cursor-pointer whitespace-nowrap transition-colors">
+                    Defender
+                </div>
+<div class="bg-white/5 border border-white/10 hover:border-primary text-white px-5 py-3 rounded-xl text-sm font-bold cursor-pointer whitespace-nowrap transition-colors">
+                    Goalkeeper
+                </div>
+</div>
+</div>
+<!-- Players Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+<!-- Player Card 1 -->
+<div class="group player-card-hover bg-white/5 border border-white/10 rounded-2xl overflow-hidden relative">
+<div class="absolute top-4 left-4 z-10 flex flex-col items-center">
+<span class="text-3xl font-black text-primary leading-none">91</span>
+<span class="text-[10px] font-bold text-white uppercase tracking-widest mt-1">OVR</span>
+</div>
+<div class="h-64 overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-t from-[#102216] to-transparent z-10"></div>
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Professional football player in stadium action shot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAF9qJuScH6lMf6-l2ROys2B2sDdjbqw61VAemFtlXfG6tlRbX1qOQ-dYXR4WVc9xw7AZtVuGxuG4VZjZ2pFoJ1PDZDMydaZs1i-vNssCNQN05Q7MmclYQO15CR18oNM7KnLYt1XiAyl6TMkSxsxpO3RsAKz4iKcKA5RiuRnmergljbFbphoeRp_gSlsTZNBMp9OmOPkWSc3K_wpoEv5tIhVQ1FHLvlqr5hdwfG8pGnxX3GzNYyjPfSu1ZcE0zAGM1WTsVvxxEECfU"/>
+</div>
+<div class="p-6 relative z-20 -mt-12">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase">Forward</span>
+<span class="text-slate-400 text-[10px] font-bold uppercase">France</span>
+</div>
+<h3 class="text-xl font-bold mb-4">Kylian Mbappé</h3>
+<div class="grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">PAC</p>
+<p class="font-black text-white">97</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">SHO</p>
+<p class="font-black text-white">90</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">DRI</p>
+<p class="font-black text-white">92</p>
+</div>
+</div>
+<button class="w-full mt-6 bg-white/10 group-hover:bg-primary group-hover:text-background-dark py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                        View Details
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Player Card 2 -->
+<div class="group player-card-hover bg-white/5 border border-white/10 rounded-2xl overflow-hidden relative">
+<div class="absolute top-4 left-4 z-10 flex flex-col items-center">
+<span class="text-3xl font-black text-primary leading-none">91</span>
+<span class="text-[10px] font-bold text-white uppercase tracking-widest mt-1">OVR</span>
+</div>
+<div class="h-64 overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-t from-[#102216] to-transparent z-10"></div>
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Intense close up of a top league football player" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWGO8tFGFjsYcEhmN1sL6NlbtAxZJ046ASAfGOwtBAaL8_D8CHZ_7Y7N1u4ZHi3gtlgrqaZNtHY7_gVLkDk4a1DltG7DsCg9tSDah_jwBmuNUFWXltzAZrCxpY7pKa4CkgzpUbH7V3WFPPyncOgPBtVIaby7Px58tqSdkt8jUWz7odnlfQaEKYaJClc-wPO9iuS48fZ4UD3slRR32IVd9UvyYWy8QOhLD9Qfq5nt2y2KgkfoN6owAgc1bkxFBkS5_bF7sw9wTn3-Y"/>
+</div>
+<div class="p-6 relative z-20 -mt-12">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase">Striker</span>
+<span class="text-slate-400 text-[10px] font-bold uppercase">Norway</span>
+</div>
+<h3 class="text-xl font-bold mb-4">Erling Haaland</h3>
+<div class="grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">PAC</p>
+<p class="font-black text-white">89</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">SHO</p>
+<p class="font-black text-white">93</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">PHY</p>
+<p class="font-black text-white">88</p>
+</div>
+</div>
+<button class="w-full mt-6 bg-white/10 group-hover:bg-primary group-hover:text-background-dark py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                        View Details
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Player Card 3 -->
+<div class="group player-card-hover bg-white/5 border border-white/10 rounded-2xl overflow-hidden relative">
+<div class="absolute top-4 left-4 z-10 flex flex-col items-center">
+<span class="text-3xl font-black text-primary leading-none">91</span>
+<span class="text-[10px] font-bold text-white uppercase tracking-widest mt-1">OVR</span>
+</div>
+<div class="h-64 overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-t from-[#102216] to-transparent z-10"></div>
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Football player in white jersey looking ahead" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBY-NPlT0w3y4TipFz2N6MDngngbcuQxkdLzOv7aFch5HRQ14e6tKFhDq6geAqh62qg2purvKLxJDKfDO6iHUVJCUglNGwNX1l7VsGzk4MReAvB62YK2_NL7E_9MGI1_U5b5eTpOqRAzGK3i73pAAkdPFFFiwD-JchesRdIDZUUAti1mhioGpO6xlHvlWZ2cn377SYb7dt749E32rz3dPIh7RqNEYAXBiIGG9xqWRPMXeXoVMAr_R6Sjy08FGuiOi5kOYOsQd_HBzM"/>
+</div>
+<div class="p-6 relative z-20 -mt-12">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase">Midfield</span>
+<span class="text-slate-400 text-[10px] font-bold uppercase">Belgium</span>
+</div>
+<h3 class="text-xl font-bold mb-4">Kevin De Bruyne</h3>
+<div class="grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">PAS</p>
+<p class="font-black text-white">94</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">SHO</p>
+<p class="font-black text-white">88</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">DRI</p>
+<p class="font-black text-white">87</p>
+</div>
+</div>
+<button class="w-full mt-6 bg-white/10 group-hover:bg-primary group-hover:text-background-dark py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                        View Details
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Player Card 4 -->
+<div class="group player-card-hover bg-white/5 border border-white/10 rounded-2xl overflow-hidden relative">
+<div class="absolute top-4 left-4 z-10 flex flex-col items-center">
+<span class="text-3xl font-black text-primary leading-none">89</span>
+<span class="text-[10px] font-bold text-white uppercase tracking-widest mt-1">OVR</span>
+</div>
+<div class="h-64 overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-t from-[#102216] to-transparent z-10"></div>
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Defensive football player standing confidently on pitch" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwQkWS_m2iDbvbagCFIHprLsEpqNCredKMheswECsPaM4irIysztPLDpS6KQYYYVzUVEJ5l_YBVvHQ7QokEeIToHn5EZvdxkyUkuo0Lkr7Oe1_7tFyWofMUUXtGusb1ECLq2fifAm6hbePR7t9004wVMuMyS4FfCqVMlF0PAnwoyPksS4T-oO-IMNxW7p2ETdNGYLg9ltPZE4y9I7AH8eDrehm2N7Bh76daCvSFQ_7OmY_GZlKmGiuT1HFTmdSdKGIG3B0IWBon3w"/>
+</div>
+<div class="p-6 relative z-20 -mt-12">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase">Defender</span>
+<span class="text-slate-400 text-[10px] font-bold uppercase">Netherlands</span>
+</div>
+<h3 class="text-xl font-bold mb-4">Virgil van Dijk</h3>
+<div class="grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">DEF</p>
+<p class="font-black text-white">89</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">PHY</p>
+<p class="font-black text-white">86</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">PAC</p>
+<p class="font-black text-white">78</p>
+</div>
+</div>
+<button class="w-full mt-6 bg-white/10 group-hover:bg-primary group-hover:text-background-dark py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                        View Details
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Player Card 5 (Repeated Style) -->
+<div class="group player-card-hover bg-white/5 border border-white/10 rounded-2xl overflow-hidden relative">
+<div class="absolute top-4 left-4 z-10 flex flex-col items-center">
+<span class="text-3xl font-black text-primary leading-none">90</span>
+<span class="text-[10px] font-bold text-white uppercase tracking-widest mt-1">OVR</span>
+</div>
+<div class="h-64 overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-t from-[#102216] to-transparent z-10"></div>
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Young fast winger running with ball" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwJBxHYuVHsmYyQ2uiqDaf5gFMD08JZp3IoR1UmYE4NlcGEyFU88s_0uTvvn4KG8H_7mWFy2bCIat_4o2dLtfseUjVr7OOYUIN0gDVfdSI_q4_PDnzHsZB_p3_sL_zkCjj0S3B5OydD6r_UuIRxFupw7F2F0fOH9xIg6xxEw0E2UcZOAFPG62PQWrxn0geuxQQW_A9dwqnWz_-3T0TcwFU2qO28QWrVzTrxrHZJ-QcxyusWbk1HM3IrJkhsXfdG9xvWczny7-zJNc"/>
+</div>
+<div class="p-6 relative z-20 -mt-12">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase">Winger</span>
+<span class="text-slate-400 text-[10px] font-bold uppercase">Brazil</span>
+</div>
+<h3 class="text-xl font-bold mb-4">Vini Jr.</h3>
+<div class="grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">PAC</p>
+<p class="font-black text-white">95</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">DRI</p>
+<p class="font-black text-white">91</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">SHO</p>
+<p class="font-black text-white">82</p>
+</div>
+</div>
+<button class="w-full mt-6 bg-white/10 group-hover:bg-primary group-hover:text-background-dark py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                        View Details
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Player Card 6 -->
+<div class="group player-card-hover bg-white/5 border border-white/10 rounded-2xl overflow-hidden relative">
+<div class="absolute top-4 left-4 z-10 flex flex-col items-center">
+<span class="text-3xl font-black text-primary leading-none">88</span>
+<span class="text-[10px] font-bold text-white uppercase tracking-widest mt-1">OVR</span>
+</div>
+<div class="h-64 overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-t from-[#102216] to-transparent z-10"></div>
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Midfield star controlling the game" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCm6dvbqY4l_Z_Mm6gEUTDt7NqGyYsNp7Cf6pwGrvyYCTQHvHzFdesPEGkSIUmVFAyn_d1ZqNo5PU4TVMtVMSyEbWzaBz8wvVD4rRDlLO74qdJ1qohO8CJuIWfdCdCHLvZNcQ7flvyWNSFEDJoW6Woj6-QA7JUFJljUU_pJQQHefxr_9t40hM8NJUVDLRoWFnxEH4omghVou8sjQcXGPnhsOLLwm7K3XXS3OlJvE1-TytMpDlxg2TrR-tM2Fi4pJfnfpoHypFY3Q4Y"/>
+</div>
+<div class="p-6 relative z-20 -mt-12">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase">Central Mid</span>
+<span class="text-slate-400 text-[10px] font-bold uppercase">England</span>
+</div>
+<h3 class="text-xl font-bold mb-4">Jude Bellingham</h3>
+<div class="grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">PAC</p>
+<p class="font-black text-white">83</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">DRI</p>
+<p class="font-black text-white">88</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">PHY</p>
+<p class="font-black text-white">82</p>
+</div>
+</div>
+<button class="w-full mt-6 bg-white/10 group-hover:bg-primary group-hover:text-background-dark py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                        View Details
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Player Card 7 -->
+<div class="group player-card-hover bg-white/5 border border-white/10 rounded-2xl overflow-hidden relative">
+<div class="absolute top-4 left-4 z-10 flex flex-col items-center">
+<span class="text-3xl font-black text-primary leading-none">89</span>
+<span class="text-[10px] font-bold text-white uppercase tracking-widest mt-1">OVR</span>
+</div>
+<div class="h-64 overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-t from-[#102216] to-transparent z-10"></div>
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Defensive midfielder protecting the backline" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8ixQ8gCjncLK6ifVeIUiiUWx2o3FmMsPR_ureY13Ulp3nNuU7wQKYbqIMePq3sQZefSoyn1CGSR1C6mnAEIi3fIIVqGEPJdWmPsXr3oWDhyYpfJp0k7-8BdUbmyamvDdMm4myC8vwZ722tGHrskNQzpyEZTQ_knvpLdt3XmZiPQez1DcNlnShSNZVv7vBdmnXxW_S_P9zG1LTfV73MPn8LTQvm6TPp-z13iZshTt8RhfU2j4wCi-GOA8bvd5bwH2QiUvYeWLxgLg"/>
+</div>
+<div class="p-6 relative z-20 -mt-12">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase">CDM</span>
+<span class="text-slate-400 text-[10px] font-bold uppercase">Spain</span>
+</div>
+<h3 class="text-xl font-bold mb-4">Rodri</h3>
+<div class="grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">DEF</p>
+<p class="font-black text-white">87</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">PHY</p>
+<p class="font-black text-white">85</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">PAS</p>
+<p class="font-black text-white">86</p>
+</div>
+</div>
+<button class="w-full mt-6 bg-white/10 group-hover:bg-primary group-hover:text-background-dark py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                        View Details
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Player Card 8 -->
+<div class="group player-card-hover bg-white/5 border border-white/10 rounded-2xl overflow-hidden relative">
+<div class="absolute top-4 left-4 z-10 flex flex-col items-center">
+<span class="text-3xl font-black text-primary leading-none">89</span>
+<span class="text-[10px] font-bold text-white uppercase tracking-widest mt-1">OVR</span>
+</div>
+<div class="h-64 overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-t from-[#102216] to-transparent z-10"></div>
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Clinical finisher celebrating a goal" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRL6ZjYqMUsksXP7y7CpjQvEjGH3JVu45MlJnnoVeROJSbS2eEVyuvxBUxgr1L9qcFR49t9RgOSFJlYQ8fnK1fTgVu69w2BDPHkkqclavpLrgMwJwA26s-kcZbssLDftXKlIFkM3pmNKX8CJYO6kwSQhM0muZuJ-U6Ko4A_oYtlCwkzjlaTn92oFIIx9l4sC29C0xLGTlcOEWps6adc55tFHUjQ4vIhQrKaNl-D3_Qu45u60e8mohTpcs3LdjRB-YQVIyHBUYMRJM"/>
+</div>
+<div class="p-6 relative z-20 -mt-12">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase">Forward</span>
+<span class="text-slate-400 text-[10px] font-bold uppercase">Egypt</span>
+</div>
+<h3 class="text-xl font-bold mb-4">Mohamed Salah</h3>
+<div class="grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">PAC</p>
+<p class="font-black text-white">89</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">SHO</p>
+<p class="font-black text-white">87</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-500 font-bold uppercase">DRI</p>
+<p class="font-black text-white">88</p>
+</div>
+</div>
+<button class="w-full mt-6 bg-white/10 group-hover:bg-primary group-hover:text-background-dark py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                        View Details
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Pagination -->
+<div class="mt-16 flex items-center justify-center gap-4">
+<button class="p-2 rounded-lg bg-white/5 border border-white/10 hover:border-primary transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 rounded-lg bg-primary text-background-dark font-bold">1</button>
+<button class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 hover:border-primary transition-colors">2</button>
+<button class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 hover:border-primary transition-colors">3</button>
+<span class="mx-2">...</span>
+<button class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 hover:border-primary transition-colors">12</button>
+</div>
+<button class="p-2 rounded-lg bg-white/5 border border-white/10 hover:border-primary transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</main>
+<!-- Footer -->
+<footer class="border-t border-white/5 bg-background-dark py-12 px-4 lg:px-20 text-center">
+<div class="flex flex-col items-center gap-6">
+<div class="flex items-center gap-2 opacity-50">
+<span class="material-symbols-outlined">gavel</span>
+<p class="text-sm font-medium">Football Auction System v1.0.0</p>
+</div>
+
+<p class="text-slate-600 text-xs">© 2026 Football Auction Engine. All rights reserved.</p>
+</div>
+</footer>
+</body></html>

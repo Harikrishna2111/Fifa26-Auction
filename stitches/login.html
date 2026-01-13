@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FootyAuction | Authentication</title>
+
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        primary: "#0df259",
+        "background-dark": "#0a0f0c",
+        "card-bg": "#161b18",
+      },
+      fontFamily: {
+        display: ["Lexend", "sans-serif"]
+      }
+    }
+  }
+}
+</script>
+
+<style type="text/tailwindcss">
+@layer utilities {
+  .pitch-pattern {
+    background-image: radial-gradient(circle at 2px 2px, rgba(13,242,89,0.05) 1px, transparent 0);
+    background-size: 40px 40px;
+  }
+  .pitch-lines {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 100px 100px;
+  }
+  .neon-focus:focus {
+    box-shadow: 0 0 15px rgba(13,242,89,0.3);
+    border-color: #0df259;
+    outline: none;
+  }
+}
+</style>
+</head>
+
+<body class="bg-background-dark font-display text-white min-h-screen flex items-center justify-center relative overflow-hidden">
+
+<div class="absolute inset-0 pitch-pattern opacity-50"></div>
+<div class="absolute inset-0 pitch-lines opacity-30"></div>
+
+<main class="relative z-10 w-full max-w-md px-6">
+
+<!-- LOGO -->
+<div class="flex flex-col items-center mb-10">
+  <div class="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-background-dark mb-4">
+    <span class="material-symbols-outlined text-3xl">sports_soccer</span>
+  </div>
+  <h1 class="text-3xl font-black uppercase italic">Footy<span class="text-primary">Auction</span></h1>
+  <p class="text-slate-500 text-sm mt-2">DOORSTEP TO THE ARENA</p>
+</div>
+
+<!-- CARD -->
+<div class="bg-card-bg border border-white/5 rounded-3xl p-8 shadow-2xl">
+
+<!-- TOGGLE -->
+<div class="flex p-1 bg-black/40 rounded-xl mb-8 border border-white/5">
+  <button id="loginTab" class="flex-1 py-2.5 text-sm font-bold rounded-lg bg-primary text-background-dark transition-all">
+    Login
+  </button>
+  <button id="signupTab" class="flex-1 py-2.5 text-sm font-bold text-slate-400 rounded-lg transition-all">
+    Sign Up
+  </button>
+</div>
+
+<!-- FORMS -->
+<div class="relative overflow-hidden min-h-[420px]">
+
+
+<!-- LOGIN FORM -->
+<form id="loginForm" class="absolute inset-x-0 top-0 space-y-6 transition-all duration-500">
+  <div>
+    <label class="text-xs font-bold text-slate-400 uppercase">Username</label>
+    <input class="w-full bg-black/20 border border-white/10 rounded-xl py-4 px-4 neon-focus" placeholder="manager_name">
+  </div>
+
+  <div>
+    <label class="text-xs font-bold text-slate-400 uppercase">Password</label>
+    <input type="password" class="w-full bg-black/20 border border-white/10 rounded-xl py-4 px-4 neon-focus" placeholder="••••••••">
+  </div>
+
+<button
+  type="button"
+  onclick="window.location.href='user_dashboard.html'"
+  class="w-full bg-primary text-background-dark py-4 rounded-xl font-black uppercase tracking-widest">
+  Enter
+</button>
+
+</form>
+
+<!-- SIGNUP FORM -->
+<form id="signupForm" class="absolute inset-x-0 top-0 space-y-6 transition-all duration-500 hidden opacity-0">
+
+  <!-- FULL NAME (ONLY HERE) -->
+  <div>
+    <label class="text-xs font-bold text-slate-400 uppercase">Full Name</label>
+    <input class="w-full bg-black/20 border border-white/10 rounded-xl py-4 px-4 neon-focus" placeholder="Alex Ferguson">
+  </div>
+
+  <div>
+    <label class="text-xs font-bold text-slate-400 uppercase">Username</label>
+    <input class="w-full bg-black/20 border border-white/10 rounded-xl py-4 px-4 neon-focus" placeholder="manager_name">
+  </div>
+
+  <div>
+    <label class="text-xs font-bold text-slate-400 uppercase">Password</label>
+    <input type="password" class="w-full bg-black/20 border border-white/10 rounded-xl py-4 px-4 neon-focus" placeholder="••••••••">
+  </div>
+
+<button
+  type="button"
+  onclick="window.location.href='user_dashboard.html'"
+  class="w-full bg-primary text-background-dark py-4 rounded-xl font-black uppercase tracking-widest">
+  Create Account
+</button>
+
+</form>
+
+</div>
+</div>
+</main>
+
+<!-- JS TOGGLE -->
+<script>
+const loginTab = document.getElementById("loginTab");
+const signupTab = document.getElementById("signupTab");
+const loginForm = document.getElementById("loginForm");
+const signupForm = document.getElementById("signupForm");
+
+loginTab.onclick = () => {
+  loginTab.classList.add("bg-primary","text-background-dark");
+  signupTab.classList.remove("bg-primary","text-background-dark");
+  signupTab.classList.add("text-slate-400");
+
+  signupForm.classList.add("hidden","opacity-0");
+  loginForm.classList.remove("hidden");
+  setTimeout(()=>loginForm.classList.remove("opacity-0"),50);
+};
+
+signupTab.onclick = () => {
+  signupTab.classList.add("bg-primary","text-background-dark");
+  loginTab.classList.remove("bg-primary","text-background-dark");
+  loginTab.classList.add("text-slate-400");
+
+  loginForm.classList.add("hidden","opacity-0");
+  signupForm.classList.remove("hidden");
+  setTimeout(()=>signupForm.classList.remove("opacity-0"),50);
+};
+</script>
+
+</body>
+</html>

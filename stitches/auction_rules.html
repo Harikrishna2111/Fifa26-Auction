@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Auction Rules &amp; Guidelines | Football Auction</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;family=Noto+Sans:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Lexend', sans-serif;
+        }
+        .glass-nav {
+            backdrop-filter: blur(12px);
+            background-color: rgba(16, 34, 22, 0.8);
+        }
+        .rule-card-border {
+            border-left: 4px solid #0df259;
+        }
+          .glass-nav {
+      backdrop-filter: blur(16px);
+      background-color: rgba(10, 15, 12, 0.8);
+    }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen">
+<!-- Top Navigation Bar -->
+<nav class="sticky top-0 z-50 glass-nav border-b border-white/10">
+<div class="max-w-[1440px] mx-auto px-6 h-20 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-background-dark font-bold">sports_soccer</span>
+</div>
+<h1 class="text-xl font-black tracking-tight uppercase italic">Footy<span class="text-primary">Auction</span></h1>
+</div>
+<div class="hidden md:flex items-center gap-10">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="landing_page.html">Home</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="player_stats.html">Players</a>
+<a class="text-sm font-medium text-primary border-b-2 border-primary pb-1" href="auction_rules.html">Auction Rules</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="discover.html">Discover</a>
+</div>
+<div class="flex items-center gap-4">
+<a href="login.html"><button class="px-5 py-2 text-sm font-bold hover:text-primary transition-colors">Login</button></a>
+<a href="login.html"><button class="bg-primary text-background-dark px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-white transition-all">Sign Up</button></a>
+</div>
+</div>
+</nav>
+<main class="pt-24 pb-20 px-4 lg:px-20 max-w-[1440px] mx-auto">
+<!-- Hero Section -->
+<section class="relative rounded-3xl overflow-hidden mb-12">
+<div class="absolute inset-0 bg-gradient-to-r from-background-dark via-background-dark/80 to-transparent z-10"></div>
+<div class="relative h-[400px] flex flex-col justify-center px-8 lg:px-16 z-20" data-alt="Dark football stadium atmospheric background" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCRV5sXcjjTqmLaaGe9utlAnl5lovRfEJoSPUXZ4lO9Hjsb-pQay7jnfnkzEFFPOx4fEDQGbSyA4vGJ_fajCpCJnhpbOHFxG_vQg65wTEKX7iXDeyECDwil_ffys8dTGbsJPUW05hEqDyz1FmkC7cxCQncw5tIjbc1ZofhSiRXr-W3l8bMale3HCjn7ktjupl3kxwbbx1VsNyhhb8Bsi1TFVt_ncY1uobQsWUkmSudaDzlo2itg85sVdSanEQe7raN13LcIdgaFYm4'); background-size: cover;">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider mb-6 w-fit">
+<span class="material-symbols-outlined text-sm">verified</span> Fair Play Guaranteed
+                </div>
+<h1 class="text-5xl lg:text-7xl font-black mb-4">Auction <span class="text-primary">Rules</span></h1>
+<p class="text-slate-400 max-w-xl text-lg mb-8">
+                    Professional bidding environment designed for competitive league drafts. Review these guidelines to ensure a smooth auction process.
+                </p>
+<div class="flex gap-4">
+<button class="bg-primary text-background-dark px-8 py-3 rounded-xl font-bold hover:scale-105 transition-transform">
+                        Join Live Lobby
+                    </button>
+<button class="bg-white/10 text-white border border-white/10 px-8 py-3 rounded-xl font-bold hover:bg-white/20 transition-all">
+                        Download PDF
+                    </button>
+</div>
+</div>
+</section>
+<div class="flex flex-col lg:flex-row gap-12 items-start">
+<!-- Sticky Side Navigation -->
+<aside class="w-full lg:w-64 sticky top-28 hidden lg:block">
+<div class="flex flex-col gap-1 p-4 bg-white/5 rounded-2xl border border-white/10">
+<p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">Navigation</p>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl bg-primary/10 text-primary font-bold" href="#lobby">
+<span class="material-symbols-outlined text-[20px]">meeting_room</span> Lobby Rules
+                    </a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all" href="#bidding">
+<span class="material-symbols-outlined text-[20px]">gavel</span> Bidding Rules
+                    </a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all" href="#allocation">
+<span class="material-symbols-outlined text-[20px]">group_add</span> Player Allocation
+                    </a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all" href="#control">
+<span class="material-symbols-outlined text-[20px]">settings_suggest</span> Auction Control
+                    </a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all" href="#visibility">
+<span class="material-symbols-outlined text-[20px]">visibility</span> Team Visibility
+                    </a>
+</div>
+</aside>
+<!-- Rules Content -->
+<div class="flex-1 space-y-8">
+<!-- Lobby Rules -->
+<section class="rule-card-border bg-white/5 rounded-xl border border-white/5 p-6 lg:p-8 hover:bg-white/[0.07] transition-colors" id="lobby">
+<div class="flex items-center gap-4 mb-6">
+<div class="size-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">key</span>
+</div>
+<div>
+<h2 class="text-2xl font-bold">Auction Lobby Rules</h2>
+<p class="text-slate-400 text-sm">Setting up and entering your draft room</p>
+</div>
+</div>
+<div class="grid md:grid-cols-2 gap-6 text-slate-300">
+<div class="space-y-4">
+<div class="flex gap-3">
+<span class="text-primary font-bold">01.</span>
+<p>Lobbies are created by the League Commissioner. A unique 6-digit access code is required for all participants.</p>
+</div>
+<div class="flex gap-3">
+<span class="text-primary font-bold">02.</span>
+<p>Minimum of 4 participants are required to initialize the auction countdown.</p>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex gap-3">
+<span class="text-primary font-bold">03.</span>
+<p>Lobby access closes once the first player is put under the hammer to prevent interruptions.</p>
+</div>
+<div class="flex gap-3">
+<span class="text-primary font-bold">04.</span>
+<p>Participants must maintain a stable connection; re-entry is allowed only if the auction is paused.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Bidding Rules -->
+<section class="rule-card-border bg-white/5 rounded-xl border border-white/5 p-6 lg:p-8 hover:bg-white/[0.07] transition-colors" id="bidding">
+<div class="flex items-center gap-4 mb-6">
+<div class="size-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">timer</span>
+</div>
+<div>
+<h2 class="text-2xl font-bold">Bidding Mechanics</h2>
+<p class="text-slate-400 text-sm">Increments, timers, and custom offers</p>
+</div>
+</div>
+<div class="space-y-6">
+<p class="text-slate-300">The auction uses a fast-paced dynamic bidding system. Familiarize yourself with these controls:</p>
+<div class="flex flex-wrap gap-4">
+<div class="bg-background-dark/50 border border-white/10 p-4 rounded-2xl flex-1 min-w-[200px]">
+<p class="text-xs font-bold text-slate-500 uppercase mb-3">Bid Increments</p>
+<div class="flex gap-2">
+<span class="bg-primary/20 text-primary px-3 py-1 rounded-lg text-sm font-bold border border-primary/30">+5M</span>
+<span class="bg-primary/20 text-primary px-3 py-1 rounded-lg text-sm font-bold border border-primary/30">+10M</span>
+<span class="bg-primary/20 text-primary px-3 py-1 rounded-lg text-sm font-bold border border-primary/30">+25M</span>
+</div>
+</div>
+<div class="bg-background-dark/50 border border-white/10 p-4 rounded-2xl flex-1 min-w-[200px]">
+<p class="text-xs font-bold text-slate-500 uppercase mb-3">Timer Logic</p>
+<p class="text-sm text-slate-300">Countdown starts at <span class="text-primary font-bold">15s</span>. Any bid placed within the last 5s resets the clock to 5s.</p>
+</div>
+</div>
+<div class="p-4 bg-primary/5 rounded-xl border border-primary/20">
+<h4 class="text-primary font-bold flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-sm">info</span> Custom Bidding
+                            </h4>
+<p class="text-sm text-slate-300">Users can type custom values. However, custom bids must be at least 1M higher than the current highest bid.</p>
+</div>
+</div>
+</section>
+<!-- Player Allocation -->
+<section class="rule-card-border bg-white/5 rounded-xl border border-white/5 p-6 lg:p-8 hover:bg-white/[0.07] transition-colors" id="allocation">
+<div class="flex items-center gap-4 mb-6">
+<div class="size-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">person_add</span>
+</div>
+<div>
+<h2 class="text-2xl font-bold">Player Allocation</h2>
+<p class="text-slate-400 text-sm">Winning bids and sequential order</p>
+</div>
+</div>
+<div class="space-y-4 text-slate-300">
+<div class="flex items-start gap-4">
+<div class="size-8 rounded-lg bg-white/10 flex-shrink-0 flex items-center justify-center text-xs font-bold">1</div>
+<p>Players are presented in a pre-determined sequential order based on position (GK → DEF → MID → FWD) unless "Randomized Order" is enabled by the admin.</p>
+</div>
+<div class="flex items-start gap-4">
+<div class="size-8 rounded-lg bg-white/10 flex-shrink-0 flex items-center justify-center text-xs font-bold">2</div>
+<p>Once the timer hits zero, the player is instantly allocated to the highest bidder's roster. Funds are deducted automatically from the remaining budget.</p>
+</div>
+<div class="flex items-start gap-4">
+<div class="size-8 rounded-lg bg-white/10 flex-shrink-0 flex items-center justify-center text-xs font-bold">3</div>
+<p>If no bids are placed, the player is moved to the "Unsold" pool and may be re-auctioned at the end of the session.</p>
+</div>
+</div>
+</section>
+<!-- Auction Control -->
+<section class="rule-card-border bg-white/5 rounded-xl border border-white/5 p-6 lg:p-8 hover:bg-white/[0.07] transition-colors" id="control">
+<div class="flex items-center gap-4 mb-6">
+<div class="size-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">shield_person</span>
+</div>
+<div>
+<h2 class="text-2xl font-bold">Auction Control</h2>
+<p class="text-slate-400 text-sm">Administrative powers and pausing</p>
+</div>
+</div>
+<div class="grid md:grid-cols-2 gap-4">
+<div class="p-5 bg-background-dark/40 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group">
+<div class="flex items-center justify-between mb-3">
+<span class="font-bold text-white">Pause Function</span>
+<span class="material-symbols-outlined text-primary">pause_circle</span>
+</div>
+<p class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Admin can pause at any time for breaks or technical disputes. Bidding is disabled while paused.</p>
+</div>
+<div class="p-5 bg-background-dark/40 rounded-2xl border border-white/5 hover:border-red-500/20 transition-all group">
+<div class="flex items-center justify-between mb-3">
+<span class="font-bold text-white">Emergency Stop</span>
+<span class="material-symbols-outlined text-red-500">stop_circle</span>
+</div>
+<p class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Force ends the current player auction. Bids are voided and the player is returned to the pool.</p>
+</div>
+</div>
+</section>
+<!-- Team Visibility -->
+<section class="rule-card-border bg-white/5 rounded-xl border border-white/5 p-6 lg:p-8 hover:bg-white/[0.07] transition-colors" id="visibility">
+<div class="flex flex-col md:flex-row gap-8 items-center">
+<div class="flex-1">
+<div class="flex items-center gap-4 mb-4">
+<div class="size-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">bar_chart</span>
+</div>
+<h2 class="text-2xl font-bold">Team Visibility</h2>
+</div>
+<p class="text-slate-300 mb-6 leading-relaxed">
+                                Strategy is key. You can monitor competitors in real-time. The "Squad Preview" pane shows their current roster, remaining budget, and most expensive purchase.
+                            </p>
+<div class="flex items-center gap-6">
+<div class="text-center">
+<p class="text-2xl font-black text-primary">Real-time</p>
+<p class="text-[10px] text-slate-500 uppercase tracking-widest">Budget Updates</p>
+</div>
+<div class="w-px h-10 bg-white/10"></div>
+<div class="text-center">
+<p class="text-2xl font-black text-white">100%</p>
+<p class="text-[10px] text-slate-500 uppercase tracking-widest">Transparency</p>
+</div>
+</div>
+</div>
+<div class="w-full md:w-64 h-48 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 flex items-center justify-center" data-alt="Abstract data visualization pattern">
+<div class="relative w-32 h-32">
+<div class="absolute inset-0 rounded-full border-4 border-white/5"></div>
+<div class="absolute inset-0 rounded-full border-t-4 border-primary shadow-[0_0_15px_rgba(13,242,89,0.5)]"></div>
+<div class="absolute inset-0 flex items-center justify-center font-bold text-xs text-primary">ANALYTICS</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="border-t border-white/5 bg-background-dark py-12 px-4 lg:px-20 text-center">
+<div class="flex flex-col items-center gap-6">
+<div class="flex items-center gap-2 opacity-50">
+<span class="material-symbols-outlined">gavel</span>
+<p class="text-sm font-medium">Football Auction System v1.0.0</p>
+</div>
+
+<p class="text-slate-600 text-xs">© 2026 Football Auction Engine. All rights reserved.</p>
+</div>
+</footer>
+</body></html>

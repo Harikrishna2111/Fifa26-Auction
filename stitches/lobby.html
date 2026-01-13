@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Auction Lobby Waiting Room</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .stadium-gradient {
+            background: radial-gradient(circle at top, #1a3a24 0%, #102216 70%);
+        }
+        .smoke-overlay {
+            background: linear-gradient(180deg, transparent 0%, rgba(16, 34, 22, 0.8) 100%);
+            pointer-events: none;
+        }
+        .glow-border {
+            box-shadow: 0 0 15px rgba(13, 242, 89, 0.4);
+        }
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.98); }
+        }
+        .pulse-text {
+            animation: pulse-soft 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-white min-h-screen relative overflow-x-hidden">
+<!-- Stadium Atmosphere Layer -->
+<div class="fixed inset-0 stadium-gradient -z-10"></div>
+<div class="fixed inset-0 smoke-overlay -z-5"></div>
+<div class="layout-container flex h-full grow flex-col">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-white/10 px-6 py-4 md:px-40">
+<div class="flex items-center gap-4 text-white">
+<div class="size-8 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_6_330)">
+<path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path>
+</g>
+<defs>
+<clippath id="clip0_6_330"><rect fill="white" height="48" width="48"></rect></clippath>
+</defs>
+</svg>
+</div>
+<h2 class="text-white text-xl font-bold leading-tight tracking-tight uppercase italic">Elite Champions League</h2>
+</div>
+<div class="flex flex-1 justify-end gap-4">
+<div class="flex gap-2">
+<a href="user_dashboard.html"><button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-white/5 hover:bg-white/10 text-white text-sm font-bold leading-normal transition-all">
+<span class="truncate">Leave Lobby</span>
+</button></a>
+<button class="flex cursor-pointer items-center justify-center rounded-lg h-10 w-10 bg-white/5 hover:bg-white/10 text-white transition-all">
+<span class="material-symbols-outlined text-xl">settings</span>
+</button>
+<button class="flex cursor-pointer items-center justify-center rounded-lg h-10 w-10 bg-white/5 hover:bg-white/10 text-white transition-all">
+<span class="material-symbols-outlined text-xl">person</span>
+</button>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border border-white/20" data-alt="User profile avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCwYILN85Kpsm3iSR18ciWwMDo-c4ixVPM7USSqaf0j4ovSVDI-P6bIulMnaM4AfDKan2bYeVqQkCYcIsIb7czL_vAU6182ZxmBCMUyyxDb_n0-rve2fD7W8aF40H4VbtdIpef7Ee6Mr5DlhAKx04pQJbsT9jB4YxDVpMH8TWLFwUdxZrm83R1eDXpx7mmFoHQx-IPu9RznLGNjWUnzj9XDKkq2PgngKP6t7tajRLJOtZbwdjdtfOJAldJq8QFqbwT9F_J4ynDxaRE");'></div>
+</div>
+</header>
+<main class="flex flex-col items-center flex-1 px-4 py-10">
+<div class="max-w-[1000px] w-full flex flex-col items-center">
+<!-- Headline & Stats -->
+<div class="flex flex-col items-center gap-2 mb-10">
+<span class="text-primary text-sm font-bold tracking-[0.2em] uppercase">Draft Lobby</span>
+<h1 class="text-white tracking-tight text-4xl md:text-5xl font-black leading-tight text-center">Elite Champions League</h1>
+<div class="mt-6 bg-primary/10 border border-primary/30 rounded-xl p-4 flex flex-col items-center min-w-[200px] glow-border">
+<p class="text-primary/70 text-xs font-bold uppercase tracking-widest">Lobby Code</p>
+<p class="text-primary text-3xl font-black tracking-widest">Z7-K92</p>
+</div>
+</div>
+<!-- Section Header -->
+<div class="w-full flex justify-between items-end px-4 mb-4">
+<h2 class="text-white text-xl font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">groups</span>
+                        Joined Managers (12/20)
+                    </h2>
+<span class="text-white/40 text-sm font-medium">Waiting for players to join...</span>
+</div>
+<!-- Image Grid (Managers) -->
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 w-full p-4 bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm">
+<!-- Admin (Highlighted) -->
+<div class="flex flex-col items-center gap-3">
+<div class="relative group">
+<div class="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
+<span class="material-symbols-outlined text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]">workspace_premium</span>
+</div>
+<div class="size-24 rounded-full border-4 border-primary p-1 glow-border relative overflow-hidden bg-background-dark">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="Admin user avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCZKqcLIIMCVHjGyKKj06jlaQn_NgtotA6TcEd08QrF-3q0xvvkMYwReMmS0_JiORrT2auix3A-veACDjENIKpJi3oagxX0i0_okuAslcjODxcmQylLxUQvyA4qlnkEGQJuBpFN8c5Ge-x8QWJ2cHL4hBfI4pn5EMzB9lsnAxgtercVca44-p-rytuy3RIehAJNnlSFr1ReOhnIOvTZUPgutDYqrnaPYLzcKp1efnrKbvdik9QOvp0QLYeSc-Vp04jdHb-Kyzz-pxk");'></div>
+</div>
+<div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#FFD700] text-black text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Admin</div>
+</div>
+<p class="text-primary text-sm font-bold truncate max-w-[120px]">Marcus (You)</p>
+</div>
+<!-- Other Managers -->
+<div class="flex flex-col items-center gap-3">
+<div class="size-24 rounded-full border-2 border-white/20 p-1 hover:border-white/40 transition-all">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="Manager avatar 2" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBn9EEqlJuWADvjrEIuPElperbqbx0GSl_8PmN2MzMmRkphDh5-yrEXgJ3yfA92SyJ_zLV0WMDN9Jevj9jUd4-hNp0f13torX1nwIRr9yRXYjMNHfIHYu5sfwQonS8KFWwIye2Pj47UBiVCh1yOHgILsSAlxh4pRCS14UgJiaw79LEfptSwXI_Jv1ktQw1bzZr95pf8TX-2w9ZyKTc4djTtYjdDcTTs8CQaEgrllYfQlI8HN1v-T33lRe_NvXx8VgWcIS0f5tDTPiI");'></div>
+</div>
+<p class="text-white/80 text-sm font-medium">Davey Jones</p>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="size-24 rounded-full border-2 border-white/20 p-1 hover:border-white/40 transition-all">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="Manager avatar 3" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB6OpxS1pHB6c8EIn0C6VK4mFZ9vTRtQgdaCpXDdDAZ7FRhmfoXBrgR8KcX5INfl2khXrOqx_bCC-hpEfFLFPCW0dxGQ1poR7P0et8sX5TOl9-bmUwDbTnxqr7228qP-kaUrW9ckWL0jEERYGs9X9noisJ_GS7oiwALfLgtERjaxOnGI4ifXr5ngEVRt6iijvRjawi8utZirYDAxbIU272uw73u4SVG_KPLPbOWwxi-l1kccbexxpn9rQh2DAngbqhcXWyyVe6sExQ");'></div>
+</div>
+<p class="text-white/80 text-sm font-medium">Sarah FC</p>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="size-24 rounded-full border-2 border-white/20 p-1 hover:border-white/40 transition-all">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="Manager avatar 4" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCfBNZbKBwUsNg7sPWxEJlFnvSsLjvZH6N5VXf8qmA4glmGE9XnxFQJAj1jtFtgnKcRVXlyeF2BvBQmoF0h_u4PKZ77xPa6jsj5h8RIPH4DK5lsoL8Lmrwcio_fbH-BOHAW9TvDltQevtbXBMDEnmT3x7wPcw4EwWFSrjLFeP4NG1CMi0k-hzUguuuSDddxCpFWIylXMiO1_-sGZo8pTBxU5sOvroPXEjctbPltmujKdFyyuheefh889ckR-DM-YFrjvNzzgRYnH5Q");'></div>
+</div>
+<p class="text-white/80 text-sm font-medium">Beto Manager</p>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="size-24 rounded-full border-2 border-white/20 p-1 hover:border-white/40 transition-all">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="Manager avatar 5" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBrxFIFAvNAI1IzHhd2759h4Gw5C7aPwUne2gpfB7nUaXcHmdX053UXbahsrEDRFc2hEGfJWoS9xszMPMy2Fvmz0maa_5tyXZHkRf0N9STBImKOu53bcj2lzeqeiz5e4JKXlS5PtjsWa75wqVwluh-g14OxGwCJMc7nuQTJueibQi9gYIFPDGvH0PeoDvNx-qVF_O4yAMZcOgOvCPh_NjbkyaXwk7JypM-6n7pg9IHzltGLaToMa3VvE_qMIk2syB6Vf-a3pitov2Q");'></div>
+</div>
+<p class="text-white/80 text-sm font-medium">Elena United</p>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="size-24 rounded-full border-2 border-white/20 p-1 hover:border-white/40 transition-all">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="Manager avatar 6" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD6vyoQ6FYsBNtpikBWJPEZt7ub7ao4bWp7BmcyX97XoSP7m4PXZyWxzwUUrpK0pt7P6FAWA0dDMcTrv98w2jCP4gS8Dbt0rj71RyTwH9lQRvX2xhoAuvMpArp6taQY6DZtq_GMM8YTzgUZJFS44-lod3oRCNLGk7chrGG9aJSPAD4o91g_nxSd1JAB83_tAyiUVrk0M519PvEtTse1Ivq3kcxAC8dHyH_a-XWwcfvmtcrGazxMli9sbtnDWbg9uBm2CGMhKFUiAIk");'></div>
+</div>
+<p class="text-white/80 text-sm font-medium">The Gaffer</p>
+</div>
+<!-- Placeholder slots -->
+<div class="flex flex-col items-center gap-3 opacity-30">
+<div class="size-24 rounded-full border-2 border-dashed border-white/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">person_add</span>
+</div>
+<p class="text-white/40 text-xs font-medium italic">Empty Slot</p>
+</div>
+<div class="flex flex-col items-center gap-3 opacity-30">
+<div class="size-24 rounded-full border-2 border-dashed border-white/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">person_add</span>
+</div>
+<p class="text-white/40 text-xs font-medium italic">Empty Slot</p>
+</div>
+</div>
+<!-- Action Section -->
+<div class="mt-16 w-full flex flex-col items-center gap-6">
+<p class="text-primary font-bold text-lg pulse-text flex items-center gap-3">
+<span class="size-2 rounded-full bg-primary inline-block"></span>
+                        Waiting for admin to start auction...
+                    </p>
+<!-- High Impact Start Button (Visible for Admin) -->
+<a href="auction.html"><button class="group relative flex min-w-[320px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-16 px-8 bg-primary text-background-dark text-xl font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(13,242,89,0.5)]">
+<span class="flex items-center gap-2">
+                            Start Auction
+                            <span class="material-symbols-outlined font-bold">play_arrow</span>
+</span>
+</button></a>
+</div>
+</div>
+</main>
+<!-- Connectivity Footer -->
+<footer class="p-6 flex justify-between items-center text-white/40 text-[10px] uppercase tracking-widest border-t border-white/5">
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1"><span class="size-1.5 rounded-full bg-primary"></span> Server: EU-West-1</span>
+<span>Latency: 24ms</span>
+</div>
+<div>
+                © 2024 Elite Champions League v2.4.0
+            </div>
+</footer>
+</div>
+</body></html>
