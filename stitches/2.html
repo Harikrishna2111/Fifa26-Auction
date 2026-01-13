@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FootyAuction | User Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "accent-gold": "#FFD700",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#0a0f0c",
+                        "card-dark": "#161d18",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .card-hover:hover {
+            border-color: #0df259;
+            box-shadow: 0 0 20px rgba(13, 242, 89, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-background-dark font-display text-white transition-colors duration-300 min-h-screen">
+<header class="sticky top-0 z-50 w-full border-b border-white/10 bg-background-dark/80 backdrop-blur-md">
+<div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-background-dark">
+<span class="material-symbols-outlined font-bold">sports_soccer</span>
+</div>
+<h2 class="text-xl font-black tracking-tighter uppercase italic">Footy<span class="text-primary">Auction</span></h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3 pr-6 border-r border-white/10">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-bold">Alex Smith</p>
+<p class="text-[10px] text-primary uppercase font-black tracking-wider">Pro Manager</p>
+</div>
+<div class="w-10 h-10 rounded-full bg-white/10 border border-primary/30 flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-primary">person</span>
+</div>
+</div>
+<a href="3.html"><button class="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">logout</span>
+                    Logout
+                </button></a>
+</div>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-6 py-10">
+<div class="mb-12">
+<h1 class="text-3xl font-black mb-2">Manager <span class="text-primary italic">Dashboard</span></h1>
+<p class="text-slate-400">Welcome back, Alex. Your teams are currently competing in 2 active leagues.</p>
+</div>
+<section class="mb-12">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-xl font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">history</span>
+                    Past Auctions
+                </h2>
+<button class="text-sm font-bold text-primary hover:underline">View History</button>
+</div>
+<div class="flex overflow-x-auto gap-6 pb-4 scrollbar-hide snap-x">
+<div class="min-w-[300px] bg-card-dark border border-white/5 rounded-2xl p-6 snap-start card-hover transition-all">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold bg-white/10 text-slate-300 px-2 py-1 rounded uppercase tracking-widest">Completed</span>
+<span class="text-xs text-slate-500 font-medium">May 12, 2024</span>
+</div>
+<h3 class="text-lg font-bold mb-1">Champions Elite League</h3>
+<p class="text-sm text-slate-400 mb-4">Draft Session #42</p>
+<div class="pt-4 border-t border-white/5">
+<p class="text-[10px] text-slate-500 uppercase font-black mb-2 tracking-widest">Acquired Team</p>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-accent-gold/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-accent-gold text-sm">shield</span>
+</div>
+<span class="font-bold">London Lions</span>
+</div>
+</div>
+</div>
+<div class="min-w-[300px] bg-card-dark border border-white/5 rounded-2xl p-6 snap-start card-hover transition-all">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold bg-white/10 text-slate-300 px-2 py-1 rounded uppercase tracking-widest">Completed</span>
+<span class="text-xs text-slate-500 font-medium">May 08, 2024</span>
+</div>
+<h3 class="text-lg font-bold mb-1">Global Pro Series</h3>
+<p class="text-sm text-slate-400 mb-4">Summer Draft</p>
+<div class="pt-4 border-t border-white/5">
+<p class="text-[10px] text-slate-500 uppercase font-black mb-2 tracking-widest">Acquired Team</p>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-blue-400 text-sm">shield</span>
+</div>
+<span class="font-bold">Oceanic FC</span>
+</div>
+</div>
+</div>
+<div class="min-w-[300px] bg-card-dark border border-white/5 rounded-2xl p-6 snap-start card-hover transition-all">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold bg-white/10 text-slate-300 px-2 py-1 rounded uppercase tracking-widest">Completed</span>
+<span class="text-xs text-slate-500 font-medium">May 01, 2024</span>
+</div>
+<h3 class="text-lg font-bold mb-1">Masters Invitational</h3>
+<p class="text-sm text-slate-400 mb-4">Legends Session</p>
+<div class="pt-4 border-t border-white/5">
+<p class="text-[10px] text-slate-500 uppercase font-black mb-2 tracking-widest">Acquired Team</p>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-red-400 text-sm">shield</span>
+</div>
+<span class="font-bold">Dynasty Stars</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="mb-16">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-xl font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">groups</span>
+                    My Teams
+                </h2>
+<button class="text-sm font-bold text-primary hover:underline">Manage All</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<div class="bg-card-dark border border-white/10 rounded-2xl overflow-hidden group hover:border-primary/30 transition-all">
+<div class="h-2 bg-primary"></div>
+<div class="p-6">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-black uppercase italic">London Lions</h3>
+<span class="text-xs bg-primary/10 text-primary px-2 py-1 rounded font-bold">ACTIVE</span>
+</div>
+<div class="flex -space-x-3 mb-6">
+<div class="w-10 h-10 rounded-full border-2 border-card-dark bg-slate-800 overflow-hidden">
+<img alt="Player" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaI-OdEcAegheBHPIWZugUKMGn-59W4GY3JEa3Qd1hJuwCyB10R-5fppWeGiktjA52i02UvsX-McchLeRgdmYtFgQrReBbJukThxbRI7vhWfqX_1Kwr3jJGr44mzeeKB3Mgb6p1gref6oV76h3UztsMS1CJB1JHXrTvLx_7oGpe3rrc58CPjxLsTQCZ4dR_x4vLUOS5iIUVLVNx8YzvPnZUblNAonIlaVw0J4EF_4wCcVhw8cfjc9-yHfb8r1TgvRIyIBD25n1Myc"/>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-card-dark bg-slate-800 overflow-hidden">
+<img alt="Player" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUps7q3cIJGDkxrGYbzTNFxTAD6rS2oOVGJ0gEwz_mih68sB9sZJIpc0uqNMft4uxW6LqltFDs2Ob2xahbBDg2lzCcU0E7Cek4kLS3cxwZbgeBWjL4ikwb4PSg6DduV5lx3ftjF-sqMUKSefeszU9_TMgmdaUSm7zrRnrt3PSPEjWxJM7Zv_x-Y1ZWqVOF8UT9GKjkxCNd6gE5JtnoTSk5jfYinBCWMvQ_zxvRr9PGtxA2ItX1PdEXlZoEoHXhFYMy_XnbGdkiZH0"/>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-card-dark bg-slate-800 overflow-hidden">
+<img alt="Player" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuArnXW0-OMeKKqF9N2NfSbva7wr4fyuVVjW0n1frJ0nwiWp_uT2i7lTYHkwIdGk1vld4sip4aXrwlLA8-NJpADRscpMhLUO3GOqHysjuLHqNRvFNcUdAUGZiX-Gy5gzZ5bme3CkPokGDvT0Qdr7tjQ283WrXEQ-__R2OgEr2K6xppnvvaGb7MQZGHS7f1j86uRpWxu3lnM72MOKWNptxG2rv0tNTamFaKEjBrdMU181OsHlf0uSfT5QzSMY8gVVvKFRBzAU6_AstMw"/>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-card-dark bg-slate-700 flex items-center justify-center text-[10px] font-bold">
+                                +8
+                            </div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-white/5 p-3 rounded-xl">
+<p class="text-[10px] text-slate-500 uppercase font-black">Rating</p>
+<p class="text-lg font-black text-accent-gold">88 OVR</p>
+</div>
+<div class="bg-white/5 p-3 rounded-xl">
+<p class="text-[10px] text-slate-500 uppercase font-black">Value</p>
+<p class="text-lg font-black">$420M</p>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-card-dark border border-white/10 rounded-2xl overflow-hidden group hover:border-primary/30 transition-all">
+<div class="h-2 bg-blue-500"></div>
+<div class="p-6">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-black uppercase italic">Oceanic FC</h3>
+<span class="text-xs bg-blue-500/10 text-blue-400 px-2 py-1 rounded font-bold">IDLE</span>
+</div>
+<div class="flex -space-x-3 mb-6">
+<div class="w-10 h-10 rounded-full border-2 border-card-dark bg-slate-800 overflow-hidden">
+<img alt="Player" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtoqHScF58_zyr4h_ZxNLaPJ95LKIftkwmd9wgPGcdz4h-Ez25dhMogKjMoO05IZ6U-HaJevQ2Diagko8w4jP-z0AkXNzefjHN_WPBXJ2Y-Y9LXXLYj9kQO7BshE96XkaHCpvg_aCAw4QyZdfIvSjPFCVWdWZ3XGPiA8RC8ijihTgO8TPfgJzjBKFVWdy1fZr1XsG59dHa5L-8EK3kGSG0BhdtSyCG_vgDS5PozJW7uvoNHdO6vF3ym3PyS53sUtRSBWqAl9Zx46I"/>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-card-dark bg-slate-800 overflow-hidden">
+<img alt="Player" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaI-OdEcAegheBHPIWZugUKMGn-59W4GY3JEa3Qd1hJuwCyB10R-5fppWeGiktjA52i02UvsX-McchLeRgdmYtFgQrReBbJukThxbRI7vhWfqX_1Kwr3jJGr44mzeeKB3Mgb6p1gref6oV76h3UztsMS1CJB1JHXrTvLx_7oGpe3rrc58CPjxLsTQCZ4dR_x4vLUOS5iIUVLVNx8YzvPnZUblNAonIlaVw0J4EF_4wCcVhw8cfjc9-yHfb8r1TgvRIyIBD25n1Myc"/>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-card-dark bg-slate-700 flex items-center justify-center text-[10px] font-bold">
+                                +11
+                            </div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-white/5 p-3 rounded-xl">
+<p class="text-[10px] text-slate-500 uppercase font-black">Rating</p>
+<p class="text-lg font-black text-accent-gold">84 OVR</p>
+</div>
+<div class="bg-white/5 p-3 rounded-xl">
+<p class="text-[10px] text-slate-500 uppercase font-black">Value</p>
+<p class="text-lg font-black">$315M</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="relative group cursor-pointer overflow-hidden rounded-3xl bg-primary p-10 flex flex-col justify-between min-h-[300px] transition-transform hover:scale-[1.02]">
+<div class="absolute top-0 right-0 p-8 opacity-20">
+<span class="material-symbols-outlined text-[120px]">add_circle</span>
+</div>
+<div class="relative z-10">
+<h2 class="text-background-dark text-3xl font-black uppercase italic leading-tight mb-4">Create Your<br/>Auction Lobby</h2>
+<p class="text-background-dark/70 font-medium max-w-xs">Host your own custom draft. Invite friends and set your own league rules.</p>
+</div>
+<a href="4.html"><button class="relative z-10 w-fit bg-background-dark text-primary px-8 py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:shadow-xl transition-shadow">
+                    Start New Lobby
+                </button></a>
+</div>
+<div class="relative group cursor-pointer overflow-hidden rounded-3xl border-2 border-white/10 bg-transparent p-10 flex flex-col justify-between min-h-[300px] transition-all hover:bg-white/5 hover:border-primary/50">
+<div class="absolute top-0 right-0 p-8 opacity-10">
+<span class="material-symbols-outlined text-[120px]">login</span>
+</div>
+<div class="relative z-10">
+<h2 class="text-white text-3xl font-black uppercase italic leading-tight mb-4">Join Active<br/>Auction Rooms</h2>
+<p class="text-slate-400 font-medium max-w-xs">Enter public or private rooms and start bidding on world-class talent now.</p>
+</div>
+<a href="5.html"><button class="relative z-10 w-fit bg-white text-background-dark px-8 py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-primary transition-colors">
+                    Browse Lobbies
+                </button></a>
+</div>
+</section>
+</main>
+<footer class="mt-20 border-t border-white/5 py-10">
+<div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-2 opacity-50">
+<span class="material-symbols-outlined text-sm">sports_soccer</span>
+<span class="text-xs font-black uppercase italic">FootyAuction v2.4.0</span>
+</div>
+<div class="flex gap-8 text-xs text-slate-500">
+<a class="hover:text-primary transition-colors" href="#">Rules</a>
+<a class="hover:text-primary transition-colors" href="#">Support</a>
+<a class="hover:text-primary transition-colors" href="#">Terms</a>
+</div>
+<p class="text-xs text-slate-600">© 2024 FootyAuction Inc.</p>
+</div>
+</footer>
+
+</body></html>
