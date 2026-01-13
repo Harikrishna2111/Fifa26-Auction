@@ -1,174 +1,281 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>FC26 Live Auction</title>
 
-    <!-- Bootstrap CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Live Football Auction Lobby</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#0a0f0b",
+                        "auction-gold": "#ffd700",
+                        "auction-red": "#ff4d4d",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .neon-glow-green {
+            box-shadow: 0 0 15px rgba(13, 242, 89, 0.3);
+        }
+        .neon-glow-red {
+            box-shadow: 0 0 20px rgba(255, 77, 77, 0.5);
+        }
+        .gold-text-shadow {
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+        .stadium-bg {
+            background: linear-gradient(rgba(10, 15, 11, 0.85), rgba(10, 15, 11, 0.95)), 
+                        url('https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&q=80&w=2000');
+            background-size: cover;
+            background-position: center;
+        }
+        .data-stream {
+            background: linear-gradient(90deg, transparent 0%, rgba(13, 242, 89, 0.05) 50%, transparent 100%);
+        }
+    </style>
 </head>
-
-<body style="background-color:#0b132b; color:white;">
-
-<nav class="navbar navbar-dark bg-dark px-4">
-    <span class="navbar-brand">⚽ FC26 Auction Room</span>
-
-    {% if is_admin %}
-    <div>
-        <button onclick="socket.emit('force_next', {lobby_code:'{{ lobby_code }}'})"
-        class="btn btn-warning btn-sm">Force Next</button>
-
-<button onclick="socket.emit('toggle_lobby_lock', {lobby_code:'{{ lobby_code }}'})"
-        class="btn btn-secondary btn-sm">Lock Lobby</button>
-
-<button onclick="socket.emit('end_auction', {lobby_code:'{{ lobby_code }}'})"
-        class="btn btn-danger btn-sm">End Auction</button>
-
-    </div>
-    {% endif %}
-</nav>
-
-<div class="container-fluid mt-4">
-
-    <div class="row">
-
-        <!-- Player Card -->
-        <div class="col-md-4">
-            <div class="card text-dark p-3 shadow"
-                 style="border-radius:15px;">
-                <h4 class="text-center">Current Player</h4>
-
-                <img src="{{ player.image }}"
-                     class="img-fluid rounded mb-3"
-                     alt="Player">
-
-                <h5 class="text-center">{{ player.name }}</h5>
-
-                <ul class="list-group mt-3">
-                    <li class="list-group-item">Overall: {{ player.ovr }}</li>
-                    <li class="list-group-item">Position: {{ player.position }}</li>
-                    <li class="list-group-item">Pace: {{ player.pace }}</li>
-                    <li class="list-group-item">Shooting: {{ player.shooting }}</li>
-                    <li class="list-group-item">Passing: {{ player.passing }}</li>
-                    <li class="list-group-item">Dribbling: {{ player.dribbling }}</li>
-                    <li class="list-group-item">Defending: {{ player.defending }}</li>
-                    <li class="list-group-item">Physical: {{ player.physical }}</li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Bidding Panel -->
-        <div class="col-md-4">
-            <div class="card p-3 shadow"
-                 style="border-radius:15px;">
-                <h4 class="text-center">Live Bidding</h4>
-
-                <h5 class="text-center text-success mt-2">
-                    ₹ {{ current_bid }}
-                </h5>
-
-                <p class="text-center">
-                    Highest Bidder: <b>{{ highest_bidder }}</b>
-                </p>
-
-                <div class="d-grid gap-2 mt-3">
-                    <button class="btn btn-primary">+10</button>
-                    <button class="btn btn-primary">+20</button>
-                    <button class="btn btn-primary">+50</button>
-                </div>
-
-                <input type="number"
-                       class="form-control mt-3"
-                       placeholder="Custom Bid">
-
-                <button class="btn btn-success w-100 mt-2">
-                    Place Bid
-                </button>
-
-                <button class="btn btn-secondary w-100 mt-3">
-                    Skip Player
-                </button>
-
-                <div class="text-center mt-3">
-                    ⏱ Time Left: <b>10s</b>
-                </div>
-            </div>
-        </div>
-
-        <!-- Teams Overview -->
-        <div class="col-md-4">
-            <div class="card p-3 shadow"
-                 style="border-radius:15px;">
-                <h4 class="text-center">Teams & Budgets</h4>
-
-                {% for team in teams %}
-                <div class="border rounded p-2 mb-2">
-                    <b>{{ team.name }}</b><br>
-                    Budget: ₹ {{ team.budget }}<br>
-                    Players: {{ team.players|length }}
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-    </div>
-
+<body class="bg-background-light dark:bg-background-dark font-display text-white overflow-hidden h-screen stadium-bg">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between border-b border-white/10 px-8 py-3 bg-black/40 backdrop-blur-md">
+<div class="flex items-center gap-4">
+<div class="size-8 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" fill="currentColor"></path>
+</svg>
 </div>
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script>
-    const socket = io();
-
-    socket.emit("join_lobby", {
-        lobby_code: "{{ lobby_code }}"
-    });
-
-    socket.on("bid_update", data => {
-        console.log("New bid:", data);
-    });
-
-    socket.on("timer_update", data => {
-        console.log("Time left:", data.time);
-    });
-</script>
-<script>
-socket.on("new_player", player => {
-    document.querySelector("h5.text-center").innerText = player.name;
-    console.log("Now auctioning:", player);
-});
-
-socket.on("player_finalized", data => {
-    alert(
-        data.winner
-        ? `${data.player.name} sold to ${data.winner} for ₹${data.price}`
-        : `${data.player.name} UNSOLD`
-    );
-});
-
-socket.on("auction_finished", () => {
-    window.location.href = "/summary/{{ lobby_code }}";
-});
-
-socket.on("kicked", data => {
-    if (data.username === "{{ username }}") {
-        alert("You were removed by admin");
-        window.location.href = "/";
-    }
-});
-</script>
-<!-- Socket.IO CDN -->
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
-<script>
-const socket = io();
-
-socket.on("kicked", data => {
-    if (data.username === "{{ username }}") {
-        alert("You were removed by admin");
-        window.location.href = "/";
-    }
-});
-</script>
-
-
-</body>
-</html>
+<h2 class="text-xl font-bold tracking-tight">FOOTAUCTION <span class="text-primary">LIVE</span></h2>
+<div class="ml-4 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full flex items-center gap-2">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+<span class="text-xs font-bold text-primary uppercase tracking-widest leading-none">Lobby #402 • Elite League</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-8 mr-4">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Market</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">My Squad</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Leaderboard</a>
+</div>
+<div class="flex gap-2">
+<button class="size-10 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="size-10 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+</div>
+<div class="h-10 w-10 rounded-full border-2 border-primary overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User profile avatar circle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9BZ3gSF2yrXbGmtxDr-frdV8Ojc2XbNXbpfG8rBAfNqyhr-JXwzX08n_UHBnHNh8COs37TmI-wOeNrM03GvZS9LTODmG3dYruVzCGDscI2dqx_1W5oMOegPHvm8ctls35XMcvOvMeqroVrTM7TKGylUWlvOvAoHq_g85C708-9rLKBUefQ2c3ijSgcATeqNjRrMmZ8Vlav9nQgWvUdtmjl9lFMkUL6AWdPwWJhLbIzpJ-7-KxUZiyGp0xWFASmp-9J-LY8fsPWGA"/>
+</div>
+</div>
+</header>
+<main class="flex h-[calc(100vh-128px)] w-full overflow-hidden p-6 gap-6">
+<!-- Left Panel: Player Card & Stats -->
+<aside class="w-[380px] flex flex-col gap-6">
+<!-- Player Card Component -->
+<div class="bg-white/5 border border-white/10 rounded-xl overflow-hidden backdrop-blur-sm flex-1 flex flex-col">
+<div class="relative h-2/3">
+<img class="w-full h-full object-cover object-top" data-alt="Detailed portrait of Kylian Mbappé in football kit" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEaErLsaPUz6g2QYVYjra4qA9nMJkxnZfKk47zQuw813Qm-niSoCF9Oo3OUaU3vr2kNuMaNtgBkRFKbzzL9yah7NH8ymR54w7HXqD7TrDSC-ExMSeJiVRN-KrohoBVzILw7II1tKdNfLxg-VDKFwrqPkELsKqoWnSSQyzKxNVtdjLsVDmOsp0Go4lfdN-0IFTNe8xt7kL3A1cO8YM6r7qkJljJMiiPaqBdAPMTGfoEOEnvrqXhTM6BoaAudcEdMsvJCxz104htxY4"/>
+<div class="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black via-black/60 to-transparent">
+<p class="text-primary text-xs font-bold tracking-[0.2em] mb-1">CURRENT PLAYER</p>
+<h3 class="text-3xl font-bold uppercase tracking-tight italic">Kylian Mbappé</h3>
+<p class="text-white/60 text-sm">FW | France • Paris Saint-Germain</p>
+</div>
+</div>
+<div class="p-6 flex-1 flex flex-col justify-between">
+<div class="grid grid-cols-3 gap-4">
+<div class="flex flex-col items-center p-2 rounded-lg bg-white/5 border border-white/5">
+<span class="text-2xl font-bold text-primary italic">97</span>
+<span class="text-[10px] text-white/40 uppercase font-bold tracking-tighter">SPD</span>
+</div>
+<div class="flex flex-col items-center p-2 rounded-lg bg-white/5 border border-white/5">
+<span class="text-2xl font-bold text-primary italic">92</span>
+<span class="text-[10px] text-white/40 uppercase font-bold tracking-tighter">SHO</span>
+</div>
+<div class="flex flex-col items-center p-2 rounded-lg bg-white/5 border border-white/5">
+<span class="text-2xl font-bold text-primary italic">95</span>
+<span class="text-[10px] text-white/40 uppercase font-bold tracking-tighter">DRI</span>
+</div>
+</div>
+<!-- Timer Component -->
+<div class="flex flex-col gap-2 mt-4">
+<div class="flex items-center justify-between text-[10px] font-bold text-white/40 uppercase tracking-widest px-1">
+<span>Hammer Drops In</span>
+<span class="text-auction-red">Critical</span>
+</div>
+<div class="flex gap-2">
+<div class="flex-1 h-14 bg-auction-red/10 border border-auction-red/30 neon-glow-red rounded-lg flex items-center justify-center">
+<span class="text-2xl font-bold text-auction-red italic">00</span>
+</div>
+<div class="flex-1 h-14 bg-auction-red/10 border border-auction-red/30 neon-glow-red rounded-lg flex items-center justify-center">
+<span class="text-2xl font-bold text-auction-red italic">00</span>
+</div>
+<div class="flex-1 h-14 bg-auction-red border border-auction-red neon-glow-red rounded-lg flex items-center justify-center">
+<span class="text-2xl font-bold text-white italic">15</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Center Panel: Bidding Arena -->
+<section class="flex-1 flex flex-col">
+<div class="flex-1 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm flex flex-col items-center justify-center relative overflow-hidden">
+<!-- Background decorative elements -->
+<div class="absolute inset-0 data-stream opacity-20 pointer-events-none"></div>
+<div class="text-center z-10">
+<p class="text-white/40 text-sm font-bold tracking-[0.3em] uppercase mb-4">Current High Bid</p>
+<h1 class="text-[120px] font-bold leading-none tracking-tighter text-auction-gold gold-text-shadow italic mb-2">
+                        $85<span class="text-6xl not-italic ml-2">M</span>
+</h1>
+<div class="flex items-center justify-center gap-3">
+<div class="h-6 w-6 rounded-full border border-auction-gold overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User avatar of current bidder" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpeK_2sQ-qkH7vUxUkQKoDwWoMChuQMdvW-kC6eDTwTVtiPuOEMO7Fl4if4AGIMlAmnj93teT-jD75I2rNl3o_Gku9Wb98YF9MWhxvcVFfHj0ERXu8vy_3i5z9T0L0vHO73KYg3D5KY67_XzUR-8DFlGG5lVSohDU7hdCKnA2sFluz1DqHvL4iZ3LXM7iLhP4g8svKwOXjFpXuI5J-elb3aC1H6LBv8YT7FGoSqAPzqpaLtN0njE6yqLu8OqGSvCZnIHR0Gj8NQww"/>
+</div>
+<p class="text-auction-gold font-medium uppercase tracking-widest text-sm">Bidder: <span class="text-white">GalacticManager_7</span></p>
+</div>
+</div>
+<div class="mt-16 w-full max-w-xl px-12 z-10">
+<div class="grid grid-cols-3 gap-4 mb-4">
+<button class="h-16 bg-primary text-black font-black text-xl italic rounded-lg hover:scale-105 transition-transform neon-glow-green">
+                            +$5M
+                        </button>
+<button class="h-16 bg-primary text-black font-black text-xl italic rounded-lg hover:scale-105 transition-transform neon-glow-green">
+                            +$10M
+                        </button>
+<button class="h-16 bg-primary text-black font-black text-xl italic rounded-lg hover:scale-105 transition-transform neon-glow-green">
+                            +$20M
+                        </button>
+</div>
+<div class="flex gap-4">
+<div class="relative flex-1">
+<input class="w-full h-14 bg-black/50 border border-white/20 rounded-lg px-6 focus:ring-2 focus:ring-primary focus:border-transparent text-lg font-bold" placeholder="Enter custom bid..." type="text"/>
+<div class="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 font-bold">USD</div>
+</div>
+<button class="h-14 px-8 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg font-bold uppercase tracking-widest transition-colors">
+                            Pass
+                        </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Panel: Activity & Queue -->
+<aside class="w-[320px] flex flex-col gap-6">
+<!-- Recent Bids Feed -->
+<div class="flex-1 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm flex flex-col overflow-hidden">
+<div class="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
+<h4 class="font-bold text-xs tracking-widest uppercase">Live Activity</h4>
+<span class="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full font-bold">REAL-TIME</span>
+</div>
+<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<img class="size-8 rounded-full border border-primary/40" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSlTTfGRNwEh5y84IZGJgrPKbD-3Q3prW0ZfcDe7By6hQ581uFNDvIwNVx5UDFzIXXahWHPCpmOXMnAWvTMkarZ_GRbC59GaYn0Ifz7B_5XuiZ2QGOOrWUnBxCtu27XKMDrmUFMVCLZyKO-fnKpauomZlvSx7Gt6vgcnL4gFWulKyIa4WaageNbI7h1HBcV2O1V9PNQdDH2Eq9pyDZYBz91PFbSsi-1UDOw_NbbXTwAJwSF9IKpD8aCIzJfpCj_RP2IgF8Eonw1F8"/>
+<div class="flex-1">
+<p class="text-xs font-bold text-white italic">GalacticManager_7</p>
+<p class="text-[10px] text-white/40 italic uppercase">Just Now</p>
+</div>
+<div class="text-primary font-bold italic">$85M</div>
+</div>
+<div class="flex items-center gap-3 opacity-70">
+<img class="size-8 rounded-full border border-white/10" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAHhC2FUtYd2K_10y6wP5RaMOxAVbTa3zzUj0_YgOL5TRGyrEaApQU4F5jqz4UYnZroX8DLIkKOPrND5DOJyujH0ytP-V8yEQM_7eE9mZe1ICZycVlQ5j2jgv0OSf-m_8uy441cdWFAd_oSMay75Z4J2LFYXahbGbYO-aivrdRp0VxNBcePTWU3iHwMbOk3Da8T3hneg-rTQhqXkxKF8XDShPCWbPvfrosM8ajFYD1O7ZkSRNEEHGaD5ip859GoHgvLpG8PMimzvT0"/>
+<div class="flex-1">
+<p class="text-xs font-bold text-white italic">StarkUnited</p>
+<p class="text-[10px] text-white/40 italic uppercase">2m ago</p>
+</div>
+<div class="text-white/60 font-bold italic">$80M</div>
+</div>
+<div class="flex items-center gap-3 opacity-40">
+<img class="size-8 rounded-full border border-white/10" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBKwwjXTW-glxvCZHW3V_f8c267TdMCSSh-Ikbyd4Hu4r_THBTT04l-oI09g3DhqIbUALnqxygOtR8aQY-EkNUJK2U854-U-sySO8u0aaPr0YZ11-U7ffWp9UKAOH8YFkVNgPYA3N07M_l0QAsEUxHn2Yh3L7Y2mQAnVQb0B3vSOXGy7Ab3wWf3k8slXIMstPSvr6-7C9EtgUKN_zwzNtcebDObYPjC1L5XW1V6ZqSiN4FXd8zXkzciZmdFj8wY04asc5Iqvbv0JE"/>
+<div class="flex-1">
+<p class="text-xs font-bold text-white italic">EliteScout_X</p>
+<p class="text-[10px] text-white/40 italic uppercase">5m ago</p>
+</div>
+<div class="text-white/40 font-bold italic">$75M</div>
+</div>
+</div>
+</div>
+<!-- Queue Feed -->
+<div class="h-48 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm overflow-hidden flex flex-col">
+<div class="p-4 border-b border-white/10 bg-white/5">
+<h4 class="font-bold text-xs tracking-widest uppercase flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">list_alt</span> Up Next
+                    </h4>
+</div>
+<div class="p-4 grid grid-cols-2 gap-3 overflow-y-auto">
+<div class="group relative rounded-lg overflow-hidden h-24 border border-white/10 hover:border-primary/50 transition-all cursor-pointer">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0" data-alt="Upcoming player Haaland thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4XimD928eNMfIEvulibDvxB5PxF5aqCONJbbFN2qU1Kj6zIgxxHaaC488up3ITz1rk9yJdrqTlSrlJDsddJM2Mz9-K4iJrbioUdnytssV_NbgOoFdWIguiC_ZMXL-jvPrDFHCyMrhp-YasL4bSDvwHKQuaPeRGi1jyYpWHHMQBR849lhf4F2vBZsCBUb-5Ni8ePTiLs6N3INGhgAAgMc3NhtVJq1EYRmtuoEB7Jwi8F37xnE_ZfFL_VcPoO1_d4OqAbzI9wBQHCE"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-2 flex items-end">
+<p class="text-[10px] font-bold uppercase truncate">Erling Haaland</p>
+</div>
+</div>
+<div class="group relative rounded-lg overflow-hidden h-24 border border-white/10 hover:border-primary/50 transition-all cursor-pointer">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0" data-alt="Upcoming player Salah thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5VhXIVZkgE64foSTYqZhyKnXhJt3PVa-0D2RsK1SE8c3hkrDOjWRZ9wH-FnmRYcljLsP1BzE2jZgfXUMObqRNO6pJ5a5h9hicBn0hE7lAwS5y5UZQKbiwTUeh82lI7Fcz2frZ8LSFiPDhhG2Ffkh7qRC_FqYWeeRRBGELoERPsGgRCUSz4_sqMYEO7HbnHUQKRWpRD-EQu74AT93N7iOI-le2ochIDHB9vpVzQ3uHI0T8uuaLjzMDisSVPoq8o5LuN94y9pgSJhw"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-2 flex items-end">
+<p class="text-[10px] font-bold uppercase truncate">Mo Salah</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<!-- Bottom Bar: Participants & Admin -->
+<footer class="h-16 w-full border-t border-white/10 bg-black/60 backdrop-blur-xl px-8 flex items-center justify-between fixed bottom-0 left-0">
+<div class="flex items-center gap-4 overflow-x-auto max-w-[70%] no-scrollbar">
+<span class="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mr-4 border-r border-white/10 pr-6 whitespace-nowrap">Players In Room (12)</span>
+<div class="flex items-center -space-x-2">
+<button class="group relative">
+<img class="size-9 rounded-full border-2 border-primary hover:scale-110 transition-transform" data-alt="Avatar 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjoRkQ-YE0-g0VQ3_VYRmrS_WNoOMjUW4Og1A2WMYe4X4GhdUdc34QVgEPO9xlj58wQ0jeZHDZcX-bwnLtbyPLNx4r4HmjSnsXlsP6PeqXv2OWfxw2fBRtpgF9V79jMmCnT4lCRWDgdJkuY0YwyRQFTFQQ98itPh3TywCykyqDPvmX6LiWXydj3AEW7gnPhsuWPxjB6BnEjX8sWk1JOmjy2CsgIEGqA1EzH-fbtK3BzSZS-cbttcpLEBHvuTjxYkpyYMvyrShdTJw"/>
+<span class="absolute -top-1 -right-1 size-3 bg-primary border-2 border-black rounded-full"></span>
+</button>
+<button class="group relative">
+<img class="size-9 rounded-full border-2 border-black hover:scale-110 transition-transform" data-alt="Avatar 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAis9noHp_5zoPeUM1pGDL6P15gRatdbPSpmrz1hI3Sv0MHMB7xhaYhwpMVxHoyG07V8cOYqElp4ijrX7NJfShe4Szqf1olCge93PxH1jAume9FNhcBfVMGl-rurXgl0wWYb-dW2YX-LvlKG0OZ_QSQnfsXqrebYLWGSZWl0Nm63r04pW51TqtvLoyBeklnDomSI8RUjSfkqfLpqXOjXVaEzdieZJ4H3AaAEfMtY83QzfqcpcwxKDZ3H6TiaeT_Mzjt8h3J0nj3xMM"/>
+</button>
+<button class="group relative">
+<img class="size-9 rounded-full border-2 border-black hover:scale-110 transition-transform" data-alt="Avatar 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMTtO0NV4Hm4_CXuDQMBFoYUGjQax2uzxN5Mc-cWKE_-5n3uGNY4uLm8gVgYKtnzyEIzS6y-4uidZ_GJ_0wvTlsjigIz_V1qN7fiWRcXT2-_s0KzLdwUb_q-vbuYwknWoe90prFw8gjuKbBrPGyTTJ3tpVWc7ZZ8nsgKy9FtbOTXXAfbkXPE6LfIMLCVtoJjg8yhvqJK8BIUJCBbXI2JtrX6F_z_5a6_hFIHp7SF9afruevO5gtCtnFJKJvifWFg_dvnI56thluGw"/>
+</button>
+<button class="group relative">
+<img class="size-9 rounded-full border-2 border-black hover:scale-110 transition-transform" data-alt="Avatar 4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7cuHpdf239FhV5h4YW0e5nHldEteHBFIUezDLSI_3FlmJ-eXLcAqkFIZWYCymU0I8YG9yAkTuIpHraD675alEm19273oWcf4RpSuMO0zScxBVqelhAtH2GbfFDyn9-XP5EKRMzQ0lCrvcEjPN7s8KKpFDs4IviY_qfLTDh860WGdvfDpuTr6B-Pe7V7CHktp-muHNoxWzDZAk8LgKXIkg8cM8lwRxO83VyCKZIuMdQtiSMzk_M8OINES_fF4Decbo-ZAJ5ZRe8k8"/>
+</button>
+<div class="size-9 rounded-full bg-white/10 border-2 border-black flex items-center justify-center text-[10px] font-bold text-white/50">+8</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<!-- Subtle Admin Controls -->
+<div class="flex items-center gap-2 p-1 bg-white/5 rounded-lg border border-white/10">
+<button class="size-8 flex items-center justify-center text-auction-red hover:bg-auction-red/20 rounded transition-colors" title="Pause Auction">
+<span class="material-symbols-outlined text-lg">pause_circle</span>
+</button>
+<a href="post_auction_statistics.html"><button class="size-8 flex items-center justify-center text-auction-red hover:bg-auction-red/20 rounded transition-colors" title="Emergency Stop">
+<span class="material-symbols-outlined text-lg">cancel</span>
+</button></a>
+</div>
+<div class="h-8 w-px bg-white/10"></div>
+<button class="flex items-center gap-2 px-4 py-2 bg-primary/20 text-primary border border-primary/30 rounded-lg text-sm font-bold uppercase tracking-wider hover:bg-primary/30 transition-colors">
+<span class="material-symbols-outlined text-lg">grid_view</span>
+                View Lobby
+            </button>
+</div>
+</footer>
+</body></html>
