@@ -55,39 +55,30 @@
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-white overflow-hidden h-screen stadium-bg">
-<!-- Top Navigation Bar -->
-<header class="flex items-center justify-between border-b border-white/10 px-8 py-3 bg-black/40 backdrop-blur-md">
-<div class="flex items-center gap-4">
-<div class="size-8 text-primary">
-<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-<path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" fill="currentColor"></path>
-</svg>
+<header class="sticky top-0 z-50 w-full border-b border-white/10 bg-background-dark/80 backdrop-blur-md">
+<div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-background-dark">
+<span class="material-symbols-outlined font-bold">sports_soccer</span>
 </div>
-<h2 class="text-xl font-bold tracking-tight">FOOTAUCTION <span class="text-primary">LIVE</span></h2>
-<div class="ml-4 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full flex items-center gap-2">
-<span class="relative flex h-2 w-2">
-<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-</span>
-<span class="text-xs font-bold text-primary uppercase tracking-widest leading-none">Lobby #402 • Elite League</span>
-</div>
+<h2 class="text-xl font-black tracking-tighter uppercase italic">Footy<span class="text-primary">Auction</span></h2>
 </div>
 <div class="flex items-center gap-6">
-<div class="flex items-center gap-8 mr-4">
-<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Market</a>
-<a class="text-sm font-medium hover:text-primary transition-colors" href="#">My Squad</a>
-<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Leaderboard</a>
+<div class="flex items-center gap-3 pr-6 border-r border-white/10">
+
+<div class="text-right hidden sm:block">
+    
+<p class="text-sm font-bold">Alex Smith</p>
+<p class="text-[10px] text-primary uppercase font-black tracking-wider">Pro Manager</p>
 </div>
-<div class="flex gap-2">
-<button class="size-10 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-<span class="material-symbols-outlined text-[20px]">notifications</span>
-</button>
-<button class="size-10 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-<span class="material-symbols-outlined text-[20px]">settings</span>
-</button>
+<div class="w-10 h-10 rounded-full bg-white/10 border border-primary/30 flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-primary">person</span>
 </div>
-<div class="h-10 w-10 rounded-full border-2 border-primary overflow-hidden">
-<img class="w-full h-full object-cover" data-alt="User profile avatar circle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9BZ3gSF2yrXbGmtxDr-frdV8Ojc2XbNXbpfG8rBAfNqyhr-JXwzX08n_UHBnHNh8COs37TmI-wOeNrM03GvZS9LTODmG3dYruVzCGDscI2dqx_1W5oMOegPHvm8ctls35XMcvOvMeqroVrTM7TKGylUWlvOvAoHq_g85C708-9rLKBUefQ2c3ijSgcATeqNjRrMmZ8Vlav9nQgWvUdtmjl9lFMkUL6AWdPwWJhLbIzpJ-7-KxUZiyGp0xWFASmp-9J-LY8fsPWGA"/>
+</div>
+<a href="login.html"><button class="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">logout</span>
+                    Logout
+                </button></a>
 </div>
 </div>
 </header>
@@ -174,10 +165,14 @@
 <input class="w-full h-14 bg-black/50 border border-white/20 rounded-lg px-6 focus:ring-2 focus:ring-primary focus:border-transparent text-lg font-bold" placeholder="Enter custom bid..." type="text"/>
 <div class="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 font-bold">USD</div>
 </div>
+
+</div>
 <button class="h-14 px-8 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg font-bold uppercase tracking-widest transition-colors">
                             Pass
                         </button>
-</div>
+                        <button class="h-16 p-3 bg-primary text-black font-black text-xl italic rounded-lg hover:scale-105 transition-transform neon-glow-green">
+                            BID
+                        </button>
 </div>
 </div>
 </section>
@@ -190,32 +185,149 @@
 <span class="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full font-bold">REAL-TIME</span>
 </div>
 <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-<div class="flex items-center gap-3">
-<img class="size-8 rounded-full border border-primary/40" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSlTTfGRNwEh5y84IZGJgrPKbD-3Q3prW0ZfcDe7By6hQ581uFNDvIwNVx5UDFzIXXahWHPCpmOXMnAWvTMkarZ_GRbC59GaYn0Ifz7B_5XuiZ2QGOOrWUnBxCtu27XKMDrmUFMVCLZyKO-fnKpauomZlvSx7Gt6vgcnL4gFWulKyIa4WaageNbI7h1HBcV2O1V9PNQdDH2Eq9pyDZYBz91PFbSsi-1UDOw_NbbXTwAJwSF9IKpD8aCIzJfpCj_RP2IgF8Eonw1F8"/>
-<div class="flex-1">
-<p class="text-xs font-bold text-white italic">GalacticManager_7</p>
-<p class="text-[10px] text-white/40 italic uppercase">Just Now</p>
+<div onclick="openSquadPanel({ name: 'GalacticManager_7' })"
+     class="flex items-center justify-between cursor-pointer 
+            hover:bg-white/5 p-2 rounded-lg transition">
+  <span>GalacticManager_7</span>
+  <span class="text-primary font-bold">$85M</span>
 </div>
-<div class="text-primary font-bold italic">$85M</div>
-</div>
-<div class="flex items-center gap-3 opacity-70">
+
+<div class="flex items-center gap-3 ">
 <img class="size-8 rounded-full border border-white/10" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAHhC2FUtYd2K_10y6wP5RaMOxAVbTa3zzUj0_YgOL5TRGyrEaApQU4F5jqz4UYnZroX8DLIkKOPrND5DOJyujH0ytP-V8yEQM_7eE9mZe1ICZycVlQ5j2jgv0OSf-m_8uy441cdWFAd_oSMay75Z4J2LFYXahbGbYO-aivrdRp0VxNBcePTWU3iHwMbOk3Da8T3hneg-rTQhqXkxKF8XDShPCWbPvfrosM8ajFYD1O7ZkSRNEEHGaD5ip859GoHgvLpG8PMimzvT0"/>
 <div class="flex-1">
 <p class="text-xs font-bold text-white italic">StarkUnited</p>
-<p class="text-[10px] text-white/40 italic uppercase">2m ago</p>
 </div>
 <div class="text-white/60 font-bold italic">$80M</div>
 </div>
-<div class="flex items-center gap-3 opacity-40">
+<div class="flex items-center gap-3">
 <img class="size-8 rounded-full border border-white/10" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBKwwjXTW-glxvCZHW3V_f8c267TdMCSSh-Ikbyd4Hu4r_THBTT04l-oI09g3DhqIbUALnqxygOtR8aQY-EkNUJK2U854-U-sySO8u0aaPr0YZ11-U7ffWp9UKAOH8YFkVNgPYA3N07M_l0QAsEUxHn2Yh3L7Y2mQAnVQb0B3vSOXGy7Ab3wWf3k8slXIMstPSvr6-7C9EtgUKN_zwzNtcebDObYPjC1L5XW1V6ZqSiN4FXd8zXkzciZmdFj8wY04asc5Iqvbv0JE"/>
 <div class="flex-1">
 <p class="text-xs font-bold text-white italic">EliteScout_X</p>
-<p class="text-[10px] text-white/40 italic uppercase">5m ago</p>
 </div>
 <div class="text-white/40 font-bold italic">$75M</div>
 </div>
 </div>
 </div>
+<!-- Compare Teams Modal -->
+<div id="compareModal"
+     class="fixed inset-0 z-[1000] hidden items-center justify-center">
+
+  <!-- Backdrop -->
+  <div onclick="closeCompareModal()"
+       class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
+
+  <!-- Modal Container -->
+  <div
+    class="relative w-[1100px] max-w-[95vw] h-[600px]
+           bg-white/5 border border-white/10
+           backdrop-blur-2xl rounded-xl
+           shadow-2xl flex overflow-hidden">
+
+    <!-- LEFT PANEL -->
+    <div class="w-1/2 border-r border-white/10 p-6 flex flex-col">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-black uppercase tracking-wider text-primary">
+          Compare With
+        </h3>
+        <div class="flex gap-2">
+          <button onclick="prevTeam()"
+            class="size-8 bg-white/10 hover:bg-primary/20 rounded-lg">
+            <span class="material-symbols-outlined">chevron_left</span>
+          </button>
+          <button onclick="nextTeam()"
+            class="size-8 bg-white/10 hover:bg-primary/20 rounded-lg">
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Team Name -->
+      <p id="leftTeamName"
+         class="text-xl font-bold text-white mb-4">
+        London Lions
+      </p>
+
+      <!-- Team Players -->
+      <div id="leftTeamPlayers"
+           class="flex-1 space-y-3 overflow-y-auto pr-2">
+
+        <!-- Player Row -->
+        <div
+          class="flex items-center justify-between
+                 bg-white/5 border border-primary/40
+                 rounded-lg p-3">
+          <div>
+            <p class="font-bold text-primary">Kylian Mbappé</p>
+            <p class="text-xs text-slate-400 uppercase">Forward</p>
+          </div>
+          <span class="text-xs font-bold text-primary">
+            MATCH
+          </span>
+        </div>
+
+        <div
+          class="flex items-center justify-between
+                 bg-white/5 border border-white/10
+                 rounded-lg p-3">
+          <div>
+            <p class="font-bold">Kevin De Bruyne</p>
+            <p class="text-xs text-slate-400 uppercase">Midfielder</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="w-1/2 p-6 flex flex-col">
+
+      <!-- Header -->
+      <h3 class="text-lg font-black uppercase tracking-wider text-primary mb-4">
+        Your Squad
+      </h3>
+
+      <!-- Squad Players -->
+      <div id="rightTeamPlayers"
+           class="flex-1 space-y-3 overflow-y-auto pr-2">
+
+        <div
+          class="flex items-center justify-between
+                 bg-white/5 border border-primary/40
+                 rounded-lg p-3">
+          <div>
+            <p class="font-bold text-primary">Kylian Mbappé</p>
+            <p class="text-xs text-slate-400 uppercase">Forward</p>
+          </div>
+          <p class="text-primary font-black">$85M</p>
+        </div>
+
+        <div
+          class="flex items-center justify-between
+                 bg-white/5 border border-white/10
+                 rounded-lg p-3">
+          <div>
+            <p class="font-bold">Jude Bellingham</p>
+            <p class="text-xs text-slate-400 uppercase">Midfielder</p>
+          </div>
+          <p class="text-white/60 font-bold">$70M</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Close -->
+    <button onclick="closeCompareModal()"
+      class="absolute top-4 right-4 text-white/60 hover:text-primary transition">
+      <span class="material-symbols-outlined text-2xl">close</span>
+    </button>
+
+  </div>
+</div>
+
+
+
 <!-- Queue Feed -->
 <div class="h-48 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm overflow-hidden flex flex-col">
 <div class="p-4 border-b border-white/10 bg-white/5">
@@ -272,10 +384,113 @@
 </button></a>
 </div>
 <div class="h-8 w-px bg-white/10"></div>
-<button class="flex items-center gap-2 px-4 py-2 bg-primary/20 text-primary border border-primary/30 rounded-lg text-sm font-bold uppercase tracking-wider hover:bg-primary/30 transition-colors">
-<span class="material-symbols-outlined text-lg">grid_view</span>
-                View Lobby
-            </button>
+<button onclick="openCompareModal()"
+  class="flex items-center gap-2 px-4 py-2 bg-primary/20 text-primary
+         border border-primary/30 rounded-lg text-sm font-bold
+         uppercase tracking-wider hover:bg-primary/30 transition-colors">
+  <span class="material-symbols-outlined text-lg">grid_view</span>
+  Compare
+</button>
+
 </div>
 </footer>
+<!-- Manager Squad Panel -->
+<div id="managerSquadPanel"
+     class="fixed top-0 right-0 h-full w-[420px] bg-[#0b1a12]/95 border-l border-white/10 
+            backdrop-blur-xl z-[999] hidden flex-col">
+
+  <!-- Header -->
+  <div class="p-6 border-b border-white/10 flex items-center justify-between">
+    <div>
+      <h3 id="managerName" class="text-xl font-black text-primary">
+        GalacticManager_7
+      </h3>
+      <p class="text-xs text-slate-400 uppercase tracking-wider">
+        Current Squad
+      </p>
+    </div>
+    <button onclick="closeSquadPanel()" class="text-white/60 hover:text-primary">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+
+  <!-- Squad List -->
+  <div class="flex-1 overflow-y-auto p-6 space-y-4">
+
+    <!-- Player Row (repeatable) -->
+    <div class="flex items-center justify-between bg-white/5 border border-white/10 
+                rounded-xl p-4 hover:border-primary transition">
+      <div>
+        <p class="font-bold">Kylian Mbappé</p>
+        <p class="text-xs text-slate-400 uppercase">Forward • France</p>
+      </div>
+      <div class="text-right">
+        <p class="text-primary font-black">$85M</p>
+        <p class="text-xs text-slate-500">Bought</p>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between bg-white/5 border border-white/10 
+                rounded-xl p-4 hover:border-primary transition">
+      <div>
+        <p class="font-bold">Kevin De Bruyne</p>
+        <p class="text-xs text-slate-400 uppercase">Midfielder • Belgium</p>
+      </div>
+      <div class="text-right">
+        <p class="text-primary font-black">$72M</p>
+        <p class="text-xs text-slate-500">Bought</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="p-6 border-t border-white/10">
+    <button onclick="closeSquadPanel()"
+      class="w-full bg-white/10 py-3 rounded-xl font-bold
+             hover:bg-primary hover:text-background-dark
+             transition-all">
+      Close
+    </button>
+  </div>
+</div>
+<script>
+  function openSquadPanel(manager) {
+    document.getElementById("managerSquadPanel").classList.remove("hidden");
+    document.getElementById("managerSquadPanel").classList.add("flex");
+
+    document.getElementById("managerName").innerText = manager.name;
+
+    // Later: dynamically render players
+    // For now static UI works as requested
+  }
+
+  function closeSquadPanel() {
+    document.getElementById("managerSquadPanel").classList.add("hidden");
+    document.getElementById("managerSquadPanel").classList.remove("flex");
+  }
+
+  function openCompareModal() {
+    const modal = document.getElementById("compareModal");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+
+  function closeCompareModal() {
+    const modal = document.getElementById("compareModal");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+
+  function nextTeam() {
+    // later: switch team index + re-render players
+    console.log("Next team");
+  }
+
+  function prevTeam() {
+    console.log("Previous team");
+  }
+</script>
+
+
 </body></html>
