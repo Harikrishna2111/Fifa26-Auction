@@ -40,25 +40,29 @@
 </head>
 <body class="font-display bg-background-light dark:bg-background-dark text-white min-h-screen football-texture">
 <div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
-<!-- Top Navigation -->
-<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-white/10 px-6 py-3 lg:px-40">
-<div class="flex items-center gap-4 text-white">
-<div class="size-6 text-primary">
-<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-<path d="M8.57829 8.57829C5.52816 11.6284 3.451 15.5145 2.60947 19.7452C1.76794 23.9758 2.19984 28.361 3.85056 32.3462C5.50128 36.3314 8.29667 39.7376 11.8832 42.134C15.4698 44.5305 19.6865 45.8096 24 45.8096C28.3135 45.8096 32.5302 44.5305 36.1168 42.134C39.7033 39.7375 42.4987 36.3314 44.1494 32.3462C45.8002 28.361 46.2321 23.9758 45.3905 19.7452C44.549 15.5145 42.4718 11.6284 39.4217 8.57829L24 24L8.57829 8.57829Z" fill="currentColor"></path>
-</svg>
+<header class="sticky top-0 z-50 w-full border-b border-white/10 bg-background-dark/80 backdrop-blur-md">
+<div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-background-dark">
+<span class="material-symbols-outlined font-bold">sports_soccer</span>
 </div>
-<h2 class="text-white text-lg font-bold leading-tight tracking-tight">PitchAuction</h2>
+<h2 class="text-xl font-black tracking-tighter uppercase italic">Footy<span class="text-primary">Auction</span></h2>
 </div>
-<div class="flex flex-1 justify-end gap-8">
-<div class="hidden md:flex items-center gap-9">
-<a class="text-white/70 hover:text-primary text-sm font-medium transition-colors" href="#">Dashboard</a>
-<a class="text-white/70 hover:text-primary text-sm font-medium transition-colors" href="#">My Auctions</a>
-<a class="text-white/70 hover:text-primary text-sm font-medium transition-colors" href="#">Leagues</a>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3 pr-6 border-r border-white/10">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-bold">Alex Smith</p>
+<p class="text-[10px] text-primary uppercase font-black tracking-wider">Pro Manager</p>
 </div>
-<button class="flex items-center justify-center rounded-full h-10 w-10 bg-white/5 hover:bg-white/10 text-white transition-all">
-<span class="material-symbols-outlined">person</span>
-</button>
+<div class="w-10 h-10 rounded-full bg-white/10 border border-primary/30 flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-primary">person</span>
+</div>
+</div>
+<a href="login.html"><button class="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">logout</span>
+                    Logout
+                </button></a>
+</div>
 </div>
 </header>
 <main class="flex-1 flex flex-col items-center justify-center px-4 py-12">
@@ -66,8 +70,8 @@
 <div class="w-full max-w-[480px] mb-6">
 <button class="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm font-bold group">
 <span class="material-symbols-outlined text-[20px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
-<span>Back to Dashboard</span>
-</button>
+<a href="user_dashboard.html"><span>Back to Dashboard</span>
+</a></button>
 </div>
 <!-- Main Join Card -->
 <div class="w-full max-w-[480px] bg-[#183422]/60 backdrop-blur-xl border border-white/10 p-8 md:p-12 rounded-xl shadow-2xl">
@@ -86,7 +90,7 @@
 </div>
 </div>
 <!-- CTA Button -->
-<a href="lobby.html"><button class="w-full flex items-center justify-center gap-3 bg-primary hover:bg-primary/90 text-black h-14 rounded-xl font-extrabold text-base tracking-wide transition-all active:scale-[0.98] shadow-[0_0_20px_rgba(13,242,89,0.2)]">
+<a href="lobby.html"><button class="mt-10 w-full flex items-center justify-center gap-3 bg-primary hover:bg-primary/90 text-black h-14 rounded-xl font-extrabold text-base tracking-wide transition-all active:scale-[0.98] shadow-[0_0_20px_rgba(13,242,89,0.2)]">
 <span>JOIN AUCTION</span>
 <span class="material-symbols-outlined font-bold">bolt</span>
 </button></a>
