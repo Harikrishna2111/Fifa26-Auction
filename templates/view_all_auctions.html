@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Auction History View - Football Auctions</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "gold": "#C9A961",
+                        "background-light": "#ffffff",
+                        "background-dark": "#121416",
+                        "card-dark": "#1E2229",
+                    },
+                    fontFamily: {
+                        "display": ["Epilogue", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>.football-texture {
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuDrqnudzVP6Rpr5IsYOkGJ_v2cjiRGjNO0xS9lt4EX_Ipb71yb7hjtxjkRLgVckZpWWuXbpHKP5X3W30HRvqa-dIv8mBVVNW4NhjIx4F2tbz15KLCmuQXjMbhEKOvDDfyTqeYeiAfUfiMIGZSghYFcAABX48-V2agobZlj95eh317f_wryR1DybhjLwN4v2Ec8RozOWd_ILZCFibKqjiKcxHJiQFQCq3QmO-HOX8oVaUVZ55Gb0gaCCcGpdQ4b44EmgnD-BXnIcKo8)
+    }
+.auction-card:hover {
+    transform: translatey(-4px);
+    box-shadow: 0 0 20px rgba(13, 242, 89, 0.15)
+    }
+.auction-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1)
+    }</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-white football-texture min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-white/10 px-6 lg:px-20 py-4 bg-background-dark/80 backdrop-blur-md sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-white">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-black">
+<span class="material-symbols-outlined font-bold">sports_soccer</span>
+</div>
+<h2 class="text-white text-xl font-black leading-tight tracking-tight">KICKOFF<span class="text-primary text-xs ml-1 align-top">TM</span></h2>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-white/60 hover:text-primary text-sm font-medium transition-colors" href="#">Dashboard</a>
+<a class="text-white/60 hover:text-primary text-sm font-medium transition-colors" href="#">Live Auctions</a>
+<a class="text-primary text-sm font-bold border-b-2 border-primary pb-1" href="#">History</a>
+<a class="text-white/60 hover:text-primary text-sm font-medium transition-colors" href="#">Settings</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden sm:flex items-center bg-white/5 rounded-xl px-3 py-1.5 border border-white/10">
+<span class="material-symbols-outlined text-primary text-sm mr-2">account_balance_wallet</span>
+<span class="text-sm font-bold">14,250 <span class="text-white/40 text-[10px]">CREDITS</span></span>
+</div>
+<button class="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-white text-xl">notifications</span>
+</button>
+<div class="h-10 w-10 rounded-full border-2 border-primary/30 p-0.5 overflow-hidden">
+<div class="w-full h-full rounded-full bg-center bg-cover" data-alt="User profile avatar with football gear" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAD5JmZ3nDRpyKzUzZoiechvgfrKSY_s0XWRExW7gfENm4hDztqPROdCAU7jCzhYUJaCDCM-3gEP0APjj1tMvMz__WXW86nOF1o8sr6a2jDFMbEU_3wL_faTKBnRms8zaVtRMlfitQRwi_WlV4aF7jBN_UFktbUlIVwdlUMGOqCqi0eB74a2O4qlA7r843MCWw1oJfu6KB02sPq2QWZDNpoaQpk6538va1HWaZcNcoEIKTumgV4u1g2v7-jjVIhyDedIGTM5A-_Jww");'></div>
+</div>
+</div>
+</header>
+<main class="flex-1 flex flex-col max-w-[1280px] mx-auto w-full px-6 lg:px-20 py-10">
+<!-- Page Heading Section -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">history</span>
+<span class="text-primary/70 text-sm font-bold tracking-widest uppercase">Archive</span>
+</div>
+<h1 class="text-white text-5xl font-black leading-tight tracking-[-0.03em]">Past Auctions</h1>
+<p class="text-white/50 text-lg max-w-xl">Review your previous drafting victories and the championship rosters you've built.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-6 h-12 bg-primary text-black rounded-xl font-black hover:brightness-110 transition-all hover:scale-[1.02] active:scale-95">
+<span class="material-symbols-outlined text-lg">sync</span>
+<span>REFRESH HISTORY</span>
+</button>
+</div>
+</div>
+<!-- Filter Chips -->
+<div class="flex gap-3 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-xl bg-primary text-black px-6 font-bold text-sm">
+                        All Seasons
+                    </button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white px-6 font-medium text-sm transition-colors">
+                        2023 Season
+                    </button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white px-6 font-medium text-sm transition-colors">
+                        Elite League
+                    </button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white px-6 font-medium text-sm transition-colors">
+                        Legends Cup
+                    </button>
+</div>
+<!-- Auction Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Auction Card 1 -->
+<div class="auction-card bg-card-dark border border-white/5 rounded-xl p-6 flex flex-col">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-2 px-3 py-1 bg-gold/10 border border-gold/30 rounded-full">
+<span class="size-2 rounded-full bg-gold animate-pulse"></span>
+<span class="text-gold text-[10px] font-black tracking-widest uppercase">Completed</span>
+</div>
+<span class="text-white/40 text-xs font-medium uppercase tracking-tighter">Oct 24, 2023</span>
+</div>
+<h3 class="text-white text-2xl font-black mb-6 leading-tight">Legends Draft Session</h3>
+<div class="w-full h-px bg-white/10 mb-6"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<span class="text-white/40 text-[10px] uppercase font-bold tracking-widest">Acquired Team</span>
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-blue-600 border border-white/20 shadow-inner shadow-black/40"></div>
+<span class="text-white font-bold">London Blues</span>
+</div>
+</div>
+<button class="size-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-white/40 group-hover:text-white">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Auction Card 2 -->
+<div class="auction-card bg-card-dark border border-white/5 rounded-xl p-6 flex flex-col">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-2 px-3 py-1 bg-gold/10 border border-gold/30 rounded-full">
+<span class="size-2 rounded-full bg-gold"></span>
+<span class="text-gold text-[10px] font-black tracking-widest uppercase">Completed</span>
+</div>
+<span class="text-white/40 text-xs font-medium uppercase tracking-tighter">Oct 12, 2023</span>
+</div>
+<h3 class="text-white text-2xl font-black mb-6 leading-tight">Mid-Season Elite Cup</h3>
+<div class="w-full h-px bg-white/10 mb-6"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<span class="text-white/40 text-[10px] uppercase font-bold tracking-widest">Acquired Team</span>
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-red-600 border border-white/20 shadow-inner shadow-black/40"></div>
+<span class="text-white font-bold">Manchester Red</span>
+</div>
+</div>
+<button class="size-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-white/40 group-hover:text-white">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Auction Card 3 -->
+<div class="auction-card bg-card-dark border border-white/5 rounded-xl p-6 flex flex-col">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-2 px-3 py-1 bg-gold/10 border border-gold/30 rounded-full">
+<span class="size-2 rounded-full bg-gold"></span>
+<span class="text-gold text-[10px] font-black tracking-widest uppercase">Completed</span>
+</div>
+<span class="text-white/40 text-xs font-medium uppercase tracking-tighter">Sep 28, 2023</span>
+</div>
+<h3 class="text-white text-2xl font-black mb-6 leading-tight">World Stars Auction</h3>
+<div class="w-full h-px bg-white/10 mb-6"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<span class="text-white/40 text-[10px] uppercase font-bold tracking-widest">Acquired Team</span>
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-slate-100 border border-white/20 shadow-inner shadow-black/40"></div>
+<span class="text-white font-bold">Madrid White</span>
+</div>
+</div>
+<button class="size-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-white/40 group-hover:text-white">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Auction Card 4 -->
+<div class="auction-card bg-card-dark border border-white/5 rounded-xl p-6 flex flex-col">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-2 px-3 py-1 bg-gold/10 border border-gold/30 rounded-full">
+<span class="size-2 rounded-full bg-gold"></span>
+<span class="text-gold text-[10px] font-black tracking-widest uppercase">Completed</span>
+</div>
+<span class="text-white/40 text-xs font-medium uppercase tracking-tighter">Sep 15, 2023</span>
+</div>
+<h3 class="text-white text-2xl font-black mb-6 leading-tight">Premier League Draft</h3>
+<div class="w-full h-px bg-white/10 mb-6"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<span class="text-white/40 text-[10px] uppercase font-bold tracking-widest">Acquired Team</span>
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-red-800 border border-white/20 shadow-inner shadow-black/40"></div>
+<span class="text-white font-bold">Munich Red</span>
+</div>
+</div>
+<button class="size-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-white/40 group-hover:text-white">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Auction Card 5 -->
+<div class="auction-card bg-card-dark border border-white/5 rounded-xl p-6 flex flex-col">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-2 px-3 py-1 bg-gold/10 border border-gold/30 rounded-full">
+<span class="size-2 rounded-full bg-gold"></span>
+<span class="text-gold text-[10px] font-black tracking-widest uppercase">Completed</span>
+</div>
+<span class="text-white/40 text-xs font-medium uppercase tracking-tighter">Aug 30, 2023</span>
+</div>
+<h3 class="text-white text-2xl font-black mb-6 leading-tight">Historic Icons Session</h3>
+<div class="w-full h-px bg-white/10 mb-6"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<span class="text-white/40 text-[10px] uppercase font-bold tracking-widest">Acquired Team</span>
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-blue-900 border border-white/20 shadow-inner shadow-black/40"></div>
+<span class="text-white font-bold">Paris Blue</span>
+</div>
+</div>
+<button class="size-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-white/40 group-hover:text-white">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Auction Card 6 -->
+<div class="auction-card bg-card-dark border border-white/5 rounded-xl p-6 flex flex-col">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-2 px-3 py-1 bg-gold/10 border border-gold/30 rounded-full">
+<span class="size-2 rounded-full bg-gold"></span>
+<span class="text-gold text-[10px] font-black tracking-widest uppercase">Completed</span>
+</div>
+<span class="text-white/40 text-xs font-medium uppercase tracking-tighter">Aug 14, 2023</span>
+</div>
+<h3 class="text-white text-2xl font-black mb-6 leading-tight">Champions Gala</h3>
+<div class="w-full h-px bg-white/10 mb-6"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<span class="text-white/40 text-[10px] uppercase font-bold tracking-widest">Acquired Team</span>
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-red-500 border border-white/20 shadow-inner shadow-black/40"></div>
+<span class="text-white font-bold">Milan Red</span>
+</div>
+</div>
+<button class="size-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-white/40 group-hover:text-white">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Pagination -->
+<div class="flex items-center justify-center mt-12 mb-20 gap-2">
+<a class="flex size-10 items-center justify-center bg-white/5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined">chevron_left</span>
+</a>
+<a class="text-sm font-bold flex size-10 items-center justify-center text-black rounded-xl bg-primary shadow-lg shadow-primary/20" href="#">1</a>
+<a class="text-sm font-bold flex size-10 items-center justify-center text-white/60 rounded-xl hover:bg-white/5 transition-colors" href="#">2</a>
+<a class="text-sm font-bold flex size-10 items-center justify-center text-white/60 rounded-xl hover:bg-white/5 transition-colors" href="#">3</a>
+<span class="text-white/20 mx-1">...</span>
+<a class="text-sm font-bold flex size-10 items-center justify-center text-white/60 rounded-xl hover:bg-white/5 transition-colors" href="#">12</a>
+<a class="flex size-10 items-center justify-center bg-white/5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined">chevron_right</span>
+</a>
+</div>
+</main>
+<!-- Footer Stats (Sticky Bottom Style) -->
+<footer class="mt-auto border-t border-white/10 bg-background-dark/80 backdrop-blur-md px-6 py-4">
+<div class="max-w-[1280px] mx-auto flex flex-wrap justify-between items-center gap-4">
+<div class="flex gap-8">
+<div class="flex flex-col">
+<span class="text-[10px] font-black tracking-widest text-white/30 uppercase">Total Auctions</span>
+<span class="text-xl font-black text-primary tracking-tight">42</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-black tracking-widest text-white/30 uppercase">Teams Acquired</span>
+<span class="text-xl font-black text-primary tracking-tight">18</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-black tracking-widest text-white/30 uppercase">Spendings</span>
+<span class="text-xl font-black text-primary tracking-tight">8.4M</span>
+</div>
+</div>
+<div class="text-white/20 text-[10px] uppercase font-bold tracking-[0.2em]">
+                        © 2024 Kickoff Football Auction Protocol
+                    </div>
+</div>
+</footer>
+</div>
+</div>
+</body></html>

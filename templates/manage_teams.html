@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Manage All Teams Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@100..900&amp;family=Noto+Sans:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "accent-blue": "#3b82f6",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                        "surface-dark": "#162c1d",
+                    },
+                    fontFamily: {
+                        "display": ["Epilogue", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .stadium-vignette {
+            background: radial-gradient(circle at center, #1a3a24 0%, #102216 100%);
+        }
+        .card-glow-green:hover {
+            box-shadow: 0 0 20px rgba(13, 242, 89, 0.15);
+        }
+        .card-glow-blue:hover {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-white transition-colors duration-300">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden stadium-vignette">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-solid border-white/10 bg-background-dark/80 backdrop-blur-md px-10 py-3">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-primary">
+<div class="size-8 flex items-center justify-center bg-primary/20 rounded-lg">
+<span class="material-symbols-outlined text-primary">sports_soccer</span>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-tight">Football Auction</h2>
+</div>
+<label class="flex flex-col min-w-40 h-10 max-w-64">
+<div class="flex w-full flex-1 items-stretch rounded-xl h-full bg-white/5 border border-white/10">
+<div class="text-primary/60 flex items-center justify-center pl-4">
+<span class="material-symbols-outlined text-sm">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 border-none bg-transparent focus:ring-0 text-sm text-white placeholder:text-white/40 px-3" placeholder="Search squads..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-white/70 hover:text-primary text-sm font-medium transition-colors" href="#">Dashboard</a>
+<a class="text-white/70 hover:text-primary text-sm font-medium transition-colors" href="#">Market</a>
+<a class="text-white/70 hover:text-primary text-sm font-medium transition-colors" href="#">Leagues</a>
+</nav>
+<div class="h-6 w-px bg-white/10"></div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary/30" data-alt="User profile avatar portrait" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAeQs1ojzBhIlLM8lBZ1R55TiQr-nGZZco_1jokEQuUv2Cx5jNDAKI8nxxCDb0DWBipvdHKB2Ji3Dijws3s_5zyCRbcl7csWgG_PAj6C9fIwTzc2dMth2G7VnvyYOxD-_BWc2xyszsy7aZ5WUVhwiX_v3U1s5Xxa5Tk-NN60SPs-a37vfNQSQuQ4pgF9nLkEB6Yo8x8QSgv1AsRP8SolmGiQbcs-whmRMcwZr8VzISOIO6sxGIGEaiuZBNTv7Hxf8h-lAPDOufdnAw");'></div>
+</div>
+</header>
+<main class="flex-1 px-6 md:px-20 py-8 max-w-[1440px] mx-auto w-full">
+<!-- Breadcrumbs -->
+<div class="flex items-center gap-2 mb-4">
+<a class="text-primary/70 text-sm font-medium hover:underline" href="#">Dashboard</a>
+<span class="text-white/30 text-xs material-symbols-outlined">chevron_right</span>
+<span class="text-white text-sm font-medium">Manage Teams</span>
+</div>
+<!-- Page Heading -->
+<div class="flex flex-wrap justify-between items-end gap-4 mb-10">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-3xl">groups</span>
+<h1 class="text-white text-4xl font-black tracking-tight">Manage All Teams</h1>
+</div>
+<p class="text-white/60 text-base max-w-md">Oversee, analyze, and optimize your global football portfolio from a single command center.</p>
+</div>
+<button class="group flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-all">
+<span class="material-symbols-outlined text-sm transition-transform group-hover:-translate-x-1">arrow_back</span>
+<span>Back to Dashboard</span>
+</button>
+</div>
+<!-- Tabs Section -->
+<div class="flex border-b border-white/10 mb-8 overflow-x-auto no-scrollbar">
+<button class="flex items-center gap-2 border-b-2 border-primary text-primary px-6 py-4 font-bold text-sm">
+<span>All Squads</span>
+<span class="bg-primary/20 text-primary px-2 py-0.5 rounded text-[10px]">12</span>
+</button>
+<button class="flex items-center gap-2 border-b-2 border-transparent text-white/50 hover:text-white px-6 py-4 font-bold text-sm transition-colors">
+<span>Active Auctions</span>
+<span class="bg-white/10 text-white/50 px-2 py-0.5 rounded text-[10px]">4</span>
+</button>
+<button class="flex items-center gap-2 border-b-2 border-transparent text-white/50 hover:text-white px-6 py-4 font-bold text-sm transition-colors">
+<span>Idle Rosters</span>
+<span class="bg-white/10 text-white/50 px-2 py-0.5 rounded text-[10px]">8</span>
+</button>
+</div>
+<!-- Management Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Active Team Card 1 -->
+<div class="flex flex-col bg-surface-dark border-t-4 border-primary rounded-xl overflow-hidden card-glow-green transition-all duration-300">
+<div class="p-6 flex flex-col h-full">
+<div class="flex justify-between items-start mb-6">
+<div class="flex flex-col">
+<span class="text-[10px] font-black tracking-widest text-primary mb-1 uppercase">UK • Premier League</span>
+<h3 class="text-xl font-black text-white uppercase tracking-tight">London Lions</h3>
+</div>
+<span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+                                ACTIVE
+                            </span>
+</div>
+<!-- Player Avatar Stack -->
+<div class="flex items-center -space-x-3 mb-8">
+<div class="size-10 rounded-full border-2 border-surface-dark bg-cover bg-center" data-alt="Player 1 avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCRVtxzmyp7lvBkzU-NVfyPT_89whmbRtNM4lNjlf50iv6yoQsZdzmnGTUZmhJ3Bbnms85wUx91y4vgIiMFIhw7I6Qy4zRVY_1_-ThidvuAh54ytfJOYoAxaukYILFUQUCnYm4H9GokfijzkeTnPGus_DFgQkmdWiIgUNBt6Hpdv_DtpTp1mx60E4dXpJeUD98F-4O45ucAsIQzVI203_ADLfZ-rf38bkkugagM5IZbvvSSzgp4_bKQwsB6ARn3nYuLumaUexp56Gk')"></div>
+<div class="size-10 rounded-full border-2 border-surface-dark bg-cover bg-center" data-alt="Player 2 avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBZxkQYzPo9RXAT7QSoZn-cIfLr-QJFP1hm3UChJcVHB_rAWx_KoO0NC29hhJRJM3WSqjHX4BHRlmzOW4lu2xRd1ZokY2uTV1HPV22rmNGlpuRjtf1ovyFD1kvG5ZoX9cvnBGKbutsGrpTbSg2KmMYHW1y42n4Wg-ykf-bLpZuzI0YXdbDWNJTLkOSDXNlgoZdtaZLQAAyJuRp7p13VApzTp_tz0UNROovwV4aGNU8SAhF1nMA18EVmvj67gh6bkv9FbhW0ielfnew')"></div>
+<div class="size-10 rounded-full border-2 border-surface-dark bg-cover bg-center" data-alt="Player 3 avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuARXxQifGEYGgRtiMt81OFpEdjVUIIs52DFMV5XbSTl2wmu7vWGOAs6TZcLBcgDxDPR7BO_UswBO9jhjdXfuaiw8diIg2DpuHFs3og334IdNII7gxe83AO5wFRbZ6carbNXl7oDPzfK-RRQGBqPXyxA7thFu8koNt9yHuiIGrbC-EASr4skvKqxEAtF-N87oSaqaSzZfOixYFqZUgi2IgZd3ycMTQjFZAUshImOfoEmHvoCVSY_jNQ3sM182DrfRbqS_dt5xcWmZb8')"></div>
+<div class="size-10 rounded-full border-2 border-surface-dark bg-cover bg-center" data-alt="Player 4 avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAb3eLZtX_Di5coIJ3PcMow9IDrIJV1ivXdNrjP9PfxkQtWlwRgqTVBl7H7F78VPhFQLkWlYWWggr47SDAKoevYkJSdJfGvvCduI8mNitO4N-iiQpROoPgLCtTPrnUgcrabglIRQpjUPfS-M0cBSnysILfv58U654BKWpi6nEzJJJzUf-jZjUnQ0Lf_-WaOtINrnAVn6LooXf9j4hRq8Xb7-u5sxi_Ns_mARC5C4H9eN_FU8jUMdL-LeqqRVhKPe-A-z1TgRiaJty0')"></div>
+<div class="size-10 rounded-full border-2 border-surface-dark bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+                                +7
+                            </div>
+</div>
+<!-- Stats Row -->
+<div class="grid grid-cols-2 gap-4 mb-8">
+<div class="bg-white/5 rounded-lg p-3">
+<p class="text-white/40 text-[10px] uppercase font-bold tracking-wider mb-1">Team OVR</p>
+<p class="text-2xl font-black text-white">88</p>
+</div>
+<div class="bg-white/5 rounded-lg p-3">
+<p class="text-white/40 text-[10px] uppercase font-bold tracking-wider mb-1">Market Value</p>
+<p class="text-2xl font-black text-primary">$420M</p>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex flex-col gap-2 mt-auto">
+<button class="w-full py-3 bg-primary text-background-dark font-black text-sm rounded-lg hover:brightness-110 transition-all uppercase tracking-wider">View Squad</button>
+<button class="w-full py-3 bg-transparent border border-white/10 text-white font-bold text-sm rounded-lg hover:bg-white/5 transition-all uppercase tracking-wider">Manage Squad</button>
+</div>
+</div>
+</div>
+<!-- Active Team Card 2 -->
+<div class="flex flex-col bg-surface-dark border-t-4 border-primary rounded-xl overflow-hidden card-glow-green transition-all duration-300">
+<div class="p-6 flex flex-col h-full">
+<div class="flex justify-between items-start mb-6">
+<div class="flex flex-col">
+<span class="text-[10px] font-black tracking-widest text-primary mb-1 uppercase">France • Ligue 1</span>
+<h3 class="text-xl font-black text-white uppercase tracking-tight">Paris Elite</h3>
+</div>
+<span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+                                ACTIVE
+                            </span>
+</div>
+<div class="flex items-center -space-x-3 mb-8">
+<div class="size-10 rounded-full border-2 border-surface-dark bg-cover bg-center" data-alt="Player avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC7gmSeATKWFVhRr-kzW0JugQJeUv-YU6oeWS0YMOSBwchr8TvCvbDx07eqoZSlAzSGHHCN6IVk5XytxjAqScIX0KzUcmOmOdJV2HtPOZebhyD8GqM9lynSHLJ5IeohqXyFpHhCLd4YHWaknVWCST0g-8LEtY8pQDkEFzyrwIP9OlP-UxYBFqg2rNUC1QQuADPvKIlH4S9uYwril9gVG_yaFNZ8hwa20BoLxsR5SBDbvqXqWbSSf53Cq3Sguo8zjI8k5pI8Xm2eBq8')"></div>
+<div class="size-10 rounded-full border-2 border-surface-dark bg-cover bg-center" data-alt="Player avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDxmSql79rbqSnOO43Mp_BK_8na9hb1qaNyV9X0vI7NSbW3Md-HwFDxYu2Nu3cvt9tLbLRKArHXZYt3xkFx_w-ggFDS6-nvpt0h99DVqb6bkIgZ6tjw14vGKM86pxCgRmfZtPX0DMxz4OG6hRfmv2A-DfOxMhVX-_XQboKhNKiD52DXw8hIRB70fGTICE_QyrMbyUjwLaZJLm5VM71bTMq9Vnmw6ope0eBVCvthCsV2AVRLGYh3uCuIp8Ke42TTCBGKHxYsQQKuCQM')"></div>
+<div class="size-10 rounded-full border-2 border-surface-dark bg-cover bg-center" data-alt="Player avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBUHE2ANF77MnH7r-zqtSKz50Cpvd7kXcFTgFEL0sMalOtozk7JFxkhXtZh6lCR-9mj9RZfWN4DEaXzEXOGFyPeMM7W7b0afReugjWvke507zeaeH8JNpoGRdvV_k5IjzAgWmlix68Yv8-He4i2ugDW-38Jcwn7il8NorNScgxD75RiSepMeK6_Uk-1G64Y5Z614tGphoQ92EsC8bM1sUzddk3z9fy5P2SvostyQfeTxm_rRfmmpOqVJeaYhDcUqrgS2kyik7C1mDo')"></div>
+<div class="size-10 rounded-full border-2 border-surface-dark bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">+12</div>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-8">
+<div class="bg-white/5 rounded-lg p-3">
+<p class="text-white/40 text-[10px] uppercase font-bold tracking-wider mb-1">Team OVR</p>
+<p class="text-2xl font-black text-white">91</p>
+</div>
+<div class="bg-white/5 rounded-lg p-3">
+<p class="text-white/40 text-[10px] uppercase font-bold tracking-wider mb-1">Market Value</p>
+<p class="text-2xl font-black text-primary">$550M</p>
+</div>
+</div>
+<div class="flex flex-col gap-2 mt-auto">
+<button class="w-full py-3 bg-primary text-background-dark font-black text-sm rounded-lg hover:brightness-110 transition-all uppercase tracking-wider">View Squad</button>
+<button class="w-full py-3 bg-transparent border border-white/10 text-white font-bold text-sm rounded-lg hover:bg-white/5 transition-all uppercase tracking-wider">Manage Squad</button>
+</div>
+</div>
+</div>
+<!-- Idle Team Card 1 -->
+<div class="flex flex-col bg-surface-dark border-t-4 border-accent-blue rounded-xl overflow-hidden card-glow-blue transition-all duration-300 opacity-80 hover:opacity-100">
+<div class="p-6 flex flex-col h-full">
+<div class="flex justify-between items-start mb-6">
+<div class="flex flex-col">
+<span class="text-[10px] font-black tracking-widest text-accent-blue mb-1 uppercase">Spain • La Liga</span>
+<h3 class="text-xl font-black text-white uppercase tracking-tight text-white/70">Madrid Kings</h3>
+</div>
+<span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-blue/10 border border-accent-blue/20 text-accent-blue text-[10px] font-bold">
+                                IDLE
+                            </span>
+</div>
+<div class="flex items-center -space-x-3 mb-8">
+<div class="size-10 rounded-full border-2 border-surface-dark bg-cover bg-center grayscale" data-alt="Player avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAWI3CRUdplC15vMQoKlmaJ1KHGttJruAIe7oakSEYZ2QcpfmH3EjqLotowH8wcGHZARe89iD7mPjqA_aBjt8mPWfOe5L1kbC8bcDkyw9a7REljbwVsAIXAweB5vjGRFPrcj-U37ytoYE5XE2teEU2O_d5gfhmD5Hm3fp6SXIfGREND9ZrVahvKscdZqEXz1a_V1fC9iXsdjxFo8WI_5SzMnxgyCfT7iVWK-FiT8cj2oixTSTy9478itNMEctF3O5V2ltfOqpk3g-c')"></div>
+<div class="size-10 rounded-full border-2 border-surface-dark bg-cover bg-center grayscale" data-alt="Player avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCPIvIvJEm413yZP4UD4rH6_rwdKdTS6n8CO1Of058G6Ymz4XzcQjyyDX8kM0x6uVybD5C3--R7OkJk7fS7TT5VwQSteiDDILb_lZVkwe6Ho-D7PV-pOzuou0xBeYcJ0Zeje0YrWxjAUG6n0PiUI4EyTbNGn2zjbOyqJbyGIV9jnks5RQOKqGGCGHtY9D8FXdsbk-Hx2qQ7x-zZG_lSz1_c6Dtp2F535lETO28oKtes0X77plET8HbxlEXauMW2Tcz9ua9XR53t3Ew')"></div>
+<div class="size-10 rounded-full border-2 border-surface-dark bg-accent-blue/20 flex items-center justify-center text-[10px] font-bold text-accent-blue">+3</div>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-8">
+<div class="bg-white/5 rounded-lg p-3">
+<p class="text-white/40 text-[10px] uppercase font-bold tracking-wider mb-1">Team OVR</p>
+<p class="text-2xl font-black text-white/50">84</p>
+</div>
+<div class="bg-white/5 rounded-lg p-3">
+<p class="text-white/40 text-[10px] uppercase font-bold tracking-wider mb-1">Market Value</p>
+<p class="text-2xl font-black text-accent-blue">$310M</p>
+</div>
+</div>
+<div class="flex flex-col gap-2 mt-auto">
+<button class="w-full py-3 bg-accent-blue text-white font-black text-sm rounded-lg hover:brightness-110 transition-all uppercase tracking-wider">View Squad</button>
+<button class="w-full py-3 bg-transparent border border-white/10 text-white font-bold text-sm rounded-lg hover:bg-white/5 transition-all uppercase tracking-wider">Manage Squad</button>
+</div>
+</div>
+</div>
+<!-- Idle Team Card 2 -->
+<div class="flex flex-col bg-surface-dark border-t-4 border-accent-blue rounded-xl overflow-hidden card-glow-blue transition-all duration-300 opacity-80 hover:opacity-100">
+<div class="p-6 flex flex-col h-full">
+<div class="flex justify-between items-start mb-6">
+<div class="flex flex-col">
+<span class="text-[10px] font-black tracking-widest text-accent-blue mb-1 uppercase">Germany • Bundesliga</span>
+<h3 class="text-xl font-black text-white uppercase tracking-tight text-white/70">Berlin Wall</h3>
+</div>
+<span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-blue/10 border border-accent-blue/20 text-accent-blue text-[10px] font-bold">
+                                IDLE
+                            </span>
+</div>
+<div class="flex items-center -space-x-3 mb-8">
+<div class="size-10 rounded-full border-2 border-surface-dark bg-cover bg-center grayscale" data-alt="Player avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCiGw1iOR7kKjuJQmdN7b0UnSQXf_laSH3rSIhJ0W91P2dnJ5WxNnYB8ZibVOPspg6CgmCzkkJSyTbEmfnM0NAANe6CJv_ENgvJUDjFGT-o3r3vUsiRUynApo9MLErSO3D_3skWKOJGNSsDhpvrjVeq0e4E0rwTXLJrAJXcpGv2CiRsTXTMWTNv2Gz_JzTp-SClxBS-MXQ-pC1YOHMOnihzxPtdrdEjVYW8eTlOK3FR-7N-LFjmAMt58H8cF9KHLRhZUvlwZuRqglE')"></div>
+<div class="size-10 rounded-full border-2 border-surface-dark bg-cover bg-center grayscale" data-alt="Player avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBMnjJcxcZPlqhbiRX3SrAGs-bxg5EinrwkOmMtA-StNi3hpYD1H4dGCV1K0GiFl-_WBN5o00Gr2kTVe7QZ3xcA_u2icURWqLit3wqqzRQCNOmndu3TCuXJnvQUbBmuBLKVuUW9QU6SR0qHId-1Wn9oiI6l0QnmHHIoNTgwDIw5ynR3TO_cl2Kh1NX-vIi1MBWYWF0ajcACCGOZ_30yT4XqcvWC1eK0whU2unbQ61dQ7Z6q529Ca-t2jA8fneksSWccxN1UO7M2rWE')"></div>
+<div class="size-10 rounded-full border-2 border-surface-dark bg-cover bg-center grayscale" data-alt="Player avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDkqu3fZhxkizf3WnSKeh9_XCFFL64Viy_V2ux2VNuRpZmZrqxthdDwXtM7bBNfD4wLDIQEhzevnYQXFK4hnt5asdRNpWRZ6-zxtRX-TSZGN59utn9Zccz3txowMafX1z8QhaKJgjTP7yIlCSn-rLKpJmLACNZeHtBe_eraiIqNGDCJY3rmK3t4OCb6hAz5wvGRMnU5bdd5qJvOhS4b12-RRgvvNPrzpvEKdgWn9BZzNen-3nIccCi2bQaw-6I7aVbIZZQNZYO-USI')"></div>
+<div class="size-10 rounded-full border-2 border-surface-dark bg-accent-blue/20 flex items-center justify-center text-[10px] font-bold text-accent-blue">+15</div>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-8">
+<div class="bg-white/5 rounded-lg p-3">
+<p class="text-white/40 text-[10px] uppercase font-bold tracking-wider mb-1">Team OVR</p>
+<p class="text-2xl font-black text-white/50">82</p>
+</div>
+<div class="bg-white/5 rounded-lg p-3">
+<p class="text-white/40 text-[10px] uppercase font-bold tracking-wider mb-1">Market Value</p>
+<p class="text-2xl font-black text-accent-blue">$280M</p>
+</div>
+</div>
+<div class="flex flex-col gap-2 mt-auto">
+<button class="w-full py-3 bg-accent-blue text-white font-black text-sm rounded-lg hover:brightness-110 transition-all uppercase tracking-wider">View Squad</button>
+<button class="w-full py-3 bg-transparent border border-white/10 text-white font-bold text-sm rounded-lg hover:bg-white/5 transition-all uppercase tracking-wider">Manage Squad</button>
+</div>
+</div>
+</div>
+<!-- Create New Team Card -->
+<div class="flex flex-col bg-white/5 border-2 border-dashed border-white/20 rounded-xl overflow-hidden hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 group cursor-pointer min-h-[400px]">
+<div class="p-6 flex flex-col h-full items-center justify-center text-center">
+<div class="size-16 rounded-full bg-white/5 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-4xl text-white/40 group-hover:text-primary transition-colors">add</span>
+</div>
+<h3 class="text-xl font-black text-white uppercase mb-2">Create New Squad</h3>
+<p class="text-white/40 text-sm max-w-[200px] mb-8">Establish a new franchise and begin scouting top tier talent.</p>
+<a href="Create_team.html"><button class="px-8 py-3 bg-white/10 text-white font-black text-sm rounded-lg group-hover:bg-primary group-hover:text-background-dark transition-all uppercase tracking-wider">Start Drafting</button>
+</div>
+</div></a>
+</div>
+</main>
+<!-- Stats Overview Footer -->
+<footer class="mt-auto px-10 py-6 border-t border-white/10 bg-background-dark/50 backdrop-blur-sm">
+<div class="max-w-[1440px] mx-auto flex flex-wrap justify-between items-center gap-6">
+<div class="flex items-center gap-12">
+<div class="flex flex-col">
+<span class="text-white/40 text-[10px] uppercase font-bold tracking-widest mb-1">Portfolio Value</span>
+<span class="text-lg font-black text-white">$1.56B</span>
+</div>
+<div class="flex flex-col">
+<span class="text-white/40 text-[10px] uppercase font-bold tracking-widest mb-1">Win Rate</span>
+<span class="text-lg font-black text-primary">64.2%</span>
+</div>
+<div class="flex flex-col">
+<span class="text-white/40 text-[10px] uppercase font-bold tracking-widest mb-1">Total Players</span>
+<span class="text-lg font-black text-white">42 Active</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-lg bg-white/5 text-white/60 hover:text-white transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="p-2 rounded-lg bg-white/5 text-white/60 hover:text-white transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+</div>
+</footer>
+</div>
+</body></html>
