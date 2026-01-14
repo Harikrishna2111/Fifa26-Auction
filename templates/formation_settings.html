@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Squad Builder - FootAuction PRO</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#39ff14",
+                        "bg-dark": "#050807",
+                        "panel-dark": "#121816",
+                        "pitch-green": "#112218",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    backgroundImage: {
+                        'pitch-pattern': 'repeating-linear-gradient(90deg, #152a1e 0px, #152a1e 100px, #112218 100px, #112218 200px)',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                },
+            },
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050807;
+            color: white;
+            overflow-x: hidden;
+            background-image: radial-gradient(#152a1e 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* Smooth positioning transitions */
+        .player-slot {
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Drag and Drop Styles */
+        .dragging {
+            opacity: 0.4;
+            transform: scale(0.9);
+            filter: grayscale(1);
+        }
+        .drag-over {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(57, 255, 20, 0.4);
+            border-radius: 1rem;
+        }
+
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #0c1210; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #39ff14; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #2cc90e; }
+
+        /* Card Visuals */
+        .player-img-cutout {
+            -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+            mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+        }
+
+        .pitch-line {
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+
+        /* GEM/RARE ANIMATION */
+        .gem-shine {
+            background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.4) 40%, transparent 50%);
+            background-size: 200% 100%;
+            animation: shine 4s infinite linear;
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 25;
+        }
+        @keyframes shine {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="font-display flex flex-col h-screen overflow-hidden">
+
+    <header class="flex-none flex items-center justify-between px-8 py-3 bg-panel-dark/90 backdrop-blur-md border-b border-white/5 z-50 shadow-lg">
+        <div class="flex items-center gap-4">
+            <span class="material-symbols-outlined text-primary text-3xl drop-shadow-[0_0_10px_rgba(57,255,20,0.5)]">sports_soccer</span>
+            <h1 class="text-xl font-bold tracking-tight">FOOTAUCTION <span class="text-primary italic">PRO</span></h1>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="bg-black/40 border border-white/10 px-4 py-1.5 rounded-full flex items-center gap-3">
+                <span class="text-primary text-xs font-bold tracking-widest">BUDGET</span>
+                <span class="font-mono font-bold text-base">€ 1,240,500</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+        
+        <div class="absolute top-[60px] left-0 right-0 z-40 bg-bg-dark/80 backdrop-blur-md px-8 py-3 border-b border-white/5 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <h2 class="text-2xl font-black italic uppercase tracking-tighter text-white">Formation</h2>
+                <div class="bg-black/40 px-3 py-1 rounded text-xs text-white/50 border border-white/5 flex items-center gap-2">
+                     <span class="material-symbols-outlined text-sm">drag_indicator</span> Drag & Drop
+                </div>
+            </div>
+            
+            <div class="flex gap-2 bg-black/60 p-1 rounded-xl border border-white/10" id="formation-controls">
+                </div>
+            
+            <div class="flex gap-6">
+                <div class="flex flex-col items-end">
+                    <span class="text-[9px] font-bold text-white/40 uppercase">Rating</span>
+                    <span class="text-xl font-black italic" id="squad-rating">88</span>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span class="text-[9px] font-bold text-white/40 uppercase">Chemistry</span>
+                    <span class="text-xl font-black italic text-primary" id="squad-chemistry">33/33</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full h-full pt-[70px] grid grid-cols-1 lg:grid-cols-[1fr_380px] 2xl:grid-cols-[1fr_450px] gap-0">
+
+            <div class="relative overflow-y-auto custom-scroll p-6 pb-32 bg-bg-dark">
+                
+                <div class="relative w-full max-w-[1200px] aspect-[16/11] mx-auto bg-pitch-pattern rounded-[3rem] border-[6px] border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.6)] group overflow-hidden">
+                    
+                    <div class="absolute inset-0 opacity-40 pointer-events-none">
+                        <div class="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[2px] bg-white/30 pitch-line"></div>
+                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-[2px] border-white/30 rounded-full pitch-line"></div>
+                        <div class="absolute top-[15%] bottom-[15%] left-0 w-32 border-r-[2px] border-y-[2px] border-white/30 pitch-line"></div>
+                        <div class="absolute top-[15%] bottom-[15%] right-0 w-32 border-l-[2px] border-y-[2px] border-white/30 pitch-line"></div>
+                    </div>
+
+                    <div id="pitch-container" class="absolute inset-0 w-full h-full"></div>
+                </div>
+
+            </div>
+
+            <div class="bg-panel-dark/95 border-l border-white/10 flex flex-col h-full overflow-hidden shadow-2xl z-30">
+                
+                <div class="p-4 border-b border-white/10 bg-black/20">
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-white flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">groups</span> Squad Depth
+                    </h3>
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scroll p-4 space-y-6">
+                    
+                    <div>
+                        <div class="flex justify-between items-center mb-3 px-1">
+                            <span class="text-xs font-bold text-primary uppercase tracking-wider">Substitutes</span>
+                            <span class="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-white/50">7 MAX</span>
+                        </div>
+                        <div id="subs-container" class="grid grid-cols-2 2xl:grid-cols-2 gap-3">
+                            </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-3 px-1">
+                            <span class="text-xs font-bold text-white/40 uppercase tracking-wider">Reserves</span>
+                        </div>
+                        <div id="res-container" class="grid grid-cols-2 2xl:grid-cols-2 gap-3">
+                            </div>
+                    </div>
+
+                </div>
+
+                <div class="p-4 border-t border-white/10 bg-black/40 backdrop-blur-md">
+                    <a href="Create_team.html"><button onclick="saveSquad()" class="w-full bg-primary hover:bg-[#2bff00] text-black py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(57,255,20,0.3)] flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined">save</span>
+                        Save Squad
+                    </button></a>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA ---
+        // Removed explicit 'type'. The code now derives color from 'rating'.
+        const players = [
+            { id: 1, name: "Mbappé", pos: "ST", rating: 97, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p223094.png", stat: "PAC 97" },
+            { id: 2, name: "Salah", pos: "RW", rating: 90, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p118748.png", stat: "PAC 91" },
+            { id: 3, name: "Son", pos: "LW", rating: 89, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p85971.png", stat: "SHO 89" },
+            { id: 4, name: "De Bruyne", pos: "CM", rating: 96, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p61366.png", stat: "PAS 94" },
+            { id: 5, name: "Fernandes", pos: "CM", rating: 88, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p122798.png", stat: "PAS 90" },
+            { id: 6, name: "Rice", pos: "CDM", rating: 86, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p204480.png", stat: "DEF 85" },
+            { id: 7, name: "Shaw", pos: "LB", rating: 83, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p106760.png", stat: "PAC 82" },
+            { id: 8, name: "Dias", pos: "CB", rating: 89, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p171287.png", stat: "DEF 89" },
+            { id: 9, name: "Saliba", pos: "CB", rating: 87, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p243016.png", stat: "DEF 88" },
+            { id: 10, name: "Trippier", pos: "RB", rating: 84, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p101178.png", stat: "PAS 86" },
+            { id: 11, name: "Ederson", pos: "GK", rating: 89, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p106573.png", stat: "REF 91" },
+            // Subs
+            { id: 12, name: "Varane", pos: "CB", rating: 84, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p93111.png", stat: "DEF 85" },
+            { id: 13, name: "Rashford", pos: "LW", rating: 83, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p172780.png", stat: "PAC 88" },
+            { id: 14, name: "Saka", pos: "RW", rating: 86, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p223340.png", stat: "DRI 87" },
+            { id: 15, name: "Ramsdale", pos: "GK", rating: 81, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p172649.png", stat: "REF 82" },
+            { id: 16, name: "Nketiah", pos: "ST", rating: 78, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p179402.png", stat: "PAC 82" },
+            { id: 17, name: "Maguire", pos: "CB", rating: 79, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p95658.png", stat: "PHY 85" },
+            { id: 18, name: "Young", pos: "LB", rating: 75, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p173954.png", stat: "PAC 70" }
+        ];
+
+        // Formation Coords
+        const formations = {
+            "4-3-3": [
+                { role: "GK", left: 50, top: 90 }, { role: "LB", left: 12, top: 72 }, { role: "CB", left: 36, top: 78 }, { role: "CB", left: 64, top: 78 }, { role: "RB", left: 88, top: 72 },
+                { role: "CM", left: 32, top: 45 }, { role: "CM", left: 50, top: 52 }, { role: "CM", left: 68, top: 45 },
+                { role: "LW", left: 15, top: 15 }, { role: "ST", left: 50, top: 10 }, { role: "RW", left: 85, top: 15 }
+            ],
+            "4-4-2": [
+                { role: "GK", left: 50, top: 90 }, { role: "LB", left: 10, top: 72 }, { role: "CB", left: 35, top: 78 }, { role: "CB", left: 65, top: 78 }, { role: "RB", left: 90, top: 72 },
+                { role: "LM", left: 12, top: 40 }, { role: "CM", left: 38, top: 48 }, { role: "CM", left: 62, top: 48 }, { role: "RM", left: 88, top: 40 },
+                { role: "ST", left: 35, top: 12 }, { role: "ST", left: 65, top: 12 }
+            ],
+            "4-2-3-1": [
+                { role: "GK", left: 50, top: 90 }, { role: "LB", left: 12, top: 72 }, { role: "CB", left: 36, top: 78 }, { role: "CB", left: 64, top: 78 }, { role: "RB", left: 88, top: 72 },
+                { role: "CDM", left: 35, top: 55 }, { role: "CDM", left: 65, top: 55 },
+                { role: "CAM", left: 18, top: 28 }, { role: "CAM", left: 50, top: 32 }, { role: "CAM", left: 82, top: 28 }, { role: "ST", left: 50, top: 10 }
+            ],
+            "5-3-2": [
+                { role: "GK", left: 50, top: 92 }, { role: "LWB", left: 8, top: 60 }, { role: "CB", left: 30, top: 75 }, { role: "CB", left: 50, top: 78 }, { role: "CB", left: 70, top: 75 }, { role: "RWB", left: 92, top: 60 },
+                { role: "CM", left: 30, top: 40 }, { role: "CM", left: 50, top: 45 }, { role: "CM", left: 70, top: 40 },
+                { role: "ST", left: 35, top: 12 }, { role: "ST", left: 65, top: 12 }
+            ]
+        };
+
+        // State
+        let currentFormation = "4-3-3";
+        let pitchPlayers = players.slice(0, 11);
+        let subPlayers = players.slice(11, 15);
+        let resPlayers = players.slice(15);
+
+        // --- RENDER ---
+        function init() {
+            renderControls();
+            renderPitch();
+            renderTray('subs-container', subPlayers, 'sub');
+            renderTray('res-container', resPlayers, 'res');
+            calculateStats();
+        }
+
+        function renderControls() {
+            const container = document.getElementById('formation-controls');
+            container.innerHTML = Object.keys(formations).map(fmt => `
+                <button onclick="setFormation('${fmt}')" 
+                    class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all uppercase tracking-widest ${fmt === currentFormation ? 'bg-primary text-black' : 'text-white/60 hover:text-white hover:bg-white/10'}">
+                    ${fmt}
+                </button>
+            `).join('');
+        }
+
+        function setFormation(fmt) {
+            currentFormation = fmt;
+            renderControls();
+            renderPitch();
+            calculateStats();
+        }
+
+        // --- DYNAMIC CARD COLOR LOGIC ---
+        function getCardStyle(rating) {
+            let bgClass, borderClass, textClass, shadowClass, effectHtml = '';
+
+            if (rating >= 90) {
+                // RARE / GEM (96+)
+                bgClass = 'bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-900';
+                borderClass = 'border-cyan-400';
+                textClass = 'text-cyan-300';
+                shadowClass = 'shadow-cyan-500/40';
+                effectHtml = '<div class="gem-shine"></div>'; // Holographic shine
+            } else if (rating >= 86) {
+                // GOLD (86 - 95)
+                bgClass = 'bg-gradient-to-br from-[#4a3b00] via-[#3d3100] to-[#1a1400]';
+                borderClass = 'border-[#ffd700]';
+                textClass = 'text-[#ffd700]';
+                shadowClass = 'shadow-[#ffd700]/20';
+                
+            } else if (rating >= 80) {
+                // SILVER (80 - 85)
+                bgClass = 'bg-gradient-to-br from-[#424242] via-[#303030] to-[#121212]';
+                borderClass = 'border-[#e0e0e0]';
+                textClass = 'text-[#e0e0e0]';
+                shadowClass = 'shadow-white/10';
+            } else {
+                // BRONZE (79 and below)
+                bgClass = 'bg-gradient-to-br from-[#3e2723] via-[#2d1b18] to-[#1a0f0d]';
+                borderClass = 'border-[#d7ccc8]';
+                textClass = 'text-[#d7ccc8]';
+                shadowClass = 'shadow-orange-900/20';
+            }
+
+            return { bgClass, borderClass, textClass, shadowClass, effectHtml };
+        }
+
+        function createCardHTML(player, sizeClass, locationType, index) {
+            const style = getCardStyle(player.rating);
+
+            return `
+                <div draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)"
+                    data-type="${locationType}" data-index="${index}"
+                    class="${sizeClass} ${style.bgClass} ${style.borderClass} border-2 rounded-xl flex flex-col relative shadow-lg cursor-grab active:cursor-grabbing hover:scale-105 hover:z-50 transition-all duration-200 group overflow-hidden ${style.shadowClass}">
+                    
+                    ${style.effectHtml} <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-white/5 opacity-50"></div>
+                    <div class="absolute top-1.5 left-2 flex flex-col leading-none z-20">
+                        <span class="text-xl font-black italic text-white drop-shadow-md">${player.rating}</span>
+                        <span class="text-[9px] font-bold ${style.textClass} uppercase tracking-widest mt-0.5">${player.pos}</span>
+                    </div>
+                    <div class="flex-1 flex items-end justify-center overflow-hidden relative">
+                        <img src="${player.img}" class="w-[85%] h-[85%] object-contain player-img-cutout relative z-10 pointer-events-none drop-shadow-2xl">
+                    </div>
+                    <div class="bg-black/60 backdrop-blur-md py-1.5 text-center border-t border-white/5 relative z-20">
+                        <div class="text-[10px] font-black uppercase tracking-wider text-white truncate px-1">${player.name}</div>
+                        <div class="text-[8px] ${style.textClass} font-mono font-bold opacity-90 mt-0.5">${player.stat}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderPitch() {
+            const container = document.getElementById('pitch-container');
+            const coords = formations[currentFormation];
+            
+            container.innerHTML = coords.map((coord, index) => {
+                const player = pitchPlayers[index];
+                if (!player) return ''; 
+                const isCorrectPos = player.pos === coord.role;
+                const posColor = isCorrectPos ? "bg-primary text-black border-primary" : "bg-red-500 text-white border-red-500";
+
+                // Standardized card size for pitch
+                return `
+                    <div class="player-slot absolute w-24 h-36" style="left: ${coord.left}%; top: ${coord.top}%; transform: translate(-50%, -50%);">
+                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 ${posColor} border font-black text-[9px] px-1.5 py-0.5 rounded shadow-lg z-0 transition-colors">
+                            ${coord.role}
+                        </div>
+                        ${createCardHTML(player, 'w-full h-full', 'pitch', index)}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderTray(containerId, data, type) {
+            const container = document.getElementById(containerId);
+            // Smaller Cards for Sidebar Grid
+            container.innerHTML = data.map((player, index) => {
+                return `
+                    <div class="flex-none">
+                        ${createCardHTML(player, 'w-full h-40', type, index)}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- DRAG & DROP ---
+        let draggedItem = null;
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+            draggedItem = { type: ev.currentTarget.dataset.type, index: parseInt(ev.currentTarget.dataset.index) };
+            ev.currentTarget.classList.add('dragging');
+        }
+
+        function allowDrop(ev) { ev.preventDefault(); }
+
+        function drop(ev) {
+            ev.preventDefault();
+            document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+            const targetCard = ev.target.closest('[draggable="true"]');
+            if (!targetCard) return;
+
+            const targetType = targetCard.dataset.type;
+            const targetIndex = parseInt(targetCard.dataset.index);
+
+            let sourceList = getListByType(draggedItem.type);
+            let targetList = getListByType(targetType);
+
+            const temp = sourceList[draggedItem.index];
+            sourceList[draggedItem.index] = targetList[targetIndex];
+            targetList[targetIndex] = temp;
+
+            init();
+        }
+
+        function getListByType(type) {
+            if (type === 'pitch') return pitchPlayers;
+            if (type === 'sub') return subPlayers;
+            if (type === 'res') return resPlayers;
+        }
+
+        function saveSquad() {
+            const btn = document.querySelector('button[onclick="saveSquad()"]');
+            const original = btn.innerHTML;
+            btn.innerHTML = 'Saving...';
+            setTimeout(() => {
+                btn.innerHTML = 'Saved!';
+                btn.classList.add('bg-white', 'text-green-600');
+                setTimeout(() => {
+                    btn.innerHTML = original;
+                    btn.classList.remove('bg-white', 'text-green-600');
+                }, 2000);
+            }, 800);
+        }
+
+        // --- STATS ---
+        function calculateStats() {
+            const total = pitchPlayers.reduce((acc, p) => acc + (p ? p.rating : 0), 0);
+            const avg = Math.floor(total / 11);
+            
+            // Chem
+            const currentCoords = formations[currentFormation];
+            let chem = 0;
+            pitchPlayers.forEach((p, i) => { if(p && p.pos === currentCoords[i].role) chem += 3; });
+            chem = Math.min(chem, 33);
+            
+            document.getElementById('squad-rating').innerText = avg;
+            document.getElementById('squad-chemistry').innerText = chem + "/33";
+            document.getElementById('squad-chemistry').className = `text-xl font-black italic ${chem >= 30 ? 'text-primary' : 'text-yellow-400'}`;
+        }
+
+        init();
+    </script>
+</body>
+</html>
