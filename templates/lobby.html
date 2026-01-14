@@ -51,34 +51,34 @@
 <div class="fixed inset-0 stadium-gradient -z-10"></div>
 <div class="fixed inset-0 smoke-overlay -z-5"></div>
 <div class="layout-container flex h-full grow flex-col">
-<!-- Top Navigation Bar -->
-<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-white/10 px-6 py-4 md:px-40">
-<div class="flex items-center gap-4 text-white">
-<div class="size-8 text-primary">
-<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-<g clip-path="url(#clip0_6_330)">
-<path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path>
-</g>
-<defs>
-<clippath id="clip0_6_330"><rect fill="white" height="48" width="48"></rect></clippath>
-</defs>
-</svg>
+
+<header class="sticky top-0 z-50 w-full border-b border-white/10 bg-background-dark/80 backdrop-blur-md">
+<div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-background-dark">
+<span class="material-symbols-outlined font-bold">sports_soccer</span>
 </div>
-<h2 class="text-white text-xl font-bold leading-tight tracking-tight uppercase italic">Elite Champions League</h2>
+<h2 class="text-xl font-black tracking-tighter uppercase italic">Footy<span class="text-primary">Auction</span></h2>
 </div>
-<div class="flex flex-1 justify-end gap-4">
-<div class="flex gap-2">
-<a href="user_dashboard.html"><button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-white/5 hover:bg-white/10 text-white text-sm font-bold leading-normal transition-all">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3 pr-6 border-r border-white/10">
+    <a href="user_dashboard.html"><button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-white/5 hover:bg-white/10 text-white text-sm font-bold leading-normal transition-all">
 <span class="truncate">Leave Lobby</span>
 </button></a>
-<button class="flex cursor-pointer items-center justify-center rounded-lg h-10 w-10 bg-white/5 hover:bg-white/10 text-white transition-all">
-<span class="material-symbols-outlined text-xl">settings</span>
-</button>
-<button class="flex cursor-pointer items-center justify-center rounded-lg h-10 w-10 bg-white/5 hover:bg-white/10 text-white transition-all">
-<span class="material-symbols-outlined text-xl">person</span>
-</button>
+<div class="text-right hidden sm:block">
+    
+<p class="text-sm font-bold">Alex Smith</p>
+<p class="text-[10px] text-primary uppercase font-black tracking-wider">Pro Manager</p>
 </div>
-<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border border-white/20" data-alt="User profile avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCwYILN85Kpsm3iSR18ciWwMDo-c4ixVPM7USSqaf0j4ovSVDI-P6bIulMnaM4AfDKan2bYeVqQkCYcIsIb7czL_vAU6182ZxmBCMUyyxDb_n0-rve2fD7W8aF40H4VbtdIpef7Ee6Mr5DlhAKx04pQJbsT9jB4YxDVpMH8TWLFwUdxZrm83R1eDXpx7mmFoHQx-IPu9RznLGNjWUnzj9XDKkq2PgngKP6t7tajRLJOtZbwdjdtfOJAldJq8QFqbwT9F_J4ynDxaRE");'></div>
+<div class="w-10 h-10 rounded-full bg-white/10 border border-primary/30 flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-primary">person</span>
+</div>
+</div>
+<a href="login.html"><button class="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">logout</span>
+                    Logout
+                </button></a>
+</div>
 </div>
 </header>
 <main class="flex flex-col items-center flex-1 px-4 py-10">
@@ -175,15 +175,16 @@
 </div>
 </div>
 </main>
-<!-- Connectivity Footer -->
-<footer class="p-6 flex justify-between items-center text-white/40 text-[10px] uppercase tracking-widest border-t border-white/5">
-<div class="flex items-center gap-4">
-<span class="flex items-center gap-1"><span class="size-1.5 rounded-full bg-primary"></span> Server: EU-West-1</span>
-<span>Latency: 24ms</span>
+<!-- Footer -->
+<footer class="border-t border-white/5 bg-background-dark py-12 px-4 lg:px-20 text-center">
+<div class="flex flex-col items-center gap-6">
+<div class="flex items-center gap-2 opacity-50">
+<span class="material-symbols-outlined">gavel</span>
+<p class="text-sm font-medium">Football Auction System v1.0.0</p>
 </div>
-<div>
-                © 2024 Elite Champions League v2.4.0
-            </div>
+
+<p class="text-slate-600 text-xs">© 2026 Football Auction Engine. All rights reserved.</p>
+</div>
 </footer>
 </div>
 </body></html>
