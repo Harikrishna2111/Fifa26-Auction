@@ -1,496 +1,385 @@
 <!DOCTYPE html>
-
-<html class="dark" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Live Football Auction Lobby</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>FootyAuction PRO</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    
+    <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
                         "primary": "#0df259",
-                        "background-light": "#f5f8f6",
                         "background-dark": "#0a0f0b",
+                        "panel-dark": "#121816",
                         "auction-gold": "#ffd700",
                         "auction-red": "#ff4d4d",
                     },
                     fontFamily: {
                         "display": ["Space Grotesk", "sans-serif"]
                     },
-                    borderRadius: {
-                        "DEFAULT": "0.25rem",
-                        "lg": "0.5rem",
-                        "xl": "0.75rem",
-                        "full": "9999px"
+                    animation: {
+                        'marquee': 'marquee 25s linear infinite',
+                        'shine': 'shine 4s infinite linear',
                     },
+                    keyframes: {
+                        marquee: { '0%': { transform: 'translateX(100%)' }, '100%': { transform: 'translateX(-100%)' } },
+                        shine: { '0%': { backgroundPosition: '200% 0' }, '100%': { backgroundPosition: '-200% 0' } }
+                    }
                 },
             },
         }
     </script>
-<style>
-        .neon-glow-green {
-            box-shadow: 0 0 15px rgba(13, 242, 89, 0.3);
-        }
-        .neon-glow-red {
-            box-shadow: 0 0 20px rgba(255, 77, 77, 0.5);
-        }
-        .gold-text-shadow {
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
-        }
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
         .stadium-bg {
-            background: linear-gradient(rgba(10, 15, 11, 0.85), rgba(10, 15, 11, 0.95)), 
+            background: linear-gradient(rgba(10, 15, 11, 0.9), rgba(10, 15, 11, 0.95)), 
                         url('https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&q=80&w=2000');
             background-size: cover;
             background-position: center;
         }
-        .data-stream {
-            background: linear-gradient(90deg, transparent 0%, rgba(13, 242, 89, 0.05) 50%, transparent 100%);
+        .pitch-pattern {
+            background-color: #1a2e24;
+            background-image: repeating-linear-gradient(90deg, transparent, transparent 50px, #1f362a 50px, #1f362a 100px);
+        }
+        .custom-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #0c1210; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #39ff14; border-radius: 4px; }
+        
+        .gem-shine {
+            background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.4) 40%, transparent 50%);
+            background-size: 200% 100%;
+            animation: shine 4s infinite linear;
+            position: absolute; inset: 0; pointer-events: none; z-index: 20;
+        }
+        .match-glow { box-shadow: 0 0 15px #ffd700; border-color: #ffd700 !important; }
+        .dragging { opacity: 0.5; transform: scale(0.9); cursor: grabbing !important; }
+        
+        /* UPDATED: Pro Card Background (Image Removed) */
+        .pro-card-bg {
+            background: linear-gradient(to bottom, #2a2a2a, #0a0a0a); /* Clean dark gradient */
         }
     </style>
 </head>
-<body class="bg-background-light dark:bg-background-dark font-display text-white overflow-hidden h-screen stadium-bg">
-<header class="sticky top-0 z-50 w-full border-b border-white/10 bg-background-dark/80 backdrop-blur-md">
-<div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-<div class="flex items-center gap-3">
-<div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-background-dark">
-<span class="material-symbols-outlined font-bold">sports_soccer</span>
-</div>
-<h2 class="text-xl font-black tracking-tighter uppercase italic">Footy<span class="text-primary">Auction</span></h2>
-</div>
-<div class="flex items-center gap-6">
-<div class="flex items-center gap-3 pr-6 border-r border-white/10">
+<body class="bg-background-dark font-display text-white overflow-hidden h-screen stadium-bg">
 
-<div class="text-right hidden sm:block">
-    
-<p class="text-sm font-bold">Alex Smith</p>
-<p class="text-[10px] text-primary uppercase font-black tracking-wider">Pro Manager</p>
-</div>
-<div class="w-10 h-10 rounded-full bg-white/10 border border-primary/30 flex items-center justify-center overflow-hidden">
-<span class="material-symbols-outlined text-primary">person</span>
-</div>
-</div>
-<a href="login.html"><button class="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white transition-colors">
-<span class="material-symbols-outlined text-lg">logout</span>
-                    Logout
-                </button></a>
-</div>
-</div>
+<header class="sticky top-0 z-40 w-full border-b border-white/10 bg-background-dark/80 backdrop-blur-md">
+    <div class="max-w-full mx-auto px-6 h-20 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-primary text-3xl">sports_soccer</span>
+            <h2 class="text-xl font-black uppercase italic">Footy<span class="text-primary">Auction</span></h2>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="text-right hidden sm:block">
+                <p class="text-sm font-bold">Alex Smith</p>
+                <p class="text-[10px] text-primary uppercase font-black">Pro Manager</p>
+            </div>
+            <img src="https://placehold.co/100x100/101010/FFFFFF/png?text=AS" class="w-10 h-10 rounded-full border border-primary/30">
+        </div>
+    </div>
 </header>
-<main class="flex h-[calc(100vh-128px)] w-full overflow-hidden p-6 gap-6">
-<!-- Left Panel: Player Card & Stats -->
-<aside class="w-[380px] flex flex-col gap-6">
-<!-- Player Card Component -->
-<div class="bg-white/5 border border-white/10 rounded-xl overflow-hidden backdrop-blur-sm flex-1 flex flex-col">
-<div class="relative h-2/3">
-<img class="w-full h-full object-cover object-top" data-alt="Detailed portrait of Kylian Mbappé in football kit" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEaErLsaPUz6g2QYVYjra4qA9nMJkxnZfKk47zQuw813Qm-niSoCF9Oo3OUaU3vr2kNuMaNtgBkRFKbzzL9yah7NH8ymR54w7HXqD7TrDSC-ExMSeJiVRN-KrohoBVzILw7II1tKdNfLxg-VDKFwrqPkELsKqoWnSSQyzKxNVtdjLsVDmOsp0Go4lfdN-0IFTNe8xt7kL3A1cO8YM6r7qkJljJMiiPaqBdAPMTGfoEOEnvrqXhTM6BoaAudcEdMsvJCxz104htxY4"/>
-<div class="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black via-black/60 to-transparent">
-<p class="text-primary text-xs font-bold tracking-[0.2em] mb-1">CURRENT PLAYER</p>
-<h3 class="text-3xl font-bold uppercase tracking-tight italic">Kylian Mbappé</h3>
-<p class="text-white/60 text-sm">FW | France • Paris Saint-Germain</p>
-</div>
-</div>
-<div class="p-6 flex-1 flex flex-col justify-between">
-<div class="grid grid-cols-3 gap-4">
-<div class="flex flex-col items-center p-2 rounded-lg bg-white/5 border border-white/5">
-<span class="text-2xl font-bold text-primary italic">97</span>
-<span class="text-[10px] text-white/40 uppercase font-bold tracking-tighter">SPD</span>
-</div>
-<div class="flex flex-col items-center p-2 rounded-lg bg-white/5 border border-white/5">
-<span class="text-2xl font-bold text-primary italic">92</span>
-<span class="text-[10px] text-white/40 uppercase font-bold tracking-tighter">SHO</span>
-</div>
-<div class="flex flex-col items-center p-2 rounded-lg bg-white/5 border border-white/5">
-<span class="text-2xl font-bold text-primary italic">95</span>
-<span class="text-[10px] text-white/40 uppercase font-bold tracking-tighter">DRI</span>
-</div>
-</div>
-<!-- Timer Component -->
-<div class="flex flex-col gap-2 mt-4">
-<div class="flex items-center justify-between text-[10px] font-bold text-white/40 uppercase tracking-widest px-1">
-<span>Hammer Drops In</span>
-<span class="text-auction-red">Critical</span>
-</div>
-<div class="flex gap-2">
-<div class="flex-1 h-14 bg-auction-red/10 border border-auction-red/30 neon-glow-red rounded-lg flex items-center justify-center">
-<span class="text-2xl font-bold text-auction-red italic">00</span>
-</div>
-<div class="flex-1 h-14 bg-auction-red/10 border border-auction-red/30 neon-glow-red rounded-lg flex items-center justify-center">
-<span class="text-2xl font-bold text-auction-red italic">00</span>
-</div>
-<div class="flex-1 h-14 bg-auction-red border border-auction-red neon-glow-red rounded-lg flex items-center justify-center">
-<span class="text-2xl font-bold text-white italic">15</span>
-</div>
-</div>
-</div>
-</div>
-</div>
-</aside>
-<!-- Center Panel: Bidding Arena -->
-<section class="flex-1 flex flex-col">
-<div class="flex-1 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm flex flex-col items-center justify-center relative overflow-hidden">
-<!-- Background decorative elements -->
-<div class="absolute inset-0 data-stream opacity-20 pointer-events-none"></div>
-<div class="text-center z-10">
-<p class="text-white/40 text-sm font-bold tracking-[0.3em] uppercase mb-4">Current High Bid</p>
-<h1 class="text-[120px] font-bold leading-none tracking-tighter text-auction-gold gold-text-shadow italic mb-2">
-                        $85<span class="text-6xl not-italic ml-2">M</span>
-</h1>
-<div class="flex items-center justify-center gap-3">
-<div class="h-6 w-6 rounded-full border border-auction-gold overflow-hidden">
-<img class="w-full h-full object-cover" data-alt="User avatar of current bidder" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpeK_2sQ-qkH7vUxUkQKoDwWoMChuQMdvW-kC6eDTwTVtiPuOEMO7Fl4if4AGIMlAmnj93teT-jD75I2rNl3o_Gku9Wb98YF9MWhxvcVFfHj0ERXu8vy_3i5z9T0L0vHO73KYg3D5KY67_XzUR-8DFlGG5lVSohDU7hdCKnA2sFluz1DqHvL4iZ3LXM7iLhP4g8svKwOXjFpXuI5J-elb3aC1H6LBv8YT7FGoSqAPzqpaLtN0njE6yqLu8OqGSvCZnIHR0Gj8NQww"/>
-</div>
-<p class="text-auction-gold font-medium uppercase tracking-widest text-sm">Bidder: <span class="text-white">GalacticManager_7</span></p>
-</div>
-</div>
-<div class="mt-16 w-full max-w-xl px-12 z-10">
-<div class="grid grid-cols-3 gap-4 mb-4">
-<button class="h-16 bg-primary text-black font-black text-xl italic rounded-lg hover:scale-105 transition-transform neon-glow-green">
-                            +$5M
-                        </button>
-<button class="h-16 bg-primary text-black font-black text-xl italic rounded-lg hover:scale-105 transition-transform neon-glow-green">
-                            +$10M
-                        </button>
-<button class="h-16 bg-primary text-black font-black text-xl italic rounded-lg hover:scale-105 transition-transform neon-glow-green">
-                            +$20M
-                        </button>
-</div>
-<div class="flex gap-4">
-<div class="relative flex-1">
-<input class="w-full h-14 bg-black/50 border border-white/20 rounded-lg px-6 focus:ring-2 focus:ring-primary focus:border-transparent text-lg font-bold" placeholder="Enter custom bid..." type="text"/>
-<div class="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 font-bold">USD</div>
-</div>
 
-</div>
-<button class="h-14 px-8 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg font-bold uppercase tracking-widest transition-colors">
-                            Pass
-                        </button>
-                        <button class="h-16 p-3 bg-primary text-black font-black text-xl italic rounded-lg hover:scale-105 transition-transform neon-glow-green">
-                            BID
-                        </button>
-</div>
-</div>
-</section>
-<!-- Right Panel: Activity & Queue -->
-<aside class="w-[320px] flex flex-col gap-6">
-<!-- Recent Bids Feed -->
-<div class="flex-1 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm flex flex-col overflow-hidden">
-<div class="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
-<h4 class="font-bold text-xs tracking-widest uppercase">Live Activity</h4>
-<span class="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full font-bold">REAL-TIME</span>
-</div>
-<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-<div onclick="openSquadPanel({ name: 'GalacticManager_7' })"
-     class="flex items-center justify-between cursor-pointer 
-            hover:bg-white/5 p-2 rounded-lg transition">
-  <span>GalacticManager_7</span>
-  <span class="text-primary font-bold">$85M</span>
-</div>
-
-<div class="flex items-center gap-3 ">
-<img class="size-8 rounded-full border border-white/10" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAHhC2FUtYd2K_10y6wP5RaMOxAVbTa3zzUj0_YgOL5TRGyrEaApQU4F5jqz4UYnZroX8DLIkKOPrND5DOJyujH0ytP-V8yEQM_7eE9mZe1ICZycVlQ5j2jgv0OSf-m_8uy441cdWFAd_oSMay75Z4J2LFYXahbGbYO-aivrdRp0VxNBcePTWU3iHwMbOk3Da8T3hneg-rTQhqXkxKF8XDShPCWbPvfrosM8ajFYD1O7ZkSRNEEHGaD5ip859GoHgvLpG8PMimzvT0"/>
-<div class="flex-1">
-<p class="text-xs font-bold text-white italic">StarkUnited</p>
-</div>
-<div class="text-white/60 font-bold italic">$80M</div>
-</div>
-<div class="flex items-center gap-3">
-<img class="size-8 rounded-full border border-white/10" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBKwwjXTW-glxvCZHW3V_f8c267TdMCSSh-Ikbyd4Hu4r_THBTT04l-oI09g3DhqIbUALnqxygOtR8aQY-EkNUJK2U854-U-sySO8u0aaPr0YZ11-U7ffWp9UKAOH8YFkVNgPYA3N07M_l0QAsEUxHn2Yh3L7Y2mQAnVQb0B3vSOXGy7Ab3wWf3k8slXIMstPSvr6-7C9EtgUKN_zwzNtcebDObYPjC1L5XW1V6ZqSiN4FXd8zXkzciZmdFj8wY04asc5Iqvbv0JE"/>
-<div class="flex-1">
-<p class="text-xs font-bold text-white italic">EliteScout_X</p>
-</div>
-<div class="text-white/40 font-bold italic">$75M</div>
-</div>
-</div>
-</div>
-<!-- Compare Teams Modal -->
-<div id="compareModal"
-     class="fixed inset-0 z-[1000] hidden items-center justify-center">
-
-  <!-- Backdrop -->
-  <div onclick="closeCompareModal()"
-       class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
-
-  <!-- Modal Container -->
-  <div
-    class="relative w-[1100px] max-w-[95vw] h-[600px]
-           bg-white/5 border border-white/10
-           backdrop-blur-2xl rounded-xl
-           shadow-2xl flex overflow-hidden">
-
-    <!-- LEFT PANEL -->
-    <div class="w-1/2 border-r border-white/10 p-6 flex flex-col">
-
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-black uppercase tracking-wider text-primary">
-          Compare With
-        </h3>
-        <div class="flex gap-2">
-          <button onclick="prevTeam()"
-            class="size-8 bg-white/10 hover:bg-primary/20 rounded-lg">
-            <span class="material-symbols-outlined">chevron_left</span>
-          </button>
-          <button onclick="nextTeam()"
-            class="size-8 bg-white/10 hover:bg-primary/20 rounded-lg">
-            <span class="material-symbols-outlined">chevron_right</span>
-          </button>
+<main class="flex h-[calc(100vh-128px)] w-full overflow-hidden p-6 gap-6 relative z-10">
+    <aside class="w-[380px] flex flex-col gap-6">
+        <div class="bg-white/5 border border-white/10 rounded-xl overflow-hidden backdrop-blur-sm flex-1 flex flex-col shadow-2xl">
+            <div class="relative h-2/3">
+                <img class="w-full h-full object-cover object-top" src="https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&q=80&w=800" alt="Player"/>
+                <div class="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black via-black/80 to-transparent">
+                    <p class="text-primary text-xs font-bold tracking-[0.2em] mb-1">CURRENT PLAYER</p>
+                    <h3 class="text-3xl font-bold uppercase tracking-tight italic">Kylian Mbappé</h3>
+                    <p class="text-white/60 text-sm">FW | France • PSG</p>
+                </div>
+            </div>
+            <div class="p-6 flex-1 bg-black/40">
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="flex flex-col items-center bg-white/5 border border-white/5 p-2 rounded"><span class="text-xl font-bold text-primary italic">97</span><span class="text-[9px] text-white/40 font-bold">SPD</span></div>
+                    <div class="flex flex-col items-center bg-white/5 border border-white/5 p-2 rounded"><span class="text-xl font-bold text-primary italic">92</span><span class="text-[9px] text-white/40 font-bold">SHO</span></div>
+                    <div class="flex flex-col items-center bg-white/5 border border-white/5 p-2 rounded"><span class="text-xl font-bold text-primary italic">95</span><span class="text-[9px] text-white/40 font-bold">DRI</span></div>
+                </div>
+                <div class="flex gap-2">
+                    <div class="flex-1 h-12 bg-auction-red/10 border border-auction-red/30 rounded flex items-center justify-center text-auction-red font-bold text-xl">00</div>
+                    <div class="flex-1 h-12 bg-auction-red/10 border border-auction-red/30 rounded flex items-center justify-center text-auction-red font-bold text-xl">00</div>
+                    <div class="flex-1 h-12 bg-auction-red border border-auction-red rounded flex items-center justify-center text-white font-bold text-xl">15</div>
+                </div>
+            </div>
         </div>
-      </div>
+    </aside>
 
-      <!-- Team Name -->
-      <p id="leftTeamName"
-         class="text-xl font-bold text-white mb-4">
-        London Lions
-      </p>
+    <section class="flex-1 flex flex-col">
+        <div class="flex-1 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm flex flex-col items-center justify-center relative overflow-hidden shadow-2xl">
+            <div class="text-center z-10">
+                <p class="text-white/40 text-sm font-bold tracking-[0.3em] uppercase mb-4">Current High Bid</p>
+                <h1 class="text-[120px] font-bold leading-none tracking-tighter text-auction-gold italic mb-2">$85<span class="text-6xl not-italic ml-2">M</span></h1>
+                <div class="flex items-center justify-center gap-3">
+                    <img class="w-8 h-8 rounded-full border border-auction-gold" src="https://placehold.co/100x100/FFD700/000000/png?text=GM">
+                    <p class="text-auction-gold font-medium uppercase tracking-widest text-sm">Bidder: <span class="text-white">GalacticManager_7</span></p>
+                </div>
+            </div>
+            <div class="mt-12 w-full max-w-xl px-12 z-10">
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <button class="h-16 bg-primary text-black font-black text-xl italic rounded hover:scale-105 transition-transform">+$5M</button>
+                    <button class="h-16 bg-primary text-black font-black text-xl italic rounded hover:scale-105 transition-transform">+$10M</button>
+                    <button class="h-16 bg-primary text-black font-black text-xl italic rounded hover:scale-105 transition-transform">+$20M</button>
+                </div>
+                <div class="flex gap-4">
+                    <input class="flex-1 bg-black/50 border border-white/20 rounded px-6 font-bold text-lg text-white" placeholder="Custom bid..." type="text"/>
+                    <button class="h-14 px-8 bg-white/10 border border-white/10 rounded font-bold uppercase hover:bg-white/20">Pass</button>
+                    <button class="h-14 w-32 bg-primary text-black font-black text-xl italic rounded hover:scale-105">BID</button>
+                </div>
+            </div>
+        </div>
+    </section>
 
-      <!-- Team Players -->
-      <div id="leftTeamPlayers"
-           class="flex-1 space-y-3 overflow-y-auto pr-2">
-
-        <!-- Player Row -->
-        <div
-          class="flex items-center justify-between
-                 bg-white/5 border border-primary/40
-                 rounded-lg p-3">
-          <div>
-            <p class="font-bold text-primary">Kylian Mbappé</p>
-            <p class="text-xs text-slate-400 uppercase">Forward</p>
-          </div>
-          <span class="text-xs font-bold text-primary">
-            MATCH
-          </span>
+    <aside class="w-[340px] flex flex-col gap-6">
+        <div class="h-1/3 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm flex flex-col overflow-hidden">
+            <div class="p-3 border-b border-white/10 bg-black/20 font-bold text-xs uppercase tracking-widest flex justify-between items-center">
+                <span>Live Activity</span><span class="text-[9px] bg-primary/20 text-primary px-2 rounded">REAL-TIME</span>
+            </div>
+            <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2 custom-scroll">
+                <div onclick="openTeamDetails('GalacticManager_7')" class="flex justify-between bg-white/5 hover:bg-white/10 p-2 rounded cursor-pointer border border-transparent hover:border-primary/50 transition-all group">
+                    <div class="flex items-center gap-2">
+                        <img src="https://placehold.co/100x100/FFD700/000000/png?text=GM" class="w-6 h-6 rounded-full group-hover:scale-110 transition-transform">
+                        <span class="text-xs font-bold group-hover:text-primary">GalacticManager_7</span>
+                    </div>
+                    <span class="text-primary font-bold text-xs">$85M</span>
+                </div>
+                <div onclick="openTeamDetails('StarkUnited')" class="flex justify-between bg-white/5 hover:bg-white/10 p-2 rounded cursor-pointer transition-all opacity-60 group">
+                    <div class="flex items-center gap-2">
+                        <img src="https://placehold.co/100x100/333333/FFFFFF/png?text=SU" class="w-6 h-6 rounded-full">
+                        <span class="text-xs font-bold group-hover:text-white">StarkUnited</span>
+                    </div>
+                    <span class="text-white font-bold text-xs">$80M</span>
+                </div>
+            </div>
         </div>
 
-        <div
-          class="flex items-center justify-between
-                 bg-white/5 border border-white/10
-                 rounded-lg p-3">
-          <div>
-            <p class="font-bold">Kevin De Bruyne</p>
-            <p class="text-xs text-slate-400 uppercase">Midfielder</p>
-          </div>
+        <div class="flex-1 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm overflow-hidden flex flex-col relative shadow-lg">
+            <div class="flex border-b border-white/10 bg-black/20">
+                <button onclick="toggleTradeTab('propose')" id="tab-propose" class="flex-1 py-3 text-[10px] font-bold uppercase bg-white/10 text-primary border-b-2 border-primary">Propose</button>
+                <button onclick="toggleTradeTab('active')" id="tab-active" class="flex-1 py-3 text-[10px] font-bold uppercase text-white/40 hover:text-white">Active Offers</button>
+            </div>
+            <div id="content-propose" class="p-4 flex flex-col gap-3 h-full overflow-y-auto custom-scroll relative">
+                <select id="trade-partner" class="w-full bg-black/40 border border-white/10 rounded p-2 text-xs text-white outline-none mb-2">
+                    <option>Select Partner...</option><option>StarkUnited</option><option>GalacticManager_7</option>
+                </select>
+                <div class="bg-black/30 border border-white/5 rounded p-2 relative">
+                    <div class="flex justify-between items-center mb-2">
+                         <span class="text-[9px] font-black text-primary uppercase">You Give</span>
+                         <button onclick="openTradeSelector('you')" class="text-[9px] bg-white/10 px-2 py-0.5 rounded hover:bg-primary hover:text-black transition flex items-center gap-1">
+                             <span class="material-symbols-outlined text-[10px]">add</span> Player
+                         </button>
+                    </div>
+                    <div id="you-give-list" class="flex flex-wrap gap-2 mb-2 min-h-[24px]"></div>
+                    <div class="flex items-center gap-2 border-t border-white/5 pt-2">
+                        <span class="text-[10px] text-white/40">$</span>
+                        <input type="number" placeholder="Cash Offer (M)" class="bg-transparent text-xs w-full outline-none text-white font-bold">
+                    </div>
+                </div>
+                <div class="flex justify-center -my-3 z-10">
+                    <div class="bg-black border border-white/20 rounded-full p-1 shadow-lg"><span class="material-symbols-outlined text-sm text-white/50">swap_vert</span></div>
+                </div>
+                <div class="bg-black/30 border border-white/5 rounded p-2">
+                    <div class="flex justify-between items-center mb-2">
+                         <span class="text-[9px] font-black text-white/50 uppercase">They Give</span>
+                         <button onclick="openTradeSelector('them')" class="text-[9px] bg-white/10 px-2 py-0.5 rounded hover:bg-white/20 transition flex items-center gap-1">
+                             <span class="material-symbols-outlined text-[10px]">add</span> Player
+                         </button>
+                    </div>
+                    <div id="them-give-list" class="flex flex-wrap gap-2 mb-2 min-h-[24px]"></div>
+                    <div class="flex items-center gap-2 border-t border-white/5 pt-2">
+                        <span class="text-[10px] text-white/40">$</span>
+                        <input type="number" placeholder="Request Cash (M)" class="bg-transparent text-xs w-full outline-none text-white font-bold">
+                    </div>
+                </div>
+                <button class="w-full py-3 bg-primary text-black text-xs font-black uppercase rounded hover:scale-[1.02] mt-auto shadow-[0_0_15px_rgba(13,242,89,0.3)]">Propose Trade</button>
+            </div>
+            <div id="content-active" class="hidden p-4 flex-col gap-3 h-full overflow-y-auto"><p class="text-[10px] text-center text-white/30 mt-4">No active offers.</p></div>
+            <div class="p-4 bg-black/40 border-t border-white/10">
+                <button onclick="openCompareModal()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/20 transition-all">
+                    <span class="material-symbols-outlined text-lg">grid_view</span> Compare Squads
+                </button>
+            </div>
+            <div id="trade-selector" class="absolute inset-0 bg-[#121816]/95 backdrop-blur-md z-50 flex flex-col hidden transition-all">
+                <div class="p-3 border-b border-white/10 flex justify-between items-center bg-black/60">
+                    <span class="text-xs font-bold text-white uppercase" id="selector-title">Select Player</span>
+                    <button onclick="closeTradeSelector()" class="text-white/50 hover:text-white"><span class="material-symbols-outlined text-sm">close</span></button>
+                </div>
+                <div id="selector-list" class="flex-1 overflow-y-auto p-2 flex flex-col gap-1 custom-scroll"></div>
+            </div>
         </div>
-
-      </div>
-    </div>
-
-    <!-- RIGHT PANEL -->
-    <div class="w-1/2 p-6 flex flex-col">
-
-      <!-- Header -->
-      <h3 class="text-lg font-black uppercase tracking-wider text-primary mb-4">
-        Your Squad
-      </h3>
-
-      <!-- Squad Players -->
-      <div id="rightTeamPlayers"
-           class="flex-1 space-y-3 overflow-y-auto pr-2">
-
-        <div
-          class="flex items-center justify-between
-                 bg-white/5 border border-primary/40
-                 rounded-lg p-3">
-          <div>
-            <p class="font-bold text-primary">Kylian Mbappé</p>
-            <p class="text-xs text-slate-400 uppercase">Forward</p>
-          </div>
-          <p class="text-primary font-black">$85M</p>
-        </div>
-
-        <div
-          class="flex items-center justify-between
-                 bg-white/5 border border-white/10
-                 rounded-lg p-3">
-          <div>
-            <p class="font-bold">Jude Bellingham</p>
-            <p class="text-xs text-slate-400 uppercase">Midfielder</p>
-          </div>
-          <p class="text-white/60 font-bold">$70M</p>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Close -->
-    <button onclick="closeCompareModal()"
-      class="absolute top-4 right-4 text-white/60 hover:text-primary transition">
-      <span class="material-symbols-outlined text-2xl">close</span>
-    </button>
-
-  </div>
-</div>
-
-
-
-<!-- Queue Feed -->
-<div class="h-48 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm overflow-hidden flex flex-col">
-<div class="p-4 border-b border-white/10 bg-white/5">
-<h4 class="font-bold text-xs tracking-widest uppercase flex items-center gap-2">
-<span class="material-symbols-outlined text-sm">list_alt</span> Up Next
-                    </h4>
-</div>
-<div class="p-4 grid grid-cols-2 gap-3 overflow-y-auto">
-<div class="group relative rounded-lg overflow-hidden h-24 border border-white/10 hover:border-primary/50 transition-all cursor-pointer">
-<img class="w-full h-full object-cover grayscale group-hover:grayscale-0" data-alt="Upcoming player Haaland thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4XimD928eNMfIEvulibDvxB5PxF5aqCONJbbFN2qU1Kj6zIgxxHaaC488up3ITz1rk9yJdrqTlSrlJDsddJM2Mz9-K4iJrbioUdnytssV_NbgOoFdWIguiC_ZMXL-jvPrDFHCyMrhp-YasL4bSDvwHKQuaPeRGi1jyYpWHHMQBR849lhf4F2vBZsCBUb-5Ni8ePTiLs6N3INGhgAAgMc3NhtVJq1EYRmtuoEB7Jwi8F37xnE_ZfFL_VcPoO1_d4OqAbzI9wBQHCE"/>
-<div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-2 flex items-end">
-<p class="text-[10px] font-bold uppercase truncate">Erling Haaland</p>
-</div>
-</div>
-<div class="group relative rounded-lg overflow-hidden h-24 border border-white/10 hover:border-primary/50 transition-all cursor-pointer">
-<img class="w-full h-full object-cover grayscale group-hover:grayscale-0" data-alt="Upcoming player Salah thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5VhXIVZkgE64foSTYqZhyKnXhJt3PVa-0D2RsK1SE8c3hkrDOjWRZ9wH-FnmRYcljLsP1BzE2jZgfXUMObqRNO6pJ5a5h9hicBn0hE7lAwS5y5UZQKbiwTUeh82lI7Fcz2frZ8LSFiPDhhG2Ffkh7qRC_FqYWeeRRBGELoERPsGgRCUSz4_sqMYEO7HbnHUQKRWpRD-EQu74AT93N7iOI-le2ochIDHB9vpVzQ3uHI0T8uuaLjzMDisSVPoq8o5LuN94y9pgSJhw"/>
-<div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-2 flex items-end">
-<p class="text-[10px] font-bold uppercase truncate">Mo Salah</p>
-</div>
-</div>
-</div>
-</div>
-</aside>
+    </aside>
 </main>
-<!-- Bottom Bar: Participants & Admin -->
-<footer class="h-16 w-full border-t border-white/10 bg-black/60 backdrop-blur-xl px-8 flex items-center justify-between fixed bottom-0 left-0">
-<div class="flex items-center gap-4 overflow-x-auto max-w-[70%] no-scrollbar">
-<span class="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mr-4 border-r border-white/10 pr-6 whitespace-nowrap">Players In Room (12)</span>
-<div class="flex items-center -space-x-2">
-<button class="group relative">
-<img class="size-9 rounded-full border-2 border-primary hover:scale-110 transition-transform" data-alt="Avatar 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjoRkQ-YE0-g0VQ3_VYRmrS_WNoOMjUW4Og1A2WMYe4X4GhdUdc34QVgEPO9xlj58wQ0jeZHDZcX-bwnLtbyPLNx4r4HmjSnsXlsP6PeqXv2OWfxw2fBRtpgF9V79jMmCnT4lCRWDgdJkuY0YwyRQFTFQQ98itPh3TywCykyqDPvmX6LiWXydj3AEW7gnPhsuWPxjB6BnEjX8sWk1JOmjy2CsgIEGqA1EzH-fbtK3BzSZS-cbttcpLEBHvuTjxYkpyYMvyrShdTJw"/>
-<span class="absolute -top-1 -right-1 size-3 bg-primary border-2 border-black rounded-full"></span>
-</button>
-<button class="group relative">
-<img class="size-9 rounded-full border-2 border-black hover:scale-110 transition-transform" data-alt="Avatar 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAis9noHp_5zoPeUM1pGDL6P15gRatdbPSpmrz1hI3Sv0MHMB7xhaYhwpMVxHoyG07V8cOYqElp4ijrX7NJfShe4Szqf1olCge93PxH1jAume9FNhcBfVMGl-rurXgl0wWYb-dW2YX-LvlKG0OZ_QSQnfsXqrebYLWGSZWl0Nm63r04pW51TqtvLoyBeklnDomSI8RUjSfkqfLpqXOjXVaEzdieZJ4H3AaAEfMtY83QzfqcpcwxKDZ3H6TiaeT_Mzjt8h3J0nj3xMM"/>
-</button>
-<button class="group relative">
-<img class="size-9 rounded-full border-2 border-black hover:scale-110 transition-transform" data-alt="Avatar 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMTtO0NV4Hm4_CXuDQMBFoYUGjQax2uzxN5Mc-cWKE_-5n3uGNY4uLm8gVgYKtnzyEIzS6y-4uidZ_GJ_0wvTlsjigIz_V1qN7fiWRcXT2-_s0KzLdwUb_q-vbuYwknWoe90prFw8gjuKbBrPGyTTJ3tpVWc7ZZ8nsgKy9FtbOTXXAfbkXPE6LfIMLCVtoJjg8yhvqJK8BIUJCBbXI2JtrX6F_z_5a6_hFIHp7SF9afruevO5gtCtnFJKJvifWFg_dvnI56thluGw"/>
-</button>
-<button class="group relative">
-<img class="size-9 rounded-full border-2 border-black hover:scale-110 transition-transform" data-alt="Avatar 4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7cuHpdf239FhV5h4YW0e5nHldEteHBFIUezDLSI_3FlmJ-eXLcAqkFIZWYCymU0I8YG9yAkTuIpHraD675alEm19273oWcf4RpSuMO0zScxBVqelhAtH2GbfFDyn9-XP5EKRMzQ0lCrvcEjPN7s8KKpFDs4IviY_qfLTDh860WGdvfDpuTr6B-Pe7V7CHktp-muHNoxWzDZAk8LgKXIkg8cM8lwRxO83VyCKZIuMdQtiSMzk_M8OINES_fF4Decbo-ZAJ5ZRe8k8"/>
-</button>
-<div class="size-9 rounded-full bg-white/10 border-2 border-black flex items-center justify-center text-[10px] font-bold text-white/50">+8</div>
-</div>
-</div>
-<div class="flex items-center gap-4">
-<!-- Subtle Admin Controls -->
-<div class="flex items-center gap-2 p-1 bg-white/5 rounded-lg border border-white/10">
-<button class="size-8 flex items-center justify-center text-auction-red hover:bg-auction-red/20 rounded transition-colors" title="Pause Auction">
-<span class="material-symbols-outlined text-lg">pause_circle</span>
-</button>
-<a href="post_auction_statistics.html"><button class="size-8 flex items-center justify-center text-auction-red hover:bg-auction-red/20 rounded transition-colors" title="Emergency Stop">
-<span class="material-symbols-outlined text-lg">cancel</span>
-</button></a>
-</div>
-<div class="h-8 w-px bg-white/10"></div>
-<button onclick="openCompareModal()"
-  class="flex items-center gap-2 px-4 py-2 bg-primary/20 text-primary
-         border border-primary/30 rounded-lg text-sm font-bold
-         uppercase tracking-wider hover:bg-primary/30 transition-colors">
-  <span class="material-symbols-outlined text-lg">grid_view</span>
-  Compare
-</button>
 
-</div>
+<footer class="h-10 w-full border-t border-white/10 bg-black/90 backdrop-blur-xl fixed bottom-0 left-0 flex items-center overflow-hidden z-50">
+    <div class="px-6 py-3 bg-primary text-black font-black text-xs uppercase italic tracking-wider shrink-0 z-50 skew-x-[-10deg] ml-[-10px] pl-8">
+        <span class="skew-x-[10deg] inline-block">News</span>
+    </div>
+    <div class="flex-1 overflow-hidden relative group">
+        <div class="animate-marquee whitespace-nowrap flex gap-16 items-center text-xs font-medium text-white/80">
+            <span><strong class="text-white">TRADE:</strong> EliteScout_X traded <strong>Haaland</strong> to StarkUnited for <strong>$120M</strong></span>
+            <span><strong class="text-white">AUCTION:</strong> <strong>Vini Jr</strong> sold to LondonLions for <strong>$95M</strong></span>
+        </div>
+    </div>
 </footer>
-<!-- Manager Squad Panel -->
-<div id="managerSquadPanel"
-     class="fixed top-0 right-0 h-full w-[420px] bg-[#0b1a12]/95 border-l border-white/10 
-            backdrop-blur-xl z-[999] hidden flex-col">
 
-  <!-- Header -->
-  <div class="p-6 border-b border-white/10 flex items-center justify-between">
-    <div>
-      <h3 id="managerName" class="text-xl font-black text-primary">
-        GalacticManager_7
-      </h3>
-      <p class="text-xs text-slate-400 uppercase tracking-wider">
-        Current Squad
-      </p>
+<div id="teamDetailsModal" class="fixed inset-0 z-[3000] hidden items-center justify-center">
+    <div onclick="closeTeamDetails()" class="absolute inset-0 bg-black/90 backdrop-blur-sm"></div>
+    <div class="relative w-[850px] h-[550px] bg-[#0b1a12] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div class="h-16 border-b border-white/10 flex justify-between items-center px-6 bg-[#0e2116]">
+            <div><h3 id="detail-team-name" class="text-xl font-bold text-primary">Team Name</h3><p class="text-[10px] text-white/40 uppercase tracking-widest">Squad Inspection</p></div>
+            <button onclick="closeTeamDetails()" class="text-white/40 hover:text-white bg-white/5 p-2 rounded-full hover:bg-white/10 transition"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="flex-1 flex overflow-hidden">
+            <div class="w-[40%] border-r border-white/10 flex flex-col bg-[#0e1411]">
+                <div class="p-3 bg-black/20 border-b border-white/5 text-[10px] font-bold text-white/40 uppercase">Purchased Players</div>
+                <div id="team-player-list" class="flex-1 overflow-y-auto p-2 flex flex-col gap-2 custom-scroll"></div>
+            </div>
+            <div class="flex-1 flex flex-col items-center justify-center bg-[#080c0a] relative overflow-hidden">
+                <div class="absolute inset-0 pitch-pattern opacity-10 pointer-events-none"></div>
+                <div id="player-detail-view" class="flex flex-col items-center z-10 w-full h-full justify-center"></div>
+            </div>
+        </div>
     </div>
-    <button onclick="closeSquadPanel()" class="text-white/60 hover:text-primary">
-      <span class="material-symbols-outlined">close</span>
-    </button>
-  </div>
-
-  <!-- Squad List -->
-  <div class="flex-1 overflow-y-auto p-6 space-y-4">
-
-    <!-- Player Row (repeatable) -->
-    <div class="flex items-center justify-between bg-white/5 border border-white/10 
-                rounded-xl p-4 hover:border-primary transition">
-      <div>
-        <p class="font-bold">Kylian Mbappé</p>
-        <p class="text-xs text-slate-400 uppercase">Forward • France</p>
-      </div>
-      <div class="text-right">
-        <p class="text-primary font-black">$85M</p>
-        <p class="text-xs text-slate-500">Bought</p>
-      </div>
-    </div>
-
-    <div class="flex items-center justify-between bg-white/5 border border-white/10 
-                rounded-xl p-4 hover:border-primary transition">
-      <div>
-        <p class="font-bold">Kevin De Bruyne</p>
-        <p class="text-xs text-slate-400 uppercase">Midfielder • Belgium</p>
-      </div>
-      <div class="text-right">
-        <p class="text-primary font-black">$72M</p>
-        <p class="text-xs text-slate-500">Bought</p>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Footer -->
-  <div class="p-6 border-t border-white/10">
-    <button onclick="closeSquadPanel()"
-      class="w-full bg-white/10 py-3 rounded-xl font-bold
-             hover:bg-primary hover:text-background-dark
-             transition-all">
-      Close
-    </button>
-  </div>
 </div>
+
+<div id="compareModal" class="fixed inset-0 z-[2000] hidden items-center justify-center">
+    <div class="absolute inset-0 bg-black/95 backdrop-blur-md"></div>
+    <div class="relative w-[95vw] h-[95vh] bg-background-dark border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div class="h-16 border-b border-white/10 flex items-center justify-between px-8 bg-black/40">
+            <h3 class="text-xl font-black uppercase tracking-wider italic flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">strategy</span> Squad Comparison
+            </h3>
+            <button onclick="closeCompareModal()" class="bg-white/10 p-2 rounded-full hover:bg-white/20 transition"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="flex-1 flex overflow-hidden">
+            <div class="w-[28%] flex flex-col border-r border-white/10 bg-[#0e1411]">
+                <div class="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-black/20">
+                    <span class="text-primary font-bold text-xs uppercase tracking-widest">My Strategy</span>
+                    <div class="flex gap-1">
+                        <button onclick="prevStrategy()" class="hover:bg-white/10 rounded p-1"><span class="material-symbols-outlined text-sm">chevron_left</span></button>
+                        <span id="strategy-name" class="text-[10px] bg-white/5 px-2 py-1 rounded text-white/60">Plan A</span>
+                        <button onclick="nextStrategy()" class="hover:bg-white/10 rounded p-1"><span class="material-symbols-outlined text-sm">chevron_right</span></button>
+                    </div>
+                </div>
+                <div id="strategy-list" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2 custom-scroll"></div>
+            </div>
+            <div class="flex-1 flex flex-col bg-[#0e1411]">
+                <div class="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-black/20">
+                    <span class="text-white font-bold text-xs uppercase tracking-widest">Live Squad</span>
+                    <div class="flex gap-1" id="formation-btns">
+                        <button onclick="setLiveFormation('4-3-3')" class="bg-primary text-black text-[10px] font-bold px-2 py-1 rounded" id="btn-433">4-3-3</button>
+                        <button onclick="setLiveFormation('4-4-2')" class="bg-white/10 text-white text-[10px] font-bold px-2 py-1 rounded hover:bg-white/20" id="btn-442">4-4-2</button>
+                        <button onclick="setLiveFormation('3-5-2')" class="bg-white/10 text-white text-[10px] font-bold px-2 py-1 rounded hover:bg-white/20" id="btn-352">3-5-2</button>
+                        <button onclick="setLiveFormation('4-2-3-1')" class="bg-white/10 text-white text-[10px] font-bold px-2 py-1 rounded hover:bg-white/20" id="btn-4231">4-2-3-1</button>
+                        <button onclick="setLiveFormation('5-3-2')" class="bg-white/10 text-white text-[10px] font-bold px-2 py-1 rounded hover:bg-white/20" id="btn-532">5-3-2</button>
+                    </div>
+                </div>
+                <div class="flex-1 relative pitch-pattern p-4 pb-4" ondragover="allowDrop(event)" ondrop="drop(event, 'pitch')">
+                     <div class="absolute inset-4 border-2 border-white/5 rounded-xl pointer-events-none"></div>
+                     <div class="absolute top-1/2 left-4 right-4 h-px bg-white/5 pointer-events-none"></div>
+                     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-white/5 rounded-full pointer-events-none"></div>
+                     <div id="live-pitch" class="absolute inset-0 w-full h-full"></div>
+                </div>
+                <div class="h-36 border-t border-white/10 bg-black/40 grid grid-cols-2 divide-x divide-white/10">
+                    <div class="flex flex-col p-2" ondragover="allowDrop(event)" ondrop="drop(event, 'sub')">
+                        <div class="text-[10px] text-primary/70 uppercase font-bold mb-1 flex justify-between"><span>Substitutes</span><span class="text-[9px] bg-white/5 px-1 rounded">7 Max</span></div>
+                        <div id="live-subs" class="flex-1 flex gap-2 overflow-x-auto items-center custom-scroll"></div>
+                    </div>
+                    <div class="flex flex-col p-2" ondragover="allowDrop(event)" ondrop="drop(event, 'res')">
+                        <div class="text-[10px] text-white/30 uppercase font-bold mb-1">Reserves</div>
+                        <div id="live-res" class="flex-1 flex gap-2 overflow-x-auto items-center custom-scroll"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-  function openSquadPanel(manager) {
-    document.getElementById("managerSquadPanel").classList.remove("hidden");
-    document.getElementById("managerSquadPanel").classList.add("flex");
+    /* --- COORDINATES (GK pushed up to 82% for safety) --- */
+    const formations = {
+        "4-3-3": [{pos:"GK",left:50,top:82},{pos:"LB",left:15,top:70},{pos:"CB",left:38,top:75},{pos:"CB",left:62,top:75},{pos:"RB",left:85,top:70},{pos:"CM",left:30,top:45},{pos:"CM",left:50,top:50},{pos:"CM",left:70,top:45},{pos:"LW",left:15,top:15},{pos:"ST",left:50,top:10},{pos:"RW",left:85,top:15}],
+        "4-4-2": [{pos:"GK",left:50,top:82},{pos:"LB",left:15,top:70},{pos:"CB",left:38,top:75},{pos:"CB",left:62,top:75},{pos:"RB",left:85,top:70},{pos:"LM",left:15,top:40},{pos:"CM",left:40,top:45},{pos:"CM",left:60,top:45},{pos:"RM",left:85,top:40},{pos:"ST",left:35,top:15},{pos:"ST",left:65,top:15}],
+        "3-5-2": [{pos:"GK",left:50,top:82},{pos:"CB",left:20,top:72},{pos:"CB",left:50,top:68},{pos:"CB",left:80,top:72},{pos:"LM",left:10,top:40},{pos:"CDM",left:35,top:50},{pos:"CM",left:50,top:35},{pos:"CDM",left:65,top:50},{pos:"RM",left:90,top:40},{pos:"ST",left:35,top:15},{pos:"ST",left:65,top:15}],
+        "4-2-3-1": [{pos:"GK",left:50,top:82},{pos:"LB",left:12,top:70},{pos:"CB",left:36,top:75},{pos:"CB",left:64,top:75},{pos:"RB",left:88,top:70},{pos:"CDM",left:35,top:55},{pos:"CDM",left:65,top:55},{pos:"CAM",left:20,top:35},{pos:"CAM",left:50,top:38},{pos:"CAM",left:80,top:35},{pos:"ST",left:50,top:12}],
+        "5-3-2": [{pos:"GK",left:50,top:82},{pos:"LWB",left:8,top:60},{pos:"CB",left:30,top:72},{pos:"CB",left:50,top:75},{pos:"CB",left:70,top:72},{pos:"RWB",left:92,top:60},{pos:"CM",left:35,top:45},{pos:"CM",left:50,top:48},{pos:"CM",left:65,top:45},{pos:"ST",left:35,top:15},{pos:"ST",left:65,top:15}]
+    };
 
-    document.getElementById("managerName").innerText = manager.name;
+    let currentFormation = "4-3-3";
+    let liveSquad = {
+        pitch: [
+            { id: 1, name: "Mbappé", pos: "ST", rating: 97, img: "https://placehold.co/100x100/101010/FFFFFF/png?text=Mbappe" },
+            { id: 2, name: "De Bruyne", pos: "CM", rating: 91, img: "https://placehold.co/100x100/101010/FFFFFF/png?text=KDB" },
+            null, null, null,
+            { id: 3, name: "Ederson", pos: "GK", rating: 89, img: "https://placehold.co/100x100/101010/FFFFFF/png?text=Ederson" },
+            null, null, null, null, null
+        ],
+        sub: [{ id: 4, name: "Rice", pos: "CDM", rating: 85, img: "https://placehold.co/100x100/101010/FFFFFF/png?text=Rice" }],
+        res: [{ id: 5, name: "Nketiah", pos: "ST", rating: 78, img: "https://placehold.co/100x100/101010/FFFFFF/png?text=Nketiah" }]
+    };
+    const strategies = [{ name: "Plan A (Meta)", pitch: ["Mbappé", "Salah", "Son", "De Bruyne", "Ederson", "Dias", "Saliba", "Shaw", "Trippier", "Rodri", "Fernandes"], sub: ["Rice", "Varane"], res: ["Maguire"] },{ name: "Plan B (Budget)", pitch: ["Jesus", "Saka", "Diaz", "Rice", "Ramsdale"], sub: ["Nketiah"], res: [] }];
+    let currentStrategyIndex = 0;
 
-    // Later: dynamically render players
-    // For now static UI works as requested
-  }
+    // --- TEAM DETAILS MODAL LOGIC ---
+    const teamDatabase = {
+        'GalacticManager_7': [
+            { id: 1, name: "Kylian Mbappé", pos: "FW", nation: "France", rating: 97, price: "$85M", img: "https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&q=80&w=800", stats: { pac: 97, sho: 90, dri: 92 } },
+            { id: 2, name: "Kevin De Bruyne", pos: "MF", nation: "Belgium", rating: 91, price: "$72M", img: "https://placehold.co/200x200/101010/FFFFFF/png?text=KDB", stats: { pac: 74, sho: 86, dri: 88 } },
+            { id: 3, name: "Ederson", pos: "GK", nation: "Brazil", rating: 89, price: "$45M", img: "https://placehold.co/200x200/101010/FFFFFF/png?text=Ederson", stats: { pac: 64, sho: 60, dri: 90 } }
+        ],
+        'StarkUnited': [
+            { id: 4, name: "Erling Haaland", pos: "FW", nation: "Norway", rating: 94, price: "$120M", img: "https://placehold.co/200x200/101010/FFFFFF/png?text=Haaland", stats: { pac: 89, sho: 93, dri: 80 } }
+        ]
+    };
 
-  function closeSquadPanel() {
-    document.getElementById("managerSquadPanel").classList.add("hidden");
-    document.getElementById("managerSquadPanel").classList.remove("flex");
-  }
+    function openTeamDetails(name) {
+        document.getElementById('detail-team-name').innerText = name;
+        const listContainer = document.getElementById('team-player-list');
+        const detailContainer = document.getElementById('player-detail-view');
+        detailContainer.innerHTML = `<div class="text-center opacity-30 flex flex-col items-center"><span class="material-symbols-outlined text-6xl mb-2 text-white">sports_soccer</span><p class="text-xs uppercase font-bold tracking-widest text-white">Select a player</p></div>`;
+        const players = teamDatabase[name] || [];
+        listContainer.innerHTML = players.map(p => `<div onclick="selectTeamPlayer('${name}', ${p.id})" class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-lg hover:bg-white/10 hover:border-primary/50 cursor-pointer transition-all group"><div><p class="font-bold text-sm text-white group-hover:text-primary transition-colors">${p.name}</p><p class="text-[10px] text-white/40 font-bold uppercase">${p.pos} • ${p.nation}</p></div><div class="text-right"><p class="text-primary font-black text-sm">${p.price}</p></div></div>`).join('');
+        document.getElementById('teamDetailsModal').classList.remove('hidden');
+        document.getElementById('teamDetailsModal').classList.add('flex');
+    }
 
-  function openCompareModal() {
-    const modal = document.getElementById("compareModal");
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
-  }
+    function selectTeamPlayer(teamName, playerId) {
+        const player = teamDatabase[teamName].find(p => p.id === playerId);
+        if(!player) return;
+        const detailContainer = document.getElementById('player-detail-view');
+        // Pro Card with No BG Image
+        detailContainer.innerHTML = `<div class="w-[320px] h-[420px] rounded-3xl relative overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.8)] border border-white/10 pro-card-bg group"><div class="absolute inset-0 bg-gradient-to-t from-[#0a0f0b] via-transparent to-transparent"></div><div class="absolute top-6 left-6 z-10"><span class="text-5xl font-black text-primary drop-shadow-md leading-none">${player.rating}</span><span class="block text-xs font-bold text-white uppercase tracking-widest mt-1">OVR</span></div><div class="absolute inset-0 flex items-end justify-center pb-24"><img src="${player.img}" class="w-[85%] object-contain drop-shadow-2xl z-0 transition-transform group-hover:scale-105 duration-500"></div><div class="absolute bottom-0 left-0 w-full p-6 z-20"><div class="flex items-center gap-2 mb-1"><span class="bg-primary text-black text-[10px] font-black px-2 py-0.5 rounded uppercase">${player.pos}</span><span class="text-white/60 text-xs font-bold uppercase tracking-wider">${player.nation}</span></div><h2 class="text-3xl font-black text-white uppercase italic leading-none mb-4">${player.name}</h2><div class="flex justify-between border-t border-white/10 pt-3 mb-3"><div class="text-center"><span class="block text-[9px] text-white/40 font-bold">PAC</span><span class="text-lg font-bold text-white">${player.stats.pac}</span></div><div class="text-center"><span class="block text-[9px] text-white/40 font-bold">SHO</span><span class="text-lg font-bold text-white">${player.stats.sho}</span></div><div class="text-center"><span class="block text-[9px] text-white/40 font-bold">DRI</span><span class="text-lg font-bold text-white">${player.stats.dri}</span></div></div><button class="w-full bg-[#1a2e24] border border-primary/30 py-3 rounded-xl flex items-center justify-between px-4 hover:bg-[#1f362a] transition cursor-default"><span class="text-xs font-bold text-white/60 uppercase">Bought For</span><span class="text-xl font-black text-primary">${player.price}</span></button></div></div>`;
+    }
 
-  function closeCompareModal() {
-    const modal = document.getElementById("compareModal");
-    modal.classList.add("hidden");
-    modal.classList.remove("flex");
-  }
+    // --- OTHER JS ---
+    let currentTradeSide = 'you';
+    const availablePlayers = { you: ["Mbappé", "De Bruyne", "Ederson", "Rice"], them: ["Haaland", "Vini Jr", "Allison", "Van Dijk"] };
+    let tradeData = { you: [], them: [] };
+    function toggleTradeTab(tab) { document.getElementById('content-propose').classList.toggle('hidden', tab !== 'propose'); document.getElementById('content-propose').classList.toggle('flex', tab === 'propose'); document.getElementById('content-active').classList.toggle('hidden', tab !== 'active'); document.getElementById('content-active').classList.toggle('flex', tab === 'active'); document.getElementById('tab-propose').className = tab === 'propose' ? "flex-1 py-3 text-[10px] font-bold uppercase bg-white/10 text-primary border-b-2 border-primary" : "flex-1 py-3 text-[10px] font-bold uppercase text-white/40 hover:text-white"; document.getElementById('tab-active').className = tab === 'active' ? "flex-1 py-3 text-[10px] font-bold uppercase bg-white/10 text-primary border-b-2 border-primary" : "flex-1 py-3 text-[10px] font-bold uppercase text-white/40 hover:text-white"; }
+    function openTradeSelector(side) { currentTradeSide = side; const list = document.getElementById('selector-list'); document.getElementById('selector-title').innerText = side === 'you' ? "Select Your Player" : "Select Their Player"; list.innerHTML = availablePlayers[side].map(p => `<div onclick="addPlayerToTrade('${p}')" class="p-2 bg-white/5 hover:bg-white/10 rounded cursor-pointer text-xs font-bold text-white flex justify-between border border-white/5">${p} <span class="material-symbols-outlined text-sm text-primary">add_circle</span></div>`).join(''); document.getElementById('trade-selector').classList.remove('hidden'); document.getElementById('trade-selector').classList.add('flex'); }
+    function closeTradeSelector() { document.getElementById('trade-selector').classList.add('hidden'); document.getElementById('trade-selector').classList.remove('flex'); }
+    function addPlayerToTrade(name) { if(!tradeData[currentTradeSide].includes(name)) { tradeData[currentTradeSide].push(name); renderTradeList(currentTradeSide); } closeTradeSelector(); }
+    function removePlayerFromTrade(side, name) { tradeData[side] = tradeData[side].filter(p => p !== name); renderTradeList(side); }
+    function renderTradeList(side) { const container = document.getElementById(side + '-give-list'); container.innerHTML = tradeData[side].map(p => `<div class="bg-black/60 border border-white/20 rounded px-2 py-1 text-[9px] font-bold text-white flex items-center gap-2">${p} <span onclick="removePlayerFromTrade('${side}', '${p}')" class="material-symbols-outlined text-[10px] cursor-pointer hover:text-red-500 text-white/40">close</span></div>`).join(''); }
+    function closeTeamDetails() { document.getElementById('teamDetailsModal').classList.add('hidden'); document.getElementById('teamDetailsModal').classList.remove('flex'); }
+    function openCompareModal() { document.getElementById('compareModal').classList.remove('hidden'); document.getElementById('compareModal').classList.add('flex'); renderStrategyList(); renderLiveSquad(); }
+    function closeCompareModal() { document.getElementById('compareModal').classList.add('hidden'); document.getElementById('compareModal').classList.remove('flex'); }
+    function nextStrategy() { currentStrategyIndex = (currentStrategyIndex + 1) % strategies.length; renderStrategyList(); renderLiveSquad(); }
+    function prevStrategy() { currentStrategyIndex = (currentStrategyIndex - 1 + strategies.length) % strategies.length; renderStrategyList(); renderLiveSquad(); }
+    function getCardStyle(rating) { if(rating >= 96) return { bg: 'bg-gradient-to-br from-indigo-900 to-purple-900 border-cyan-400', text: 'text-cyan-300', glow: 'gem-shine', shadow: 'shadow-cyan-500/50' }; if(rating >= 86) return { bg: 'bg-gradient-to-br from-[#4a3b00] to-[#1a1400] border-[#ffd700]', text: 'text-[#ffd700]', glow: '', shadow: 'shadow-yellow-500/20' }; if(rating >= 80) return { bg: 'bg-gradient-to-br from-slate-700 to-slate-900 border-slate-400', text: 'text-slate-300', glow: '', shadow: 'shadow-white/10' }; return { bg: 'bg-gradient-to-br from-[#3e2723] to-[#1a0f0d] border-[#d7ccc8]', text: 'text-[#d7ccc8]', glow: '', shadow: 'shadow-orange-900/20' }; }
+    function renderStrategyList() { const strat = strategies[currentStrategyIndex]; document.getElementById('strategy-name').innerText = strat.name; const listEl = document.getElementById('strategy-list'); listEl.innerHTML = ''; const checkMatch = (name) => liveSquad.pitch.some(p => p && p.name === name) || liveSquad.sub.some(p => p.name === name) || liveSquad.res.some(p => p.name === name); const createSection = (title, names) => { if(names.length === 0) return ''; let html = `<div class="text-[9px] text-white/30 font-bold uppercase mb-1 mt-2">${title}</div>`; names.forEach(name => { const isMatch = checkMatch(name); const border = isMatch ? 'border-[#ffd700] bg-[#ffd700]/10' : 'border-white/5 bg-white/5'; const text = isMatch ? 'text-[#ffd700]' : 'text-white'; const badge = isMatch ? '<span class="text-[8px] bg-[#ffd700] text-black font-bold px-1 rounded ml-auto">MATCH</span>' : ''; html += `<div class="flex items-center gap-2 p-2 rounded border ${border} mb-1"><div class="w-6 h-6 rounded-full bg-black/40 flex items-center justify-center text-[8px] font-bold text-white/50">${name.charAt(0)}</div><span class="text-xs font-bold ${text}">${name}</span>${badge}</div>`; }); return html; }; listEl.innerHTML += createSection("Starting XI", strat.pitch) + createSection("Substitutes", strat.sub) + createSection("Reserves", strat.res); }
+    function setLiveFormation(fmt) { currentFormation = fmt; ['433','442','352','4231','532'].forEach(b => { const btn = document.getElementById('btn-'+b); const key = btn.innerText.replace(/-/g,''); const targetKey = fmt.replace(/-/g,''); if(key === targetKey) btn.className = "bg-primary text-black text-[10px] font-bold px-2 py-1 rounded transition-colors"; else btn.className = "bg-white/10 text-white text-[10px] font-bold px-2 py-1 rounded hover:bg-white/20 transition-colors"; }); const size = formations[fmt].length; if (liveSquad.pitch.length < size) while(liveSquad.pitch.length < size) liveSquad.pitch.push(null); else if (liveSquad.pitch.length > size) { const removed = liveSquad.pitch.splice(size); removed.forEach(p => { if(p) liveSquad.res.push(p); }); } renderLiveSquad(); }
+    function renderLiveSquad() { const coords = formations[currentFormation]; const pitchEl = document.getElementById('live-pitch'); pitchEl.querySelectorAll('.player-card').forEach(e => e.remove()); const strat = strategies[currentStrategyIndex]; const allStratPlayers = [...strat.pitch, ...strat.sub, ...strat.res]; coords.forEach((coord, index) => { const player = liveSquad.pitch[index]; const div = document.createElement('div'); div.className = "player-card absolute flex flex-col items-center cursor-grab active:cursor-grabbing hover:z-50 transition-all"; div.style.left = coord.left + '%'; div.style.top = coord.top + '%'; div.style.transform = "translate(-50%, -50%)"; div.draggable = true; div.dataset.type = 'pitch'; div.dataset.index = index; div.ondragstart = drag; div.ondragover = allowDrop; div.ondrop = (ev) => drop(ev, 'pitch', index); if (player) { const style = getCardStyle(player.rating); const isMatch = allStratPlayers.includes(player.name); const matchBadge = isMatch ? '<span class="absolute -top-2 bg-auction-gold text-black text-[8px] font-black px-1 rounded shadow z-30">MATCH</span>' : ''; const matchClass = isMatch ? 'match-glow' : ''; div.innerHTML = `<div class="w-20 h-24 ${style.bg} border-2 rounded-lg flex flex-col items-center justify-center relative shadow-lg group ${style.shadow} ${matchClass}"><div class="${style.glow}"></div>${matchBadge}<img src="${player.img}" class="w-10 h-10 object-cover rounded-full mb-1 relative z-10"><span class="text-[9px] font-bold text-white bg-black/50 px-1 rounded truncate max-w-[90%] relative z-10">${player.name}</span><div class="absolute top-0 right-0 ${style.text} text-[8px] font-bold px-1 rounded-bl bg-black/40">${player.rating}</div></div>`; } else { div.innerHTML = `<div class="w-16 h-20 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center relative hover:bg-white/10 border-dashed"><span class="text-[10px] text-white/20 font-bold">${coord.pos}</span></div>`; } pitchEl.appendChild(div); }); renderBench('live-subs', liveSquad.sub, 'sub'); renderBench('live-res', liveSquad.res, 'res'); }
+    function renderBench(id, list, type) { const el = document.getElementById(id); const strat = strategies[currentStrategyIndex]; const allStratPlayers = [...strat.pitch, ...strat.sub, ...strat.res]; el.innerHTML = list.map((p, idx) => { const style = getCardStyle(p.rating); const isMatch = allStratPlayers.includes(p.name); const matchClass = isMatch ? 'match-glow' : ''; return `<div class="w-16 h-20 flex-shrink-0 ${style.bg} border rounded-lg flex flex-col items-center justify-center relative shadow-lg cursor-grab ${matchClass}" draggable="true" ondragstart="drag(event)" data-type="${type}" data-index="${idx}"><div class="${style.glow}"></div><img src="${p.img}" class="w-8 h-8 rounded-full mb-1 relative z-10"><span class="text-[8px] font-bold text-white relative z-10 truncate w-full text-center px-1">${p.name}</span><span class="absolute top-0 right-0 text-[8px] ${style.text} px-1 bg-black/20">${p.rating}</span></div>`; }).join(''); }
+    let draggedItem = null; function drag(ev) { draggedItem = { type: ev.currentTarget.dataset.type, index: parseInt(ev.currentTarget.dataset.index) }; ev.currentTarget.classList.add('opacity-50'); } function allowDrop(ev) { ev.preventDefault(); } function drop(ev, targetType, targetIndex = null) { ev.preventDefault(); document.querySelectorAll('.opacity-50').forEach(el => el.classList.remove('opacity-50')); if (!draggedItem) return; if (targetType === 'pitch' && targetIndex !== null) { const sourceArr = liveSquad[draggedItem.type]; const targetArr = liveSquad.pitch; const sourcePlayer = sourceArr[draggedItem.index]; const targetPlayer = targetArr[targetIndex]; if (draggedItem.type === 'pitch') { targetArr[targetIndex] = sourcePlayer; targetArr[draggedItem.index] = targetPlayer; } else { targetArr[targetIndex] = sourcePlayer; sourceArr.splice(draggedItem.index, 1); if (targetPlayer) sourceArr.push(targetPlayer); } } else if (targetType === 'sub' || targetType === 'res') { const sourceArr = liveSquad[draggedItem.type]; const targetArr = liveSquad[targetType]; const player = sourceArr[draggedItem.index]; if(!player) return; if (draggedItem.type === 'pitch') sourceArr[draggedItem.index] = null; else sourceArr.splice(draggedItem.index, 1); targetArr.push(player); } renderLiveSquad(); renderStrategyList(); }
 
-  function nextTeam() {
-    // later: switch team index + re-render players
-    console.log("Next team");
-  }
-
-  function prevTeam() {
-    console.log("Previous team");
-  }
+    renderStrategyList();
+    renderLiveSquad();
 </script>
-
-
-</body></html>
+</body>
+</html>
