@@ -1,38 +1,20 @@
  import React from "react";
 import { Link } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 const Landing_page = () => {
   return (<div className="dark">
 
-    <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white transition-colors duration-300">
-{/* Top Navigation Bar*/}
-<nav className="sticky top-0 z-50 glass-nav border-b border-white/10">
-<div className="max-w-[1440px] mx-auto px-6 h-20 flex items-center justify-between">
-<div className="flex items-center gap-3">
-<div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-<span className="material-symbols-outlined text-background-dark font-bold">sports_soccer</span>
-</div>
-<h1 className="text-xl font-black tracking-tight uppercase italic">Footy<span className="text-primary">Auction</span></h1>
-</div>
-<div className="hidden md:flex items-center gap-10">
-<Link className="text-sm font-medium text-primary border-b-2 border-primary pb-1" to="/landing_page.html">Home</Link>
-<Link className="text-sm font-medium hover:text-primary transition-colors" to="/player_stats.html">Players</Link>
-<Link className="text-sm font-medium hover:text-primary transition-colors" to="/auction_rules.html">Auction Rules</Link>
-<Link className="text-sm font-medium hover:text-primary transition-colors" to="/discover.html">Discover</Link>
-</div>
-<div className="flex items-center gap-4">
-<a href="login.html"><button className="px-5 py-2 text-sm font-bold hover:text-primary transition-colors">Login</button></a>
-<a href="login.html"><button className="bg-primary text-background-dark px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-white transition-all">Sign Up</button></a>
-</div>
-</div>
-</nav>
+    <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white transition-colors duration-300 stadium-bg">
+  <Navbar className="glass-nav sticky"/>
 <div>
+
 {/* Hero Section*/}
 <section className="relative w-full min-h-[85vh] flex items-center justify-center overflow-hidden">
 {/* Background Image with Overlay*/}
 <div className="absolute inset-0 z-0">
-<div className="absolute inset-0 bg-gradient-to-b from-background-dark/60 via-background-dark/80 to-background-dark z-10"></div>
-<img alt="Football Stadium" className="w-full h-full object-cover" data-alt="Cinematic night stadium atmosphere with bright floodlights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBbBxm6rNDIKKsnUjENcAAIdYWUP02IjPT_IRgMFJsz4lSCP8DBdjziR8EEBmbyrKOHXOPvFhZVVJDibDXCOrJHYwP4WtHrAmVBXJJ7YTWRKkPI6XKaqsSJ7KdvaeZtt6WK0CXQ3n5ksVS9aHiEQGi25rK2n5KU2HtbvY_xZiMqr8m1JMJKKZNgdIW72gK-Qq0bl8d-PxsNecD-cp3QrYSG4YbdNi-2pwn8WD_KxVwiSxmdq9GXJCaRX5LEP6bsQ6bfjMXEcXH0aAc"/>
+<div className="absolute inset-0 bg-gradient-to-b from-background-dark/60 via-background-dark/80 z-10"></div>
 </div>
 <div className="relative z-20 max-w-4xl px-6 text-center flex flex-col items-center">
 <div className="mb-6 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-primary text-xs font-bold tracking-widest uppercase">
@@ -106,9 +88,9 @@ const Landing_page = () => {
 <section className="pt-20 pb-10 px-6 max-w-7xl mx-auto">
 <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-6">
 <h2 className="text-2xl font-black uppercase tracking-tight">Top Player <span className="text-primary">Picks</span></h2>
-<a className="text-primary text-sm font-bold flex items-center gap-2 hover:underline" href="#">
+<Link className="text-primary text-sm font-bold flex items-center gap-2 hover:underline" to="/player_stats">
                     View Market <span className="material-symbols-outlined">arrow_forward</span>
-</a>
+</Link>
 </div>
 {/* Player Carousel Container*/}
 <div className="flex overflow-x-auto pb-10 gap-6 scrollbar-hide snap-x">
@@ -193,17 +175,7 @@ const Landing_page = () => {
 </div>
 </section>
 </div>
-{/* Footer*/}
-<footer className="border-t border-white/5 bg-background-dark py-12 px-4 lg:px-20 text-center">
-<div className="flex flex-col items-center gap-6">
-<div className="flex items-center gap-2 opacity-50">
-<span className="material-symbols-outlined">gavel</span>
-<p className="text-sm font-medium">Football Auction System v1.0.0</p>
-</div>
-
-<p className="text-slate-600 text-xs">© 2026 Football Auction Engine. All rights reserved.</p>
-</div>
-</footer>
+<Footer />
 </div></div>
   );
 };

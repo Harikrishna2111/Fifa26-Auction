@@ -1,14 +1,57 @@
- .material-symbols-outlined {
+@layer utilities {
+  .pitch-pattern {
+    background-image: radial-gradient(circle at 2px 2px, rgba(13,242,89,0.05) 1px, transparent 0);
+    background-size: 40px 40px;
+  }
+  .pitch-lines {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 100px 100px;
+  }
+  .neon-focus:focus {
+    box-shadow: 0 0 15px rgba(13,242,89,0.3);
+    border-color: #0df259;
+    outline: none;
+  }
+  .dark-input {
+    background-color: #1a1a1a !important;
+    color: white !important;
+  }
+}
+
+
+
+.material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
-        .neon-glow:hover {
+.neon-glow:hover {
             box-shadow: 0 0 15px rgba(13, 242, 89, 0.4);
             border-color: #0df259;
         }
-        .gold-icon {
+.gold-icon {
             color: #FFD700;
         }
-            .glass-nav {
+.glass-nav {
       backdrop-filter: blur(16px);
       background-color: rgba(10, 15, 12, 0.8);
     }
+
+.stadium-bg {
+      background-image: linear-gradient(to bottom, rgba(10, 15, 12, 0.8), rgba(10, 15, 12, 0.95)),
+      url('https://lh3.googleusercontent.com/aida-public/AB6AXuCRV5sXcjjTqmLaaGe9utlAnl5lovRfEJoSPUXZ4lO9Hjsb-pQay7jnfnkzEFFPOx4fEDQGbSyA4vGJ_fajCpCJnhpbOHFxG_vQg65wTEKX7iXDeyECDwil_ffys8dTGbsJPUW05hEqDyz1FmkC7cxCQncw5tIjbc1ZofhSiRXr-W3l8bMale3HCjn7ktjupl3kxwbbx1VsNyhhb8Bsi1TFVt_ncY1uobQsWUkmSudaDzlo2itg85sVdSanEQe7raN13LcIdgaFYm4');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+.video-container {
+      background: linear-gradient(145deg, #151b17 0%, #0a0f0c 100%);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+
+
+
+
+
+
