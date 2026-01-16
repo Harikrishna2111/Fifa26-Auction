@@ -5,7 +5,7 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>FootyAuction PRO</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     
     <script>
@@ -59,21 +59,43 @@
         }
         .match-glow { box-shadow: 0 0 15px #ffd700; border-color: #ffd700 !important; }
         .dragging { opacity: 0.5; transform: scale(0.9); cursor: grabbing !important; }
-        
-        /* UPDATED: Pro Card Background (Image Removed) */
-        .pro-card-bg {
-            background: linear-gradient(to bottom, #2a2a2a, #0a0a0a); /* Clean dark gradient */
-        }
+        .pro-card-bg { background: linear-gradient(to bottom, #2a2a2a, #0a0a0a); }
     </style>
 </head>
 <body class="bg-background-dark font-display text-white overflow-hidden h-screen stadium-bg">
 
-<header class="sticky top-0 z-40 w-full border-b border-white/10 bg-background-dark/80 backdrop-blur-md">
+<header class="sticky top-0 z-40 w-full border-b border-white/10 bg-background-dark/80 backdrop-blur-md relative">
     <div class="max-w-full mx-auto px-6 h-20 flex items-center justify-between">
+        
         <div class="flex items-center gap-3">
             <span class="material-symbols-outlined text-primary text-3xl">sports_soccer</span>
             <h2 class="text-xl font-black uppercase italic">Footy<span class="text-primary">Auction</span></h2>
         </div>
+
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-8 bg-black/40 border border-white/10 px-6 py-2 rounded-full backdrop-blur-xl shadow-lg">
+            
+            <div class="flex flex-col items-center">
+                <span class="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-0.5">Upcoming Pool</span>
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-white/60 text-sm">groups_3</span>
+                    <span class="text-xs font-black text-white tracking-wider">MIDFIELDERS</span>
+                    <span class="text-[9px] text-black bg-primary px-1.5 py-0.5 rounded font-bold">12</span>
+                </div>
+            </div>
+
+            <div class="h-8 w-px bg-white/10"></div>
+
+            <div class="flex items-center gap-3">
+                <button class="size-9 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 flex items-center justify-center hover:bg-yellow-500/20 hover:scale-110 transition-all shadow-[0_0_10px_rgba(234,179,8,0.2)]" title="Pause Auction">
+                    <span class="material-symbols-outlined text-lg">pause</span>
+                </button>
+                <a href="post_auction_statistics.html"><button class="size-9 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 flex items-center justify-center hover:bg-red-500/20 hover:scale-110 transition-all shadow-[0_0_10px_rgba(239,68,68,0.2)]" title="End Auction">
+                    <span class="material-symbols-outlined text-lg">stop_circle</span>
+                </button></a>
+            </div>
+
+        </div>
+
         <div class="flex items-center gap-4">
             <div class="text-right hidden sm:block">
                 <p class="text-sm font-bold">Alex Smith</p>
@@ -279,12 +301,14 @@
                         <button onclick="setLiveFormation('5-3-2')" class="bg-white/10 text-white text-[10px] font-bold px-2 py-1 rounded hover:bg-white/20" id="btn-532">5-3-2</button>
                     </div>
                 </div>
+                
                 <div class="flex-1 relative pitch-pattern p-4 pb-4" ondragover="allowDrop(event)" ondrop="drop(event, 'pitch')">
                      <div class="absolute inset-4 border-2 border-white/5 rounded-xl pointer-events-none"></div>
                      <div class="absolute top-1/2 left-4 right-4 h-px bg-white/5 pointer-events-none"></div>
                      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-white/5 rounded-full pointer-events-none"></div>
                      <div id="live-pitch" class="absolute inset-0 w-full h-full"></div>
                 </div>
+
                 <div class="h-36 border-t border-white/10 bg-black/40 grid grid-cols-2 divide-x divide-white/10">
                     <div class="flex flex-col p-2" ondragover="allowDrop(event)" ondrop="drop(event, 'sub')">
                         <div class="text-[10px] text-primary/70 uppercase font-bold mb-1 flex justify-between"><span>Substitutes</span><span class="text-[9px] bg-white/5 px-1 rounded">7 Max</span></div>
@@ -301,7 +325,7 @@
 </div>
 
 <script>
-    /* --- COORDINATES (GK pushed up to 82% for safety) --- */
+    /* --- COORDINATES (GK pushed up to 82%) --- */
     const formations = {
         "4-3-3": [{pos:"GK",left:50,top:82},{pos:"LB",left:15,top:70},{pos:"CB",left:38,top:75},{pos:"CB",left:62,top:75},{pos:"RB",left:85,top:70},{pos:"CM",left:30,top:45},{pos:"CM",left:50,top:50},{pos:"CM",left:70,top:45},{pos:"LW",left:15,top:15},{pos:"ST",left:50,top:10},{pos:"RW",left:85,top:15}],
         "4-4-2": [{pos:"GK",left:50,top:82},{pos:"LB",left:15,top:70},{pos:"CB",left:38,top:75},{pos:"CB",left:62,top:75},{pos:"RB",left:85,top:70},{pos:"LM",left:15,top:40},{pos:"CM",left:40,top:45},{pos:"CM",left:60,top:45},{pos:"RM",left:85,top:40},{pos:"ST",left:35,top:15},{pos:"ST",left:65,top:15}],
@@ -324,6 +348,9 @@
     };
     const strategies = [{ name: "Plan A (Meta)", pitch: ["Mbappé", "Salah", "Son", "De Bruyne", "Ederson", "Dias", "Saliba", "Shaw", "Trippier", "Rodri", "Fernandes"], sub: ["Rice", "Varane"], res: ["Maguire"] },{ name: "Plan B (Budget)", pitch: ["Jesus", "Saka", "Diaz", "Rice", "Ramsdale"], sub: ["Nketiah"], res: [] }];
     let currentStrategyIndex = 0;
+    let currentTradeSide = 'you';
+    const availablePlayers = { you: ["Mbappé", "De Bruyne", "Ederson", "Rice"], them: ["Haaland", "Vini Jr", "Allison", "Van Dijk"] };
+    let tradeData = { you: [], them: [] };
 
     // --- TEAM DETAILS MODAL LOGIC ---
     const teamDatabase = {
@@ -352,14 +379,11 @@
         const player = teamDatabase[teamName].find(p => p.id === playerId);
         if(!player) return;
         const detailContainer = document.getElementById('player-detail-view');
-        // Pro Card with No BG Image
+        // PRO CARD (Clean background)
         detailContainer.innerHTML = `<div class="w-[320px] h-[420px] rounded-3xl relative overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.8)] border border-white/10 pro-card-bg group"><div class="absolute inset-0 bg-gradient-to-t from-[#0a0f0b] via-transparent to-transparent"></div><div class="absolute top-6 left-6 z-10"><span class="text-5xl font-black text-primary drop-shadow-md leading-none">${player.rating}</span><span class="block text-xs font-bold text-white uppercase tracking-widest mt-1">OVR</span></div><div class="absolute inset-0 flex items-end justify-center pb-24"><img src="${player.img}" class="w-[85%] object-contain drop-shadow-2xl z-0 transition-transform group-hover:scale-105 duration-500"></div><div class="absolute bottom-0 left-0 w-full p-6 z-20"><div class="flex items-center gap-2 mb-1"><span class="bg-primary text-black text-[10px] font-black px-2 py-0.5 rounded uppercase">${player.pos}</span><span class="text-white/60 text-xs font-bold uppercase tracking-wider">${player.nation}</span></div><h2 class="text-3xl font-black text-white uppercase italic leading-none mb-4">${player.name}</h2><div class="flex justify-between border-t border-white/10 pt-3 mb-3"><div class="text-center"><span class="block text-[9px] text-white/40 font-bold">PAC</span><span class="text-lg font-bold text-white">${player.stats.pac}</span></div><div class="text-center"><span class="block text-[9px] text-white/40 font-bold">SHO</span><span class="text-lg font-bold text-white">${player.stats.sho}</span></div><div class="text-center"><span class="block text-[9px] text-white/40 font-bold">DRI</span><span class="text-lg font-bold text-white">${player.stats.dri}</span></div></div><button class="w-full bg-[#1a2e24] border border-primary/30 py-3 rounded-xl flex items-center justify-between px-4 hover:bg-[#1f362a] transition cursor-default"><span class="text-xs font-bold text-white/60 uppercase">Bought For</span><span class="text-xl font-black text-primary">${player.price}</span></button></div></div>`;
     }
 
     // --- OTHER JS ---
-    let currentTradeSide = 'you';
-    const availablePlayers = { you: ["Mbappé", "De Bruyne", "Ederson", "Rice"], them: ["Haaland", "Vini Jr", "Allison", "Van Dijk"] };
-    let tradeData = { you: [], them: [] };
     function toggleTradeTab(tab) { document.getElementById('content-propose').classList.toggle('hidden', tab !== 'propose'); document.getElementById('content-propose').classList.toggle('flex', tab === 'propose'); document.getElementById('content-active').classList.toggle('hidden', tab !== 'active'); document.getElementById('content-active').classList.toggle('flex', tab === 'active'); document.getElementById('tab-propose').className = tab === 'propose' ? "flex-1 py-3 text-[10px] font-bold uppercase bg-white/10 text-primary border-b-2 border-primary" : "flex-1 py-3 text-[10px] font-bold uppercase text-white/40 hover:text-white"; document.getElementById('tab-active').className = tab === 'active' ? "flex-1 py-3 text-[10px] font-bold uppercase bg-white/10 text-primary border-b-2 border-primary" : "flex-1 py-3 text-[10px] font-bold uppercase text-white/40 hover:text-white"; }
     function openTradeSelector(side) { currentTradeSide = side; const list = document.getElementById('selector-list'); document.getElementById('selector-title').innerText = side === 'you' ? "Select Your Player" : "Select Their Player"; list.innerHTML = availablePlayers[side].map(p => `<div onclick="addPlayerToTrade('${p}')" class="p-2 bg-white/5 hover:bg-white/10 rounded cursor-pointer text-xs font-bold text-white flex justify-between border border-white/5">${p} <span class="material-symbols-outlined text-sm text-primary">add_circle</span></div>`).join(''); document.getElementById('trade-selector').classList.remove('hidden'); document.getElementById('trade-selector').classList.add('flex'); }
     function closeTradeSelector() { document.getElementById('trade-selector').classList.add('hidden'); document.getElementById('trade-selector').classList.remove('flex'); }
