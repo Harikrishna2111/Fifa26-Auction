@@ -23,7 +23,8 @@ module.exports = {
                         "auction-yellow": "#fbbf24",
                         "surface-dark": "#162c1d",
                         "card-bg": "#161b18",
-                        "input-bg": "#0d1210"
+                        "input-bg": "#0d1210",
+                        "gold": "#FFD700",
                     },
                     fontFamily: {
                         "display": ["Lexend", "sans-serif"]
@@ -40,6 +41,10 @@ module.exports = {
                     },
                     animation: {
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        marquee: { '0%': { transform: 'translateX(100%)' }, '100%': { transform: 'translateX(-100%)' } },
+                        shine: { '0%': { backgroundPosition: '200% 0' }, '100%': { backgroundPosition: '-200% 0' } }
                     }
                 },
             },

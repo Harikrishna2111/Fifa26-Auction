@@ -97,3 +97,12 @@
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
+
+
+
+
+        .gold-glow { box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); border: 1px solid rgba(255, 215, 0, 0.5); }
+        .stadium-bg { background-image: linear-gradient(rgba(16, 34, 22, 0.9), rgba(16, 34, 22, 0.95)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuBSguUs_HyM7VDA0uKhQrHkZ-fS0MLB92VTq25PaTZwnn74E4IiXUSI9AF316ddX0bCIZB2oTyIEZLgPSdKLqOVPWnEjgVkE0LixV0DLjQSiuduauBkKB-to5_tkfZDm3LEeb5MzEc4Iaz0_mIcu-kbG4-z4LsXxigwuiS1IKXg9I8xna0KTtj8lNUyxpVyk_G0OH8GHZEi3ZSMimdjvUMKQZHV3FPlzxU7GHAH5WD3jwJl_K_vZqzddGhk3cOyp3OKIn8ruOJZwIo); background-size: cover; background-position: center; }
+        .confetti-overlay { background-image: radial-gradient(circle at 20% 30%, rgba(255, 215, 0, 0.15) 1px, transparent 1px), radial-gradient(circle at 70% 60%, rgba(255, 215, 0, 0.1) 1px, transparent 1px), radial-gradient(circle at 40% 80%, rgba(255, 215, 0, 0.2) 1px, transparent 1px); background-size: 100px 100px; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

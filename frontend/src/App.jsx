@@ -14,6 +14,9 @@ import Create_lobby from './pages/Create_lobby'
 import Join_lobby from './pages/Join_lobby'
 import Lobby from './pages/lobby'
 import Preacution_phase from './pages/Preauction_phase'
+import Auction from './pages/Auction'
+import Post_auction_statistics from './pages/Post_auction_statistics'
+import Create_team from './pages/Create_team'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -34,6 +37,9 @@ function App() {
       <Route path='/join_lobby' element={<Join_lobby />} />
       <Route path='/lobby' element={<Lobby />} />
       <Route path="/preauction_phase" element={<Preacution_phase />} />
+      <Route path="/auction" element={<Auction />} />
+      <Route path="/post_auction_statistics" element={<Post_auction_statistics />} />
+      <Route path='/create_team' element={<Create_team />} />
     </Routes>
     </BrowserRouter>
   
