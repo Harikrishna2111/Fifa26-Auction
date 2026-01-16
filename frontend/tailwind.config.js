@@ -11,15 +11,19 @@ module.exports = {
                     
                     colors: {
                         "primary": "#0df259", // Neon Green
-                        "background-light": "#f5f8f6",
+                        "background-light": "#0a0f0c",
                         "background-dark": "#0a0f0b",
+                        "bg-dark": "#050807",
                         "accent-blue": "#3b82f6",
                         "accent-gold": "#FFD700",
                         "panel-dark": "#121816",
+                        "pitch-green": "#112218",
                         "auction-gold": "#ffd700",
                         "auction-red": "#ff4d4d",
                         "auction-yellow": "#fbbf24",
                         "surface-dark": "#162c1d",
+                        "card-bg": "#161b18",
+                        "input-bg": "#0d1210"
                     },
                     fontFamily: {
                         "display": ["Lexend", "sans-serif"]
@@ -28,7 +32,11 @@ module.exports = {
                         "DEFAULT": "0.5rem",
                         "lg": "1rem",
                         "xl": "1.5rem",
+                        "2xl": "2rem",
                         "full": "9999px"
+                    },
+                    backgroundImage: {
+                        'pitch-pattern': 'repeating-linear-gradient(90deg, #152a1e 0px, #152a1e 100px, #112218 100px, #112218 200px)',
                     },
                     animation: {
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
