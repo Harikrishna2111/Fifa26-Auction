@@ -7,6 +7,8 @@ import Discover from './pages/Discover'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Login from './pages/Login'
 import User_dashboard from './pages/User_dashboard'
+import View_all_auctions from './pages/View_all_auctions'
+import Manage_teams from './pages/Manage_teams'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -20,6 +22,8 @@ function App() {
       <Route path="/discover" element={<Discover />} />
       <Route path="/login" element={<Login />} />
       <Route path="/user_dashboard" element={<User_dashboard />} />
+      <Route path='/view_all_auctions' element={<View_all_auctions />} />
+      <Route path='/manage_teams' element={<Manage_teams />} />
 
     </Routes>
     </BrowserRouter>
