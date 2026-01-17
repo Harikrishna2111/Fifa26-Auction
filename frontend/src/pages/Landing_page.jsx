@@ -31,12 +31,12 @@ const Landing_page = () => {
                     Experience the thrill of live bidding and strategic team building in the world's most competitive football auction platform.
                 </p>
 <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-<a href="login.html"><button className="bg-primary text-background-dark px-10 py-5 rounded-xl text-lg font-black uppercase tracking-wider hover:shadow-[0_0_30px_rgba(13,242,89,0.5)] transition-all">
+<Link to="/login"><button className="bg-primary text-background-dark px-10 py-5 rounded-xl text-lg font-black uppercase tracking-wider hover:shadow-[0_0_30px_rgba(13,242,89,0.5)] transition-all">
                         Start Auction
-                    </button></a>
-<a href="discover.html"><button className="bg-white/10 backdrop-blur-sm border border-white/20 text-white px-10 py-5 rounded-xl text-lg font-bold hover:bg-white/20 transition-all">
+                    </button></Link>
+<Link to="/discover"><button className="bg-white/10 backdrop-blur-sm border border-white/20 text-white px-10 py-5 rounded-xl text-lg font-bold hover:bg-white/20 transition-all">
                         View Demo
-                    </button></a>
+                    </button></Link>
 </div>
 </div>
 </section>
@@ -169,9 +169,9 @@ const Landing_page = () => {
 <div className="max-w-4xl mx-auto text-center">
 <h2 className="text-background-dark text-4xl md:text-5xl font-black mb-6">Ready to Lead Your Team?</h2>
 <p className="text-background-dark/80 text-xl font-medium mb-10">Join thousands of managers and start your journey to the championship today.</p>
-<a href="login.html"><button className="bg-background-dark text-primary px-12 py-5 rounded-full text-xl font-black uppercase tracking-widest hover:scale-105 transition-transform">
+<Link to="/login"><button className="bg-background-dark text-primary px-12 py-5 rounded-full text-xl font-black uppercase tracking-widest hover:scale-105 transition-transform">
                     Create My Team
-                </button></a>
+                </button></Link>
 </div>
 </section>
 </div>

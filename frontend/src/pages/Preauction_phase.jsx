@@ -1,6 +1,7 @@
 import React from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { Link } from "react-router-dom";
 
 const Preacution_phase = () => {
   const playerCardGradient = {
@@ -417,10 +418,10 @@ const Preacution_phase = () => {
 <button className="flex-1 sm:flex-none px-8 py-3 bg-primary text-black rounded-xl font-extrabold transition-all hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(43,255,0,0.3)] uppercase tracking-widest text-xs">
                     Confirm Retentions
                 </button>
-<a href="auction.html"><button className="hidden lg:flex items-center gap-2 px-8 py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl font-bold transition-all uppercase tracking-widest text-xs">
+<Link to="/auction"><button className="hidden lg:flex items-center gap-2 px-8 py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl font-bold transition-all uppercase tracking-widest text-xs">
                     Ready for Auction
                     <span className="material-symbols-outlined scale-75">arrow_forward</span>
-</button></a>
+</button></Link>
 </div>
 </div>
 </footer>

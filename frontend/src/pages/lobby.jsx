@@ -1,6 +1,7 @@
 import React from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { Link } from "react-router-dom";
 
 const Lobby = () => {
   const stadiumGradientStyle = {
@@ -134,12 +135,12 @@ const Lobby = () => {
                         Waiting for admin to start auction...
                     </p>
 {/* High Impact Start Button (Visible for Admin) */}
-<a href="preauction_phase.html"><button className="group relative flex min-w-[320px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-16 px-8 bg-primary text-background-dark text-xl font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(13,242,89,0.5)]">
+<Link to="/preauction_phase"><button className="group relative flex min-w-[320px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-16 px-8 bg-primary text-background-dark text-xl font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(13,242,89,0.5)]">
 <span className="flex items-center gap-2">
                             Start Auction
                             <span className="material-symbols-outlined font-bold">play_arrow</span>
 </span>
-</button></a>
+</button></Link>
 </div>
 </div>
 </main>

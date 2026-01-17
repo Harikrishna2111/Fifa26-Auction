@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const Auction = () => {
   return (
@@ -33,9 +34,9 @@ const Auction = () => {
               <button className="size-9 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 flex items-center justify-center hover:bg-yellow-500/20 hover:scale-110 transition-all shadow-[0_0_10px_rgba(234,179,8,0.2)]" title="Pause Auction">
                 <span className="material-symbols-outlined text-lg">pause</span>
               </button>
-              <button className="size-9 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 flex items-center justify-center hover:bg-red-500/20 hover:scale-110 transition-all shadow-[0_0_10px_rgba(239,68,68,0.2)]" title="End Auction">
+             <Link to="/post_auction_statistics"><button className="size-9 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 flex items-center justify-center hover:bg-red-500/20 hover:scale-110 transition-all shadow-[0_0_10px_rgba(239,68,68,0.2)]" title="End Auction">
                 <span className="material-symbols-outlined text-lg">stop_circle</span>
-              </button>
+              </button></Link>
             </div>
 
           </div>

@@ -168,7 +168,7 @@ const Formation_settings = () => {
           <div className="flex gap-6">
             <div className="flex flex-col items-end">
               <span className="text-[9px] font-bold text-white/40 uppercase">Rating</span>
-              <span className="text-xl font-black italic">{squadRating}</span>
+              <span className="text-xl text-yellow-400 italic">{squadRating}</span>
             </div>
             <div className="flex flex-col items-end">
               <span className="text-[9px] font-bold text-white/40 uppercase">Chemistry</span>
@@ -235,7 +235,7 @@ const Formation_settings = () => {
               </div>
             </div>
             <div className="p-4 border-t border-white/10 bg-black/40 backdrop-blur-md">
-              <Link to="/create-team">
+              <Link to="/manage_teams">
                 <button className="w-full bg-[#39ff14] hover:bg-[#2bff00] text-black py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(57,255,20,0.3)] flex items-center justify-center gap-2">
                   <span className="material-symbols-outlined">save</span>
                   Save Squad

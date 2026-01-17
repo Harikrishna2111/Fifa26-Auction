@@ -1,6 +1,7 @@
 import React from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { Link } from "react-router-dom";
 
 const Create_lobby = () => {
   return (
@@ -131,12 +132,12 @@ const Create_lobby = () => {
 
       {/* SUBMIT */} 
       <div className="lg:col-span-2 pt-6">
-        <a href="lobby.html">        
+        <Link to="/lobby">        
           <button className="w-full bg-primary text-background-dark py-6 rounded-xl font-black uppercase tracking-widest
                        hover:scale-[1.02] transition-all shadow-[0_10px_30px_rgba(13,242,89,0.4)]" type="button">
             Create Lobby
           </button>
-        </a>
+        </Link>
         <p className="text-xs text-slate-500 italic mt-3 text-center">
           All settings are locked once the lobby is created.
         </p>

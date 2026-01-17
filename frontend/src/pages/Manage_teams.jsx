@@ -87,7 +87,8 @@ const Manage_teams = () => {
 </div>
 {/* Actions */}
 <div className="flex flex-col gap-2 mt-auto">
-<a href="formation_settings.html"><button className="w-full py-3 bg-primary text-background-dark font-black text-sm rounded-lg hover:brightness-110 transition-all uppercase tracking-wider">View Squad</button></a>
+<Link to="/formation_settings">
+<button className="w-full py-3 bg-primary text-background-dark font-black text-sm rounded-lg hover:brightness-110 transition-all uppercase tracking-wider">View Squad</button></Link>
 </div>
 </div>
 </div>
