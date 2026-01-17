@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/Footer';
 import Navbar from '../components/Navbar';
@@ -78,31 +78,50 @@ const Formation_settings = () => {
     }
   };
 
-  const handleDragStart = (e, type, index) => {
-    e.dataTransfer.setData("text", "");
+  const handleMouseDown = (e, type, index) => {
     setDraggedItem({ type, index });
-    e.currentTarget.style.opacity = '0.4';
   };
 
-  const handleDragEnd = (e) => {
-    e.currentTarget.style.opacity = '1';
+  const handleMouseUp = () => {
+    setDraggedItem(null);
   };
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const targetType = e.currentTarget.getAttribute('data-type');
-    const targetIndex = parseInt(e.currentTarget.getAttribute('data-index'));
-    
+  const swapPlayers = (sourcetype, sourceIndex, targetType, targetIndex) => {
+    if (sourcetype === targetType && sourceIndex === targetIndex) return;
+
+    let newPitchPlayers = [...pitchPlayers];
+    let newSubPlayers = [...subPlayers];
+    let newResPlayers = [...resPlayers];
+
+    // Get source player
+    let sourcePlayer;
+    if (sourcetype === 'pitch') sourcePlayer = newPitchPlayers[sourceIndex];
+    else if (sourcetype === 'sub') sourcePlayer = newSubPlayers[sourceIndex];
+    else sourcePlayer = newResPlayers[sourceIndex];
+
+    // Get target player
+    let targetPlayer;
+    if (targetType === 'pitch') targetPlayer = newPitchPlayers[targetIndex];
+    else if (targetType === 'sub') targetPlayer = newSubPlayers[targetIndex];
+    else targetPlayer = newResPlayers[targetIndex];
+
+    // Swap
+    if (sourcetype === 'pitch') newPitchPlayers[sourceIndex] = targetPlayer;
+    else if (sourcetype === 'sub') newSubPlayers[sourceIndex] = targetPlayer;
+    else newResPlayers[sourceIndex] = targetPlayer;
+
+    if (targetType === 'pitch') newPitchPlayers[targetIndex] = sourcePlayer;
+    else if (targetType === 'sub') newSubPlayers[targetIndex] = sourcePlayer;
+    else newResPlayers[targetIndex] = sourcePlayer;
+
+    setPitchPlayers(newPitchPlayers);
+    setSubPlayers(newSubPlayers);
+    setResPlayers(newResPlayers);
+  };
+
+  const handlePlayerClick = (type, index) => {
     if (!draggedItem) return;
-
-    const lists = { pitch: [...pitchPlayers], sub: [...subPlayers], res: [...resPlayers] };
-    const temp = lists[draggedItem.type][draggedItem.index];
-    lists[draggedItem.type][draggedItem.index] = lists[targetType][targetIndex];
-    lists[targetType][targetIndex] = temp;
-
-    setPitchPlayers(lists.pitch);
-    setSubPlayers(lists.sub);
-    setResPlayers(lists.res);
+    swapPlayers(draggedItem.type, draggedItem.index, type, index);
     setDraggedItem(null);
   };
 
@@ -119,18 +138,30 @@ const Formation_settings = () => {
 
   const PlayerCard = ({ player, sizeClass, locationType, index }) => {
     const style = getCardStyle(player.rating);
+    const isDragging = draggedItem?.type === locationType && draggedItem?.index === index;
+    const isSelected = draggedItem?.type === locationType && draggedItem?.index === index;
+    
+    const handleSwapClick = (e) => {
+      e.stopPropagation();
+      
+      if (isSelected) {
+        // Deselect
+        setDraggedItem(null);
+      } else if (draggedItem) {
+        // Swap with selected
+        swapPlayers(draggedItem.type, draggedItem.index, locationType, index);
+        setDraggedItem(null);
+      } else {
+        // Select this card
+        setDraggedItem({ type: locationType, index });
+      }
+    };
+    
     return (
       <div 
-        draggable={true} 
-        data-type={locationType} 
-        data-index={index} 
-        onDragStart={(e) => handleDragStart(e, locationType, index)} 
-        onDragEnd={handleDragEnd} 
-        onDrop={handleDrop} 
-        onDragOver={(e) => e.preventDefault()} 
-        className={`${sizeClass} ${style.bgClass} ${style.borderClass} border-2 rounded-xl flex flex-col relative shadow-lg cursor-grab active:cursor-grabbing hover:scale-105 hover:z-50 transition-all duration-200 group overflow-hidden ${style.shadowClass}`}
+        style={{ opacity: isDragging ? 0.6 : 1 }}
+        className={`${sizeClass} ${style.bgClass} ${style.borderClass} border-2 rounded-xl flex flex-col relative shadow-lg hover:scale-105 ${isSelected ? 'ring-4 ring-yellow-400' : ''} transition-all duration-150 group overflow-hidden ${style.shadowClass}`}
       >
-        {style.hasShine && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-25" style={{backgroundSize: '200% 100%', animation: 'shine 4s infinite linear'}}></div>}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-white/5 opacity-50 pointer-events-none"></div>
         <div className="absolute top-1.5 left-2 flex flex-col leading-none z-20 pointer-events-none">
           <span className="text-xl font-black italic text-white drop-shadow-md">{player.rating}</span>
@@ -139,9 +170,21 @@ const Formation_settings = () => {
         <div className="flex-1 flex items-end justify-center overflow-hidden relative pointer-events-none">
           <img src={player.img} alt={player.name} className="w-[85%] h-[85%] object-contain relative z-10 drop-shadow-2xl" />
         </div>
-        <div className="bg-black/60 backdrop-blur-md py-1.5 text-center border-t border-white/5 relative z-20 pointer-events-none">
-          <div className="text-[10px] font-black uppercase tracking-wider text-white truncate px-1">{player.name}</div>
-          <div className={`text-[8px] ${style.textClass} font-mono font-bold opacity-90 mt-0.5`}>{player.stat}</div>
+        <div className="bg-black/60 backdrop-blur-md py-1.5 text-center border-t border-white/5 relative z-20">
+          <div className="text-[10px] font-black uppercase tracking-wider text-white truncate px-1 pointer-events-none">{player.name}</div>
+          <div className={`text-[8px] ${style.textClass} font-mono font-bold opacity-90 mt-0.5 pointer-events-none`}>{player.stat}</div>
+          <button
+            onClick={handleSwapClick}
+            className={`mt-1.5 px-2 py-1 rounded text-[9px] font-bold uppercase tracking-wider transition-all ${
+              isSelected
+                ? 'bg-yellow-400 text-black hover:bg-yellow-300'
+                : draggedItem
+                ? 'bg-green-500 text-white hover:bg-green-600'
+                : 'bg-white/20 text-white hover:bg-white/30'
+            }`}
+          >
+            {isSelected ? '✓ Selected' : draggedItem ? 'Swap' : 'Select'}
+          </button>
         </div>
       </div>
     );
@@ -192,8 +235,12 @@ const Formation_settings = () => {
                   const isCorrectPos = player.pos === coord.role;
                   const posColor = isCorrectPos ? "bg-[#39ff14] text-black border-[#39ff14]" : "bg-red-500 text-white border-red-500";
                   return (
-                    <div key={index} className="absolute w-24 h-36 transition-all duration-500" style={{left: `${coord.left}%`, top: `${coord.top}%`, transform: 'translate(-50%, -50%)'}}>
-                      <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${posColor} border font-black text-[9px] px-1.5 py-0.5 rounded shadow-lg z-0 transition-colors`}>{coord.role}</div>
+                    <div 
+                      key={index} 
+                      className="absolute w-24 h-36 transition-all duration-500" 
+                      style={{left: `${coord.left}%`, top: `${coord.top}%`, transform: 'translate(-50%, -50%)'}}
+                    >
+                      <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${posColor} border font-black text-[9px] px-1.5 py-0.5 rounded shadow-lg z-0 transition-colors pointer-events-none`}>{coord.role}</div>
                       <PlayerCard player={player} sizeClass="w-full h-full" locationType="pitch" index={index} />
                     </div>
                   );
