@@ -1,7 +1,17 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
-const Navbar = ({ isLoggedIn = false, userName = "Alex Smith", userRole = "Pro Manager" }) => {
+const Navbar = () => {  
+
+const user = JSON.parse(localStorage.getItem("user"));
+const isLoggedIn = !!user;
+const userName = user?.fullname;
+const userRole = user?.role || "Pro Manager";
+
+
+
+
+
   const navigate = useNavigate();
 
   const navLinkClasses = ({ isActive }) =>
@@ -11,9 +21,10 @@ const Navbar = ({ isLoggedIn = false, userName = "Alex Smith", userRole = "Pro M
         : "hover:text-primary"
     }`;
 
-  const handleLogout = () => {
-    navigate('/login');
-  };
+const handleLogout = () => {
+  localStorage.removeItem("user");
+  navigate("/login");
+};
 
   return (
     <>

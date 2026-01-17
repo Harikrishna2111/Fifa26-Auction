@@ -35,7 +35,15 @@ const handleLogin = async () => {
       return;
     }
 
-    localStorage.setItem("user", JSON.stringify(data.user));
+    localStorage.setItem(
+  "user",
+  JSON.stringify({
+    id: data.user.id,
+    fullname: data.user.fullname,
+    username: data.user.username,
+    role: "Pro Manager"
+  })
+);
     navigate("/user_dashboard");
   } catch (err) {
     console.error("Login error details:", err);

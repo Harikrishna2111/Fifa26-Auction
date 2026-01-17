@@ -8,13 +8,13 @@ conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    fullname TEXT NOT NULL,
-    username TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
+INSERT INTO auction_players (auction_id, player_id, final_price, winning_team_id)
+VALUES
+(1, 252371, 110000000, 1),
+(1, 239053, 95000000, 1),
+(3, 212622, 85000000, 2);
+
+
 """)
 
 conn.commit()

@@ -134,6 +134,110 @@ def get_players():
     players = [dict(row) for row in rows]
     return jsonify(players)
 
+@app.route("/api/dashboard/<int:user_id>", methods=["GET"])
+def manager_dashboard(user_id):
+    conn = get_db()
+
+    # -----------------------------
+    # Manager info
+    # -----------------------------
+    user = conn.execute(
+        "SELECT id, fullname FROM users WHERE id = ?",
+        (user_id,)
+    ).fetchone()
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # -----------------------------
+    # Past Auctions
+    # -----------------------------
+    past_auctions = conn.execute("""
+        SELECT 
+            a.id,
+            a.name,
+            a.season,
+            a.status,
+            a.end_date,
+            t.name AS acquired_team
+        FROM auctions a
+        LEFT JOIN auction_players ap ON ap.auction_id = a.id
+        LEFT JOIN teams t ON ap.winning_team_id = t.id
+        WHERE a.status IN ('COMPLETED', 'PAUSED')
+        GROUP BY a.id
+        ORDER BY a.end_date DESC
+        LIMIT 3
+    """).fetchall()
+
+    auctions_data = [
+        {
+            "id": row["id"],
+            "name": row["name"],
+            "season": row["season"],
+            "status": row["status"],
+            "end_date": row["end_date"],
+            "acquired_team": row["acquired_team"]
+        }
+        for row in past_auctions
+    ]
+
+    # -----------------------------
+    # My Teams
+    # -----------------------------
+    teams = conn.execute("""
+        SELECT
+            id,
+            name,
+            rating,
+            value,
+            stars,
+            status
+        FROM teams
+        WHERE manager_id = ?
+        ORDER BY created_at DESC
+    """, (user_id,)).fetchall()
+
+    teams_data = []
+
+    for team in teams:
+        players = conn.execute("""
+            SELECT p.id, p.name, p.image_url
+            FROM team_players tp
+            JOIN players p ON tp.player_id = p.id
+            WHERE tp.team_id = ?
+            LIMIT 4
+        """, (team["id"],)).fetchall()
+
+        teams_data.append({
+            "id": team["id"],
+            "name": team["name"],
+            "rating": team["rating"],
+            "value": team["value"],
+            "stars": team["stars"],
+            "status": team["status"],
+            "players": [
+                {
+                    "id": p["id"],
+                    "name": p["name"],
+                    "image_url": p["image_url"]
+                } for p in players
+            ]
+        })
+
+    conn.close()
+
+    # -----------------------------
+    # Final Response
+    # -----------------------------
+    return jsonify({
+        "manager": {
+            "id": user["id"],
+            "fullname": user["fullname"]
+        },
+        "past_auctions": auctions_data,
+        "teams": teams_data
+    })
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
