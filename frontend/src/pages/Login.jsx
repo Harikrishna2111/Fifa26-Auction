@@ -5,9 +5,86 @@ const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
 
-  const handleSubmit = () => {
-    navigate('/user_dashboard');
-  };
+const handleLogin = async () => {
+  setError("");
+  setLoading(true);
+
+  console.log("Attempting login with:", { username, password: "***" });
+
+  try {
+    console.log("Sending request to: http://localhost:5000/api/auth/login");
+    
+    const res = await fetch("http://localhost:5000/api/auth/login", {
+      method: "POST",
+      mode: "cors",
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ username, password })
+    });
+
+    console.log("Response status:", res.status);
+    console.log("Response headers:", res.headers);
+
+    const data = await res.json();
+    console.log("Response data:", data);
+
+    if (!res.ok) {
+      setError(data.error || "Login failed");
+      return;
+    }
+
+    localStorage.setItem("user", JSON.stringify(data.user));
+    navigate("/user_dashboard");
+  } catch (err) {
+    console.error("Login error details:", err);
+    setError(`Connection failed: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+const handleSignup = async () => {
+  setError("");
+  setLoading(true);
+
+  try {
+    const res = await fetch("http://localhost:5000/api/auth/register", {
+      method: "POST",
+      mode: "cors",
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ fullname, username, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error || "Signup failed");
+      return;
+    }
+
+    setIsLogin(true);
+  } catch (err) {
+    console.error("Signup error:", err);
+    setError(`Server unreachable. Make sure backend is running on port 5000.`);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+const [fullname, setFullname] = useState("");
+const [username, setUsername] = useState("");
+const [password, setPassword] = useState("");
+const [error, setError] = useState("");
+const [loading, setLoading] = useState(false);
+
+
   return (<div className="dark"> 
 <div className="dark bg-black font-display text-white min-h-screen flex items-center justify-center relative overflow-hidden">
 
@@ -37,7 +114,11 @@ const Login = () => {
     Sign Up
   </button>
 </div>
-
+  {error && (
+  <div className="mb-4 text-sm text-red-400 font-bold text-center">
+    {error}
+  </div>
+)}
 {/* FORMS */}
 <div className="relative overflow-hidden min-h-[420px]">
 
@@ -47,19 +128,30 @@ const Login = () => {
 <form className="space-y-6">
   <div>
     <label className="text-xs font-bold text-slate-400 uppercase">Username</label>
-    <input className="w-full dark-input border border-white/10 rounded-xl py-4 px-4 neon-focus" placeholder="manager_name" />
-  </div>
+<input
+  value={username}
+  onChange={(e) => setUsername(e.target.value)}
+  className="w-full dark-input border border-white/10 rounded-xl py-4 px-4 neon-focus"
+  placeholder="manager_name"
+/>  </div>
 
   <div>
     <label className="text-xs font-bold text-slate-400 uppercase">Password</label>
-    <input type="password" className="w-full dark-input border border-white/10 rounded-xl py-4 px-4 neon-focus" placeholder="••••••••" />
-  </div>
+<input
+  type="password"
+  value={password}
+  onChange={(e) => setPassword(e.target.value)}
+  className="w-full dark-input border border-white/10 rounded-xl py-4 px-4 neon-focus"
+  placeholder="••••••••"
+/>  </div>
 
 <button
   type="button"
-  onClick={handleSubmit}
-  className="w-full bg-primary text-background-dark py-4 rounded-xl font-black uppercase tracking-widest">
-  Enter
+  disabled={loading}
+  onClick={handleLogin}
+  className="w-full bg-primary text-background-dark py-4 rounded-xl font-black uppercase tracking-widest disabled:opacity-50"
+>
+  {loading ? "Entering..." : "Enter"}
 </button>
 
 </form>
@@ -67,29 +159,45 @@ const Login = () => {
 
 {/* SIGNUP FORM */}
 {!isLogin && (
+
 <form className="space-y-6">
 
   {/* FULL NAME (ONLY HERE) */}
   <div>
     <label className="text-xs font-bold text-slate-400 uppercase">Full Name</label>
-    <input className="w-full dark-input border border-white/10 rounded-xl py-4 px-4 neon-focus" placeholder="Alex Ferguson" />
-  </div>
+<input
+  value={fullname}
+  onChange={(e) => setFullname(e.target.value)}
+  className="w-full dark-input border border-white/10 rounded-xl py-4 px-4 neon-focus"
+  placeholder="Alex Ferguson"
+/>  </div>
 
   <div>
     <label className="text-xs font-bold text-slate-400 uppercase">Username</label>
-    <input className="w-full dark-input border border-white/10 rounded-xl py-4 px-4 neon-focus" placeholder="manager_name" />
-  </div>
+<input
+  value={username}
+  onChange={(e) => setUsername(e.target.value)}
+  className="w-full dark-input border border-white/10 rounded-xl py-4 px-4 neon-focus"
+  placeholder="manager_name"
+/>  </div>
 
   <div>
     <label className="text-xs font-bold text-slate-400 uppercase">Password</label>
-    <input type="password" className="w-full dark-input border border-white/10 rounded-xl py-4 px-4 neon-focus" placeholder="••••••••" />
-  </div>
+<input
+  type="password"
+  value={password}
+  onChange={(e) => setPassword(e.target.value)}
+  className="w-full dark-input border border-white/10 rounded-xl py-4 px-4 neon-focus"
+  placeholder="••••••••"
+/>  </div>
 
 <button
   type="button"
-  onClick={handleSubmit}
-  className="w-full bg-primary text-background-dark py-4 rounded-xl font-black uppercase tracking-widest">
-  Create Account
+  disabled={loading}
+  onClick={handleSignup}
+  className="w-full bg-primary text-background-dark py-4 rounded-xl font-black uppercase tracking-widest disabled:opacity-50"
+>
+  {loading ? "Creating..." : "Create Account"}
 </button>
 
 </form>
