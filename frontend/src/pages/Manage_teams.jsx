@@ -8,7 +8,7 @@ const Manage_teams = () => {
     <div className="bg-background-light dark:bg-background-dark font-display text-white transition-colors duration-300">
 <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden stadium-vignette">
 
- <Navbar isLoggedIn={true} userName="Alex Smith" userRole="Pro Manager" />
+ <Navbar />
 
 <main className="flex-1 px-6 md:px-20 py-8 max-w-[1440px] mx-auto w-full">
 {/* Breadcrumbs */}

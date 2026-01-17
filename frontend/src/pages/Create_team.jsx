@@ -9,33 +9,7 @@ const Create_team = () => {
     <>
     <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen flex flex-col font-display">
 {/* Top Navigation */}
-<header class="sticky top-0 z-50 border-b border-solid border-white/10 bg-background-dark/80 backdrop-blur-md px-6 lg:px-20 py-3">
-<div class="max-w-[1400px] mx-auto flex items-center justify-between gap-8">
-<div class="flex items-center gap-10">
-<div class="flex items-center gap-3">
-<div class="size-8 bg-primary rounded-lg flex items-center justify-center">
-<span class="material-symbols-outlined text-background-dark font-bold">sports_soccer</span>
-</div>
-<h2 class="text-white text-xl font-black leading-tight tracking-tight uppercase">KickOff<span class="text-primary">Pro</span></h2>
-</div>
-<nav class="hidden md:flex items-center gap-8">
-<a class="text-white/60 hover:text-primary text-sm font-semibold transition-colors" href="#">Dashboard</a>
-<a class="text-primary text-sm font-semibold transition-colors underline underline-offset-8" href="#">Auction</a>
-<a class="text-white/60 hover:text-primary text-sm font-semibold transition-colors" href="#">Leagues</a>
-<a class="text-white/60 hover:text-primary text-sm font-semibold transition-colors" href="#">Market</a>
-</nav>
-</div>
-<div class="flex items-center gap-6">
-<div class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10">
-<span class="material-symbols-outlined text-primary text-sm">payments</span>
-<span class="text-white font-bold text-sm">€ 142.5M</span>
-</div>
-<div class="size-10 rounded-full border-2 border-primary overflow-hidden">
-<img alt="User" class="w-full h-full object-cover" data-alt="User profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxi-5YiFOKdpr3Iy2vULy5IxvFm509Ie6nvutxi3gwE7RzBI6xxeon6JUJZo0t2nfG0plbIkpXI59FiGbQyIxIBaBurg2oAlqZV4Jt8N9MBWPbwWQX11nL-nying69DpDlJ74k1-YzegcGUgSwZocBeemidc5NFzQCk4IB8VZWsxBb-7IxGp0XjOcQD0mcXHhD2GqELQZ4G9apqt4v48fycJq-UPQWibcvfVl4fNZy6WA06mqrIeL1Jm6gI2HXmvjtWldwetAPSPE"/>
-</div>
-</div>
-</div>
-</header>
+<Navbar />
 <main class="flex-1 max-w-[1400px] mx-auto w-full px-6 lg:px-20 py-8">
 {/* Breadcrumbs & Heading */}
 <div class="mb-8">

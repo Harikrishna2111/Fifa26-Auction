@@ -21,35 +21,7 @@ const Lobby = () => {
 <div className="fixed inset-0 -z-5" style={smokeOverlayStyle}></div>
 <div className="layout-container flex h-full grow flex-col">
 
-<header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background-dark/80 backdrop-blur-md">
-<div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-<div className="flex items-center gap-3">
-<div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-background-dark">
-<span className="material-symbols-outlined font-bold">sports_soccer</span>
-</div>
-<h2 className="text-xl font-black tracking-tighter uppercase italic">Footy<span className="text-primary">Auction</span></h2>
-</div>
-<div className="flex items-center gap-6">
-<div className="flex items-center gap-3 pr-6 border-r border-white/10">
-    <a href="user_dashboard.html"><button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-white/5 hover:bg-white/10 text-white text-sm font-bold leading-normal transition-all">
-<span className="truncate">Leave Lobby</span>
-</button></a>
-<div className="text-right hidden sm:block">
-    
-<p className="text-sm font-bold">Alex Smith</p>
-<p className="text-[10px] text-primary uppercase font-black tracking-wider">Pro Manager</p>
-</div>
-<div className="w-10 h-10 rounded-full bg-white/10 border border-primary/30 flex items-center justify-center overflow-hidden">
-<span className="material-symbols-outlined text-primary">person</span>
-</div>
-</div>
-<a href="login.html"><button className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white transition-colors">
-<span className="material-symbols-outlined text-lg">logout</span>
-                    Logout
-                </button></a>
-</div>
-</div>
-</header>
+<Navbar />
 <main className="flex flex-col items-center flex-1 px-4 py-10">
 <div className="max-w-[1000px] w-full flex flex-col items-center">
 {/* Headline & Stats */}

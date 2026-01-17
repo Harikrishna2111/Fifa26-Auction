@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import Navbar from "../components/Navbar";
 
 const Auction = () => {
   const [showBoughtPlayersModal, setShowBoughtPlayersModal] = useState(false);
@@ -146,47 +147,7 @@ const Auction = () => {
       backgroundPosition: "center"
     }}>
 
-      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-background-dark/80 backdrop-blur-md relative">
-        <div className="max-w-full mx-auto px-6 h-20 flex items-center justify-between">
-          
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-primary text-3xl">sports_soccer</span>
-            <h2 className="text-xl font-black uppercase italic">Footy<span className="text-primary">Auction</span></h2>
-          </div>
-
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-8 bg-black/40 border border-white/10 px-6 py-2 rounded-full backdrop-blur-xl shadow-lg">
-            
-            <div className="flex flex-col items-center">
-              <span className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-0.5">Upcoming Pool</span>
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-white/60 text-sm">groups_3</span>
-                <span className="text-xs font-black text-white tracking-wider">MIDFIELDERS</span>
-                <span className="text-[9px] text-black bg-primary px-1.5 py-0.5 rounded font-bold">12</span>
-              </div>
-            </div>
-
-            <div className="h-8 w-px bg-white/10"></div>
-
-            <div className="flex items-center gap-3">
-              <button className="size-9 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 flex items-center justify-center hover:bg-yellow-500/20 hover:scale-110 transition-all shadow-[0_0_10px_rgba(234,179,8,0.2)]" title="Pause Auction">
-                <span className="material-symbols-outlined text-lg">pause</span>
-              </button>
-             <Link to="/post_auction_statistics"><button className="size-9 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 flex items-center justify-center hover:bg-red-500/20 hover:scale-110 transition-all shadow-[0_0_10px_rgba(239,68,68,0.2)]" title="End Auction">
-                <span className="material-symbols-outlined text-lg">stop_circle</span>
-              </button></Link>
-            </div>
-
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold">Alex Smith</p>
-              <p className="text-[10px] text-primary uppercase font-black">Pro Manager</p>
-            </div>
-            <img src="https://placehold.co/100x100/101010/FFFFFF/png?text=AS" className="w-10 h-10 rounded-full border border-primary/30" alt="User" />
-          </div>
-        </div>
-      </header>
+<Navbar />
 
       <main className="flex h-[calc(100vh-128px)] w-full overflow-hidden p-6 gap-6 relative z-10">
         <aside className="w-[380px] flex flex-col gap-6">
@@ -215,10 +176,37 @@ const Auction = () => {
         </aside>
 
         <section className="flex-1 flex flex-col">
+          
           <div className="flex-1 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm flex flex-col items-center justify-center relative overflow-hidden shadow-2xl">
+                    <div className="absolute left-1/2 top-6 -translate-x-1/2 flex items-center gap-8 bg-black/40 border border-white/10 px-6 py-2 rounded-full backdrop-blur-xl shadow-lg z-20">
+            
+            <div className="flex flex-col items-center">
+              <span className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-0.5">Upcoming Pool</span>
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-white/60 text-sm">groups_3</span>
+                <span className="text-xs font-black text-white tracking-wider">MIDFIELDERS</span>
+                <span className="text-[9px] text-black bg-primary px-1.5 py-0.5 rounded font-bold">12</span>
+              </div>
+            </div>
+
+            <div className="h-8 w-px bg-white/10"></div>
+
+            <div className="flex items-center gap-3">
+              <button className="size-9 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 flex items-center justify-center hover:bg-yellow-500/20 hover:scale-110 transition-all shadow-[0_0_10px_rgba(234,179,8,0.2)]" title="Pause Auction">
+                <span className="material-symbols-outlined text-lg">pause</span>
+              </button>
+             <Link to="/post_auction_statistics"><button className="size-9 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 flex items-center justify-center hover:bg-red-500/20 hover:scale-110 transition-all shadow-[0_0_10px_rgba(239,68,68,0.2)]" title="End Auction">
+                <span className="material-symbols-outlined text-lg">stop_circle</span>
+              </button></Link>
+            </div>
+
+          </div>
             <div className="text-center z-10">
+              
               <p className="text-white/40 text-sm font-bold tracking-[0.3em] uppercase mb-4">Current High Bid</p>
+              
               <h1 className="text-[120px] font-bold leading-none tracking-tighter text-auction-gold italic mb-2">$85<span className="text-6xl not-italic ml-2">M</span></h1>
+              
               <div className="flex items-center justify-center gap-3">
                 <img className="w-8 h-8 rounded-full border border-auction-gold" src="https://placehold.co/100x100/FFD700/000000/png?text=GM" alt="Bidder" />
                 <p className="text-auction-gold font-medium uppercase tracking-widest text-sm">Bidder: <span className="text-white">GalacticManager_7</span></p>
@@ -237,6 +225,7 @@ const Auction = () => {
               </div>
             </div>
           </div>
+          
         </section>
 
         <aside className="w-[340px] flex flex-col gap-6">

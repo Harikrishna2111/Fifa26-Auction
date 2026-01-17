@@ -12,37 +12,7 @@ const Preacution_phase = () => {
 
 <div className="bg-background-light dark:bg-background-dark text-white min-h-screen flex flex-col" style={{fontFamily: "'Space Grotesk', sans-serif"}}>
 {/* Top Navigation */}
-<header className="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-md border-b border-[#274b20] px-6 lg:px-12 py-3">
-<div className="max-w-[1440px] mx-auto flex items-center justify-between">
-<div className="flex items-center gap-6">
-<div className="flex items-center gap-2">
-<div className="size-8 text-primary">
-<svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-<path d="M8.57829 8.57829C5.52816 11.6284 3.451 15.5145 2.60947 19.7452C1.76794 23.9758 2.19984 28.361 3.85056 32.3462C5.50128 36.3314 8.29667 39.7376 11.8832 42.134C15.4698 44.5305 19.6865 45.8096 24 45.8096C28.3135 45.8096 32.5302 44.5305 36.1168 42.134C39.7033 39.7375 42.4987 36.3314 44.1494 32.3462C45.8002 28.361 46.2321 23.9758 45.3905 19.7452C44.549 15.5145 42.4718 11.6284 39.4217 8.57829L24 24L8.57829 8.57829Z" fill="currentColor"></path>
-</svg>
-</div>
-<h2 className="text-xl font-bold tracking-tight">FOOTBALL AUCTION</h2>
-</div>
-<nav className="hidden md:flex items-center gap-8 ml-8">
-<a className="text-sm font-medium hover:text-primary transition-colors" href="#">Dashboard</a>
-<a className="text-sm font-medium hover:text-primary transition-colors" href="#">My Team</a>
-<a className="text-sm font-medium hover:text-primary transition-colors" href="#">Market</a>
-<a className="text-primary text-sm font-medium" href="#">Auction</a>
-</nav>
-</div>
-<div className="flex items-center gap-4">
-<div className="hidden sm:flex flex-col items-end mr-4">
-<span className="text-[10px] uppercase tracking-widest text-[#98ce8d]">Budget</span>
-<span className="text-primary font-bold">€145.2M</span>
-</div>
-<button className="bg-primary/10 border border-primary/20 p-2 rounded-lg hover:bg-primary/20 transition-all">
-<span className="material-symbols-outlined text-primary">notifications</span>
-</button>
-<div className="size-10 rounded-full border-2 border-primary overflow-hidden bg-cover bg-center" data-alt="User profile avatar portrait" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCofFLwXRCmihIUegnKfr3trBIEZ_m9Tc1Ob-f_KdsBTtYciFkeUrK7A1SlTYXR2CRvaxzeTvkWPHhwMcV9zk01qdlcc1bmRegyXcMcwHpxLj7TY-TJE38LuBkFz5siYcU5Ddm0kEKj4DVQdPvx81OrQGwjrFDlZLnsS8gXEaZmSQa7gvycgvN4M3USGkhnn3zPfcYI5_bKfswpo-3fTlomqsGlsZw4AHeWs8lsxnXlvYqM3iUTonhjmVwq66Z6CPC32nnbJcaEkBg')"}}>
-</div>
-</div>
-</div>
-</header>
+<Navbar />
 {/* Main Content */}
 <main className="flex-1 flex flex-col max-w-[1440px] mx-auto w-full px-6 lg:px-12 py-8 gap-8 overflow-hidden">
 {/* Header & Breadcrumbs */}

@@ -23,32 +23,7 @@ const Post_auction_statistics = () => {
     <div className="absolute inset-0 confetti-overlay pointer-events-none"></div>
     <div className="layout-container flex h-full grow flex-col z-10">
         
-        <div className="px-4 md:px-20 lg:px-40 flex justify-center py-5">
-            <div className="layout-content-container flex flex-col w-full max-w-[1200px] flex-1">
-                <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-white/10 px-4 md:px-10 py-3">
-                    <div className="flex items-center gap-4 text-white">
-                        <div className="size-6 text-primary">
-                            <span className="material-symbols-outlined text-3xl">sports_soccer</span>
-                        </div>
-                        <h2 className="text-white text-xl font-bold leading-tight tracking-tight uppercase">FootyAuction</h2>
-                    </div>
-                    <div className="flex flex-1 justify-end gap-8 items-center">
-                        <nav className="hidden md:flex items-center gap-9">
-                            <a className="text-white/70 hover:text-primary text-sm font-medium transition-colors" href="#">Dashboard</a>
-                            <a className="text-white/70 hover:text-primary text-sm font-medium transition-colors" href="#">Marketplace</a>
-                            <a className="text-white/70 hover:text-primary text-sm font-medium transition-colors" href="#">My Team</a>
-                            <a className="text-white/70 hover:text-primary text-sm font-medium transition-colors" href="#">History</a>
-                        </nav>
-                        <button className="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-10 px-6 bg-primary text-background-dark text-sm font-bold shadow-[0_0_15px_rgba(13,242,89,0.4)] hover:scale-105 transition-transform">
-                            <span className="material-symbols-outlined mr-2 text-lg">share</span>
-                            <span className="truncate">Share Results</span>
-                        </button>
-                        <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary/30" data-alt="User profile avatar" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCIZ-kWZT81Fw23Vij7Rzligz42SflMmGcfxaJNJ_75n2ObYDIjVqHpoACzYknF-m1SZMH3Sn-3QqI4Ull-MvKdF7Gq3Zo1D2_MRakyH-xH1v2YqxHdxm-_kktgAoe7aQAOnV9nWcXQAm9vKDQwsRFNbCObcSzOXvjZaDFa8oY2i-b1Jl9XczPuA93lgmE1hnxaDble7uvS0dPiP4SYi7NFbddWhWY-tDd8wF3frhZQ2G2DnSbf6vWfkmaYp5Khkvozo-uvFT1lOrg")'}}></div>
-                    </div>
-                </header>
-            </div>
-        </div>
-
+<Navbar />
         <div className="px-4 md:px-20 lg:px-40 flex justify-center">
             <div className="layout-content-container flex flex-col w-full max-w-[1200px] flex-1">
                 <div className="py-8 px-4 text-center">

@@ -9,29 +9,7 @@ const Create_lobby = () => {
 <div className="bg-background-dark font-display text-white min-h-screen">
 
 {/* HEADER */}
-<header className="sticky top-0 z-50 bg-background-dark/80 backdrop-blur border-b border-white/10">
-  <div className="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 bg-primary text-background-dark rounded-lg flex items-center justify-center">
-        <span className="material-symbols-outlined">sports_soccer</span>
-      </div>
-      <h2 className="text-xl font-black uppercase italic">
-        Footy<span className="text-primary">Auction</span>
-      </h2>
-    </div>
-
-    <div className="flex items-center gap-4">
-      <div className="text-right hidden sm:block">
-        <p className="text-sm font-bold">Alex Smith</p>
-        <p className="text-[10px] text-primary uppercase font-black">Pro Manager</p>
-      </div>
-      <button className="flex items-center gap-1 text-slate-400 hover:text-white text-sm">
-        <span className="material-symbols-outlined text-lg">logout</span> Logout
-      </button>
-    </div>
-  </div>
-</header>
-
+<Navbar />
 {/* MAIN */}
 <main className="max-w-7xl mx-auto px-6 py-14">
 

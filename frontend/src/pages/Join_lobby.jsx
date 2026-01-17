@@ -1,37 +1,14 @@
 import React from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { Link } from "react-router-dom";
 
 const Join_lobby = () => {
   return (
 
 <div className="font-display bg-background-light dark:bg-background-dark text-white min-h-screen" style={{backgroundColor: '#102216', backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(13, 242, 89, 0.05) 1px, transparent 0)', backgroundSize: '32px 32px'}}>
 <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
-<header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background-dark/80 backdrop-blur-md">
-<div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-<div className="flex items-center gap-3">
-<div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-background-dark">
-<span className="material-symbols-outlined font-bold">sports_soccer</span>
-</div>
-<h2 className="text-xl font-black tracking-tighter uppercase italic">Footy<span className="text-primary">Auction</span></h2>
-</div>
-<div className="flex items-center gap-6">
-<div className="flex items-center gap-3 pr-6 border-r border-white/10">
-<div className="text-right hidden sm:block">
-<p className="text-sm font-bold">Alex Smith</p>
-<p className="text-[10px] text-primary uppercase font-black tracking-wider">Pro Manager</p>
-</div>
-<div className="w-10 h-10 rounded-full bg-white/10 border border-primary/30 flex items-center justify-center overflow-hidden">
-<span className="material-symbols-outlined text-primary">person</span>
-</div>
-</div>
-<a href="login.html"><button className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white transition-colors">
-<span className="material-symbols-outlined text-lg">logout</span>
-                    Logout
-                </button></a>
-</div>
-</div>
-</header>
+<Navbar />
 <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
 {/* Back Button Area */}
 <div className="w-full max-w-[480px] mb-6">
@@ -57,10 +34,10 @@ const Join_lobby = () => {
 </div>
 </div>
 {/* CTA Button */}
-<a href="lobby.html"><button className="mt-10 w-full flex items-center justify-center gap-3 bg-primary hover:bg-primary/90 text-black h-14 rounded-xl font-extrabold text-base tracking-wide transition-all active:scale-[0.98] shadow-[0_0_20px_rgba(13,242,89,0.2)]">
+<Link to="/lobby"><button className="mt-10 w-full flex items-center justify-center gap-3 bg-primary hover:bg-primary/90 text-black h-14 rounded-xl font-extrabold text-base tracking-wide transition-all active:scale-[0.98] shadow-[0_0_20px_rgba(13,242,89,0.2)]">
 <span>JOIN AUCTION</span>
 <span className="material-symbols-outlined font-bold">bolt</span>
-</button></a>
+</button></Link>
 {/* Feedback Messages */}
 <div className="min-h-[24px] text-center">
 {/* Example Error State: hidden by default or toggle visibility */}
