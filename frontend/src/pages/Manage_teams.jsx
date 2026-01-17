@@ -202,7 +202,7 @@ const Manage_teams = () => {
 </div>
 <h3 className="text-xl font-black text-white uppercase mb-2">Create New Squad</h3>
 <p className="text-white/40 text-sm max-w-[200px] mb-8">Establish a new franchise and begin scouting top tier talent.</p>
-<Link to="/create-team">
+<Link to="/create_team">
 <button className="px-8 py-3 bg-white/10 text-white font-black text-sm rounded-lg group-hover:bg-primary group-hover:text-background-dark transition-all uppercase tracking-wider">Start Drafting</button>
 </Link>
 </div>

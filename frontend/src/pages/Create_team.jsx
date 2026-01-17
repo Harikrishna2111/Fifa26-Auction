@@ -411,14 +411,14 @@ const Create_team = () => {
 </div>
 </div>
 <div class="flex items-center gap-3 w-full sm:w-auto">
-<button class="flex-1 sm:flex-none border border-white/20 hover:bg-white/5 text-white font-bold px-8 py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+<Link to="/manage_teams"><button class="flex-1 sm:flex-none border border-white/20 hover:bg-white/5 text-white font-bold px-8 py-3 rounded-xl transition-all flex items-center justify-center gap-2">
 <span class="material-symbols-outlined text-sm">save</span>
                     Save Team
-                </button>
-<a href="formation_settings.html"><button class="flex-1 sm:flex-none bg-primary hover:bg-primary/90 hover:scale-105 active:scale-95 text-background-dark font-black px-12 py-3 rounded-xl transition-all flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(13,242,89,0.3)] italic uppercase tracking-tight">
+                </button></Link>
+<Link to="/formation_settings"><button class="flex-1 sm:flex-none bg-primary hover:bg-primary/90 hover:scale-105 active:scale-95 text-background-dark font-black px-12 py-3 rounded-xl transition-all flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(13,242,89,0.3)] italic uppercase tracking-tight">
 <span class="material-symbols-outlined font-black">grid_view</span>
                     Set Formation
-                </button></a>
+                </button></Link>
 </div>
 </div>
 </footer>

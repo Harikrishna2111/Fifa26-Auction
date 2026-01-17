@@ -78,11 +78,39 @@ const Formation_settings = () => {
     }
   };
 
-  const handleMouseDown = (e, type, index) => {
+  const handleDragStart = (e, type, index) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/json', JSON.stringify({ type, index }));
     setDraggedItem({ type, index });
   };
 
-  const handleMouseUp = () => {
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e, targetType, targetIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      const dragDataStr = e.dataTransfer.getData('application/json');
+      if (!dragDataStr) return;
+      
+      const dragData = JSON.parse(dragDataStr);
+      swapPlayers(dragData.type, dragData.index, targetType, targetIndex);
+    } catch (error) {
+      console.error('Drop error:', error);
+    }
+    setDraggedItem(null);
+  };
+
+  const handleDragEnd = (e) => {
+    e.preventDefault();
     setDraggedItem(null);
   };
 
@@ -145,37 +173,60 @@ const Formation_settings = () => {
       e.stopPropagation();
       
       if (isSelected) {
-        // Deselect
         setDraggedItem(null);
       } else if (draggedItem) {
-        // Swap with selected
         swapPlayers(draggedItem.type, draggedItem.index, locationType, index);
         setDraggedItem(null);
       } else {
-        // Select this card
         setDraggedItem({ type: locationType, index });
       }
     };
     
     return (
       <div 
+        draggable="true"
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('application/json', JSON.stringify({ type: locationType, index }));
+          setDraggedItem({ type: locationType, index });
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          try {
+            const dragDataStr = e.dataTransfer.getData('application/json');
+            if (!dragDataStr) return;
+            const dragData = JSON.parse(dragDataStr);
+            swapPlayers(dragData.type, dragData.index, locationType, index);
+          } catch (error) {
+            console.error('Drop error:', error);
+          }
+          setDraggedItem(null);
+        }}
+        onDragEnd={(e) => {
+          setDraggedItem(null);
+        }}
         style={{ opacity: isDragging ? 0.6 : 1 }}
-        className={`${sizeClass} ${style.bgClass} ${style.borderClass} border-2 rounded-xl flex flex-col relative shadow-lg hover:scale-105 ${isSelected ? 'ring-4 ring-yellow-400' : ''} transition-all duration-150 group overflow-hidden ${style.shadowClass}`}
+        className={`${sizeClass} ${style.bgClass} ${style.borderClass} border-2 rounded-xl flex flex-col relative shadow-lg hover:scale-105 cursor-grab active:cursor-grabbing ${isSelected ? 'ring-4 ring-yellow-400' : ''} transition-all duration-150 overflow-hidden ${style.shadowClass}`}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-white/5 opacity-50 pointer-events-none"></div>
-        <div className="absolute top-1.5 left-2 flex flex-col leading-none z-20 pointer-events-none">
+        <div className="absolute top-1.5 left-2 flex flex-col leading-none z-20 pointer-events-none select-none">
           <span className="text-xl font-black italic text-white drop-shadow-md">{player.rating}</span>
           <span className={`text-[9px] font-bold ${style.textClass} uppercase tracking-widest mt-0.5`}>{player.pos}</span>
         </div>
-        <div className="flex-1 flex items-end justify-center overflow-hidden relative pointer-events-none">
-          <img src={player.img} alt={player.name} className="w-[85%] h-[85%] object-contain relative z-10 drop-shadow-2xl" />
+        <div className="flex-1 flex items-end justify-center overflow-hidden relative pointer-events-none select-none">
+          <img src={player.img} alt={player.name} className="w-[85%] h-[85%] object-contain relative z-10 drop-shadow-2xl" draggable="false" />
         </div>
-        <div className="bg-black/60 backdrop-blur-md py-1.5 text-center border-t border-white/5 relative z-20">
-          <div className="text-[10px] font-black uppercase tracking-wider text-white truncate px-1 pointer-events-none">{player.name}</div>
-          <div className={`text-[8px] ${style.textClass} font-mono font-bold opacity-90 mt-0.5 pointer-events-none`}>{player.stat}</div>
+        <div className="bg-black/60 backdrop-blur-md py-1.5 text-center border-t border-white/5 relative z-20 pointer-events-none select-none">
+          <div className="text-[10px] font-black uppercase tracking-wider text-white truncate px-1">{player.name}</div>
+          <div className={`text-[8px] ${style.textClass} font-mono font-bold opacity-90 mt-0.5`}>{player.stat}</div>
           <button
             onClick={handleSwapClick}
-            className={`mt-1.5 px-2 py-1 rounded text-[9px] font-bold uppercase tracking-wider transition-all ${
+            className={`mt-1.5 px-2 py-1 rounded text-[9px] font-bold uppercase tracking-wider transition-all pointer-events-auto ${
               isSelected
                 ? 'bg-yellow-400 text-black hover:bg-yellow-300'
                 : draggedItem
@@ -239,6 +290,9 @@ const Formation_settings = () => {
                       key={index} 
                       className="absolute w-24 h-36 transition-all duration-500" 
                       style={{left: `${coord.left}%`, top: `${coord.top}%`, transform: 'translate(-50%, -50%)'}}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, 'pitch', index)}
                     >
                       <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${posColor} border font-black text-[9px] px-1.5 py-0.5 rounded shadow-lg z-0 transition-colors pointer-events-none`}>{coord.role}</div>
                       <PlayerCard player={player} sizeClass="w-full h-full" locationType="pitch" index={index} />
@@ -260,9 +314,18 @@ const Formation_settings = () => {
                   <span className="text-xs font-bold text-[#39ff14] uppercase tracking-wider">Substitutes</span>
                   <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-white/50">7 MAX</span>
                 </div>
-                <div className="grid grid-cols-2 2xl:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 2xl:grid-cols-2 gap-3"
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                >
                   {subPlayers.map((player, index) => (
-                    <div key={player.id} className="flex-none">
+                    <div 
+                      key={player.id} 
+                      className="flex-none"
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, 'sub', index)}
+                    >
                       <PlayerCard player={player} sizeClass="w-full h-40" locationType="sub" index={index} />
                     </div>
                   ))}
@@ -272,9 +335,18 @@ const Formation_settings = () => {
                 <div className="flex justify-between items-center mb-3 px-1">
                   <span className="text-xs font-bold text-white/40 uppercase tracking-wider">Reserves</span>
                 </div>
-                <div className="grid grid-cols-2 2xl:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 2xl:grid-cols-2 gap-3"
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                >
                   {resPlayers.map((player, index) => (
-                    <div key={player.id} className="flex-none">
+                    <div 
+                      key={player.id} 
+                      className="flex-none"
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, 'res', index)}
+                    >
                       <PlayerCard player={player} sizeClass="w-full h-40" locationType="res" index={index} />
                     </div>
                   ))}
