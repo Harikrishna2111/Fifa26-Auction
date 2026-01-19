@@ -3,6 +3,8 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_db, close_db
+import psycopg2
+import psycopg2.extras
 import redis
 import json
 import threading
@@ -20,196 +22,320 @@ r = redis.Redis(host='localhost', port=6379, decode_responses=True)
 
 app.teardown_appcontext(close_db)
 
-# ==============================================================================
-#  HELPER: THE AUCTION TIMER LOOP
-# ==============================================================================
-def auction_timer_loop(auction_id):
-    """
-    Runs in the background. Decrements timer every second.
-    """
-    print(f"⏰ Timer started for Auction {auction_id}")
-    
-    while True:
-        # 1. Check if Auction is still live
-        status = r.get(f"auction:{auction_id}:status")
-        if status == "COMPLETED" or status is None:
-            break
-        
-        # 2. Check if Paused
-        if status == "PAUSED":
-            time.sleep(1)
-            continue
-            
-        # 3. Decrement Time
-        timer_key = f"auction:{auction_id}:timer"
-        current_time = r.decr(timer_key)
-        
-        # 4. Emit Time to All Users in the Room
-        socketio.emit('timer_update', {'time': current_time}, room=f"auction_{auction_id}")
-        
-        # 5. Handle "SOLD" when time hits 0
-        if current_time <= 0:
-            handle_sold_logic(auction_id)
-            # Reset timer for next player (e.g., 30s)
-            r.set(timer_key, 30) 
-            time.sleep(2) # Brief pause before next player
-            
-        time.sleep(1)
-
-def handle_sold_logic(auction_id):
-    """
-    Moves the current player to 'Sold' in Postgres and fetches the next one.
-    """
-    # Get Current Bid Info from Redis
-    current_bid = r.hgetall(f"auction:{auction_id}:current_bid")
-    
-    if current_bid and 'amount' in current_bid:
-        # SAVE TO POSTGRES (Permanent Record)
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO auction_sales (auction_id, player_id, winner_team_id, sold_price)
-            VALUES (%s, %s, %s, %s)
-        """, (auction_id, current_bid['player_id'], current_bid['team_id'], current_bid['amount']))
-        conn.commit()
-        
-        # Deduct Money from Team Budget
-        cur.execute("""
-            UPDATE auction_teams SET budget_remaining = budget_remaining - %s
-            WHERE id = %s
-        """, (current_bid['amount'], current_bid['team_id']))
-        conn.commit()
-        
-        # Notify Everyone
-        socketio.emit('player_sold', {
-            'player_id': current_bid['player_id'],
-            'amount': current_bid['amount'],
-            'winner': current_bid['bidder_name']
-        }, room=f"auction_{auction_id}")
-
-        # Clear Bid for next turn
-        r.delete(f"auction:{auction_id}:current_bid")
-
-# ==============================================================================
-#  HTTP ROUTES (REST API)
-# ==============================================================================
-
-@app.route("/api/auth/register", methods=["POST"])
+@app.route("/api/auth/register", methods=["POST", "OPTIONS"])
 def register():
+    if request.method == "OPTIONS":
+        return "", 200
+        
     data = request.json
+
+    fullname = data.get("fullname")
+    username = data.get("username")
+    password = data.get("password")
+
+    if not fullname or not username or not password:
+        return jsonify({"error": "All fields are required"}), 400
+
+    password_hash = generate_password_hash(password)
+
     try:
         conn = get_db()
         cur = conn.cursor()
-        password_hash = generate_password_hash(data['password'])
         cur.execute(
             "INSERT INTO users (fullname, username, password_hash) VALUES (%s, %s, %s)",
-            (data['fullname'], data['username'], password_hash)
+            (fullname, username, password_hash)
         )
         conn.commit()
-        return jsonify({"message": "User registered"}), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        cur.close()
+    except psycopg2.IntegrityError:
+        return jsonify({"error": "Username already exists"}), 409
 
-@app.route("/api/auth/login", methods=["POST"])
+    return jsonify({"message": "User registered successfully"}), 201
+
+@app.route("/api/auth/login", methods=["POST", "OPTIONS"])
 def login():
+    if request.method == "OPTIONS":
+        return "", 200
+        
     data = request.json
+
+    username = data.get("username")
+    password = data.get("password")
+
+    if not username or not password:
+        return jsonify({"error": "Username and password required"}), 400
+
     conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT id, fullname, username, password_hash FROM users WHERE username = %s", (data['username'],))
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute(
+        "SELECT * FROM users WHERE username = %s",
+        (username,)
+    )
     user = cur.fetchone()
-    
-    if user and check_password_hash(user[3], data['password']):
-        return jsonify({"message": "Login successful", "user": {"id": user[0], "fullname": user[1]}})
-    return jsonify({"error": "Invalid credentials"}), 401
+    cur.close()
 
-@app.route("/api/lobby/create", methods=["POST"])
-def create_lobby():
-    data = request.json
-    conn = get_db()
-    cur = conn.cursor()
-    
-    # Generate a simple 6-char code
-    import random, string
-    join_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    
-    cur.execute("""
-        INSERT INTO auctions (host_id, name, join_code, purse_per_team, bid_inc_min, bid_inc_mid, bid_inc_max, min_player_rating) 
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
-    """, (data['host_id'], data['name'], join_code, data['purse'], data['inc_min'], data['inc_mid'], data['inc_max'], data['min_rating']))
-    auction_id = cur.fetchone()[0]
-    conn.commit()
-    
-    # Initialize Redis State for this Auction
-    r.set(f"auction:{auction_id}:status", "LOBBY")
-    r.set(f"auction:{auction_id}:timer", 30) # Default 30s timer
-    
-    return jsonify({"message": "Lobby created", "join_code": join_code, "auction_id": auction_id})
+    if not user:
+        return jsonify({"error": "Invalid credentials"}), 401
 
-# ==============================================================================
-#  SOCKET.IO EVENTS (Real-Time)
-# ==============================================================================
+    if not check_password_hash(user["password_hash"], password):
+        return jsonify({"error": "Invalid credentials"}), 401
 
-@socketio.on('join_auction')
-def handle_join(data):
-    """
-    Called when user enters the Auction Page.
-    """
-    room = f"auction_{data['auction_id']}"
-    join_room(room)
-    
-    # Send current timer and status immediately
-    current_time = r.get(f"auction:{data['auction_id']}:timer")
-    current_status = r.get(f"auction:{data['auction_id']}:status")
-    
-    emit('sync_state', {'time': current_time, 'status': current_status})
-    print(f"User {data['user_id']} joined {room}")
-
-@socketio.on('place_bid')
-def handle_bid(data):
-    """
-    Called when user clicks a Bid Button (+5M, +10M, or Custom).
-    """
-    auction_id = data['auction_id']
-    amount = float(data['amount'])
-    
-    # 1. Update High Bid in Redis
-    r.hmset(f"auction:{auction_id}:current_bid", {
-        'amount': amount,
-        'player_id': data['player_id'],
-        'team_id': data['team_id'],
-        'bidder_name': data['user_name']
+    return jsonify({
+        "message": "Login successful",
+        "user": {
+            "id": user["id"],
+            "fullname": user["fullname"],
+            "username": user["username"]
+        }
     })
-    
-    # 2. Reset Timer to 15 seconds (Anti-Sniping rule)
-    r.set(f"auction:{auction_id}:timer", 15)
-    
-    # 3. Notify Everyone
-    emit('new_bid', {
-        'amount': amount,
-        'bidder': data['user_name']
-    }, room=f"auction_{auction_id}")
 
-@socketio.on('admin_control')
-def handle_admin(data):
+@app.route("/api/players", methods=["GET", "OPTIONS"])
+def get_players():
+    if request.method == "OPTIONS":
+        return "", 200
+        
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    search = request.args.get("search", "").strip()
+    position = request.args.get("position", "")
+    limit = int(request.args.get("limit", 1000))
+    offset = int(request.args.get("offset", 0))
+
+    query = """
+        SELECT
+            id,
+            name,
+            position_group,
+            overall,
+            pac,
+            sho,
+            dri,
+            nation,
+            club,
+            value,
+            wage,
+            potential,
+            age,
+            height,
+            foot,
+            image_url
+        FROM players
+        WHERE 1=1
     """
-    Handles Pause / Resume / Start commands.
+
+    params = []
+
+    if position:
+        query += " AND position_group = %s"
+        params.append(position)
+
+    if search:
+        query += """
+            AND (
+                name ILIKE %s
+                OR club ILIKE %s
+                OR nation ILIKE %s
+            )
+        """
+        like = f"%{search}%"
+        params.extend([like, like, like])
+
+    query += """
+        ORDER BY overall DESC
+        LIMIT %s OFFSET %s
     """
-    auction_id = data['auction_id']
-    action = data['action'] # 'PAUSE', 'RESUME', 'START'
+
+    params.extend([limit, offset])
+
+    cur.execute(query, params)
+    rows = cur.fetchall()
+    cur.close()
+    players = [dict(row) for row in rows]
+    return jsonify(players)
+
+@app.route("/api/dashboard/<int:user_id>", methods=["GET"])
+def manager_dashboard(user_id):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # Manager info
+    cur.execute(
+        "SELECT id, fullname FROM users WHERE id = %s",
+        (user_id,)
+    )
+    user = cur.fetchone()
+
+    if not user:
+        cur.close()
+        return jsonify({"error": "User not found"}), 404
+
+    # Past Auctions
+    cur.execute("""
+        SELECT 
+            a.id,
+            a.name,
+            a.season,
+            a.status,
+            a.end_date,
+            t.name AS acquired_team
+        FROM auctions a
+        LEFT JOIN auction_players ap ON ap.auction_id = a.id
+        LEFT JOIN teams t ON ap.winning_team_id = t.id
+        WHERE a.status IN ('COMPLETED', 'PAUSED')
+        GROUP BY a.id, t.name
+        ORDER BY a.end_date DESC
+        LIMIT 3
+    """)
+    past_auctions = cur.fetchall()
+
+    auctions_data = [
+        {
+            "id": row["id"],
+            "name": row["name"],
+            "season": row["season"],
+            "status": row["status"],
+            "end_date": row["end_date"],
+            "acquired_team": row["acquired_team"]
+        }
+        for row in past_auctions
+    ]
+
+    # My Teams
+    cur.execute("""
+        SELECT
+            id,
+            name,
+            rating,
+            value,
+            stars,
+            status
+        FROM teams
+        WHERE manager_id = %s
+        ORDER BY created_at DESC
+    """, (user_id,))
+    teams = cur.fetchall()
+
+    teams_data = []
+
+    for team in teams:
+        cur.execute("""
+            SELECT p.id, p.name, p.image_url
+            FROM team_players tp
+            JOIN players p ON tp.player_id = p.id
+            WHERE tp.team_id = %s
+            LIMIT 4
+        """, (team["id"],))
+        players = cur.fetchall()
+
+        teams_data.append({
+            "id": team["id"],
+            "name": team["name"],
+            "rating": team["rating"],
+            "value": team["value"],
+            "stars": team["stars"],
+            "status": team["status"],
+            "players": [
+                {
+                    "id": p["id"],
+                    "name": p["name"],
+                    "image_url": p["image_url"]
+                } for p in players
+            ]
+        })
+
+    cur.close()
+
+    return jsonify({
+        "manager": {
+            "id": user["id"],
+            "fullname": user["fullname"]
+        },
+        "past_auctions": auctions_data,
+        "teams": teams_data
+    })
+
+@app.route("/api/auctions/history", methods=["GET"])
+def auction_history():
+    user_id = request.args.get("user_id", type=int)
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT 
+            id,
+            name,
+            season,
+            status,
+            start_date,
+            end_date
+        FROM auctions
+        ORDER BY COALESCE(end_date, start_date) DESC
+    """)
+
+    rows = cur.fetchall()
+    cur.close()
+
+    result = []
+    for r in rows:
+        date_value = r["end_date"] or r["start_date"]
+        
+        result.append({
+            "auctionId": r["id"],
+            "name": r["name"],
+            "season": r["season"],
+            "type": "SEASONAL" if r["season"] != "Non Seasonal" else "ONE-OFF",
+            "status": r["status"],
+            "displayDate": date_value.strftime("%b %d, %Y") if date_value else None,
+            "team": {
+                "id": 1,
+                "name": "Sample Team",
+                "stars": 3,
+                "playerCount": 11
+            }
+        })
+
+    return jsonify(result)
+
+@app.route("/api/auctions/<int:auction_id>/squad", methods=["GET"])
+def get_auction_squad(auction_id):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     
-    if action == 'START':
-        r.set(f"auction:{auction_id}:status", "LIVE")
-        # Start the background timer thread
-        threading.Thread(target=auction_timer_loop, args=(auction_id,)).start()
-        emit('status_update', {'status': 'LIVE'}, room=f"auction_{auction_id}")
-        
-    elif action == 'PAUSE':
-        r.set(f"auction:{auction_id}:status", "PAUSED")
-        emit('status_update', {'status': 'PAUSED'}, room=f"auction_{auction_id}")
-        
-    elif action == 'RESUME':
-        r.set(f"auction:{auction_id}:status", "LIVE")
-        emit('status_update', {'status': 'LIVE'}, room=f"auction_{auction_id}")
+    # Get sample players for the squad
+    cur.execute("""
+        SELECT 
+            id,
+            name,
+            overall as rating,
+            position_group as pos,
+            image_url as img,
+            value as price
+        FROM players 
+        LIMIT 11
+    """)
+    
+    players = cur.fetchall()
+    cur.close()
+    
+    # Format for frontend
+    squad_data = []
+    for player in players:
+        squad_data.append({
+            "name": player["name"],
+            "rating": player["rating"],
+            "pos": player["pos"],
+            "img": player["img"] or "https://via.placeholder.com/250x250",
+            "price": f"${player['price'] or '50M'}"
+        })
+    
+    return jsonify(squad_data)
+
+
+
 
 if __name__ == '__main__':
     # Run with SocketIO support

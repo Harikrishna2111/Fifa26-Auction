@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -8,16 +8,42 @@ const View_all_auctions = () => {
   const [selectedTeam, setSelectedTeam] = useState("");
   const [modalType, setModalType] = useState("");
   const [currentSeason, setCurrentSeason] = useState(1);
+const [auctions, setAuctions] = useState([]);
+const [squadData, setSquadData] = useState([]);
 
-  const squadData = [
-    { name: "Mbappé", rating: 97, pos: "FW", img: "https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&q=80&w=400", price: "$95M" },
-    { name: "De Bruyne", rating: 91, pos: "MF", img: "https://placehold.co/300x400/101010/FFFFFF/png?text=KDB", price: "$78M" },
-    { name: "Van Dijk", rating: 89, pos: "DF", img: "https://placehold.co/300x400/101010/FFFFFF/png?text=VVD", price: "$60M" },
-    { name: "Ederson", rating: 88, pos: "GK", img: "https://placehold.co/300x400/101010/FFFFFF/png?text=Ederson", price: "$45M" },
-    { name: "Saka", rating: 86, pos: "RW", img: "https://placehold.co/300x400/101010/FFFFFF/png?text=Saka", price: "$55M" },
-    { name: "Rice", rating: 85, pos: "CDM", img: "https://placehold.co/300x400/101010/FFFFFF/png?text=Rice", price: "$50M" },
-    { name: "Son", rating: 89, pos: "LW", img: "https://placehold.co/300x400/101010/FFFFFF/png?text=Son", price: "$65M" },
-  ];
+
+useEffect(() => {
+  fetch("http://localhost:5000/api/auctions/history?user_id=1")
+    .then(res => res.json())
+    .then(data => {
+      console.log("Auction history:", data);
+      setAuctions(data);
+    })
+    .catch(err => console.error(err));
+}, []);
+
+
+
+const openSquadModal = async (auctionId, teamName, type) => {
+  setSelectedTeam(teamName);
+  setModalType(type);
+  setCurrentSeason(1);
+
+  try {
+    const res = await fetch(
+      `http://localhost:5000/api/auctions/${auctionId}/squad`
+    );
+    const data = await res.json();
+    setSquadData(data);
+  } catch (err) {
+    console.error("Failed to load squad", err);
+    setSquadData([]);
+  }
+
+  setIsModalOpen(true);
+};
+
+
 
   const getCardStyle = (rating) => {
     if (rating >= 90) return { border: 'border-auction-gold', text: 'text-auction-gold', bg: 'bg-gradient-to-b from-[#4a3b00] to-black', glow: 'shadow-[0_0_20px_rgba(255,215,0,0.2)]' };
@@ -25,12 +51,6 @@ const View_all_auctions = () => {
     return { border: 'border-white/30', text: 'text-white/60', bg: 'bg-gradient-to-b from-gray-800 to-black', glow: '' };
   };
 
-  const openSquadModal = (teamName, type) => {
-    setSelectedTeam(teamName);
-    setModalType(type);
-    setCurrentSeason(1);
-    setIsModalOpen(true);
-  };
 
   const closeSquadModal = () => {
     setIsModalOpen(false);
@@ -69,133 +89,90 @@ const View_all_auctions = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {/* Card 1 */}
-          <div className="card-hoverable bg-panel-dark/60 backdrop-blur-md border border-white/10 rounded-2xl p-6 flex flex-col relative overflow-hidden group">
-            <div className="flex justify-between items-start mb-6 relative z-10">
-              <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
-                <div className="size-2 rounded-full bg-primary shadow-[0_0_10px_#0df259]"></div>
-                <span className="text-primary text-[10px] font-black tracking-widest uppercase">Completed</span>
+          {auctions.length === 0 ? (
+            <p className="col-span-full text-center text-white/50">No auction history found.</p>
+          ) : (
+            auctions.map((auction) => (
+    <div
+      key={auction.auctionId}
+      className={`card-hoverable bg-panel-dark/60 backdrop-blur-md border rounded-2xl p-6 flex flex-col
+        ${auction.status === "PAUSED"
+          ? "border-auction-yellow/30"
+          : "border-white/10"}
+      `}
+    >
+      {/* Status + Date */}
+      <div className="flex justify-between items-start mb-6">
+        <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase
+          ${auction.status === "COMPLETED"
+            ? "bg-primary/10 text-primary"
+            : "bg-auction-yellow/10 text-auction-yellow"}
+        `}>
+          {auction.status}
+        </div>
+        <span className="text-white/30 text-xs font-mono">
+          {auction.displayDate}
+        </span>
+      </div>
+
+      {/* Title */}
+      <h3 className="text-2xl font-black italic uppercase mb-1">
+        {auction.name}
+      </h3>
+
+      <span className="text-xs text-white/40 uppercase tracking-widest mb-6 block">
+        {auction.type}
+      </span>
+
+      <div className="w-full h-px bg-white/10 mb-6" />
+
+      {/* Team */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="size-8 rounded-full bg-white/10 flex items-center justify-center font-bold">
+          {auction.team.name[0]}
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-bold">{auction.team.name}</span>
+
+            {auction.team.stars !== null && (
+              <div className="flex text-auction-gold text-[10px]">
+                {Array.from({ length: auction.team.stars }).map((_, i) => (
+                  <span key={i} className="material-symbols-outlined text-sm">
+                    star
+                  </span>
+                ))}
               </div>
-              <span className="text-white/30 text-xs font-mono">Oct 24, 2025</span>
-            </div>
-
-            <h3 className="text-2xl font-black italic uppercase leading-none mb-1 text-white group-hover:text-primary transition-colors">Legends Draft</h3>
-            <span className="text-xs font-bold text-white/40 uppercase tracking-widest mb-6 block">Season 1 • European League</span>
-
-            <div className="w-full h-px bg-white/10 mb-6"></div>
-
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex flex-col gap-1">
-                <span className="text-white/30 text-[9px] uppercase font-bold tracking-widest">Acquired Team</span>
-                <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-full bg-blue-600 flex items-center justify-center font-bold border border-white/20">L</div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-bold text-sm">London Blues</span>
-                      <div className="flex text-auction-gold text-[10px]">
-                        <span className="material-symbols-outlined text-sm">star</span>
-                        <span className="material-symbols-outlined text-sm">star</span>
-                        <span className="material-symbols-outlined text-sm">star</span>
-                        <span className="material-symbols-outlined text-sm">star</span>
-                        <span className="material-symbols-outlined text-sm text-white/20">star</span>
-                      </div>
-                    </div>
-                    <span className="text-xs text-white/40">11 Players</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-auto flex items-center gap-2">
-              <Link to="/create_lobby" className="flex-1 h-10 bg-white/5 border border-white/10 hover:bg-primary hover:text-black hover:border-primary rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2">
-                Start Season 2 <span className="material-symbols-outlined text-sm">play_arrow</span>
-              </Link>
-              <button onClick={() => openSquadModal('London Blues', 'season')} className="size-10 rounded-lg bg-white/5 border border-white/10 hover:bg-white/20 hover:text-primary flex items-center justify-center transition-colors" title="View Full Squad">
-                <span className="material-symbols-outlined">visibility</span>
-              </button>
-            </div>
+            )}
           </div>
 
-          {/* Card 2 - Paused */}
-          <div className="card-hoverable bg-panel-dark/60 backdrop-blur-md border border-auction-yellow/30 rounded-2xl p-6 flex flex-col relative overflow-hidden group">
-            <div className="flex justify-between items-start mb-6 relative z-10">
-              <div className="flex items-center gap-2 px-3 py-1 bg-auction-yellow/10 border border-auction-yellow/30 rounded-full">
-                <div className="size-2 rounded-full bg-auction-yellow animate-pulse"></div>
-                <span className="text-auction-yellow text-[10px] font-black tracking-widest uppercase">Paused</span>
-              </div>
-              <span className="text-white/30 text-xs font-mono">Yesterday</span>
-            </div>
+          <span className="text-xs text-white/40">
+            {auction.team.playerCount} Players
+          </span>
+        </div>
+      </div>
 
-            <h3 className="text-2xl font-black italic uppercase leading-none mb-1 text-white">Sunday League</h3>
-            <span className="text-xs font-bold text-white/40 uppercase tracking-widest mb-6 block">Non-Seasonal • Quick Draft</span>
-
-            <div className="w-full h-px bg-white/10 mb-6"></div>
-
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex flex-col gap-1">
-                <span className="text-white/30 text-[9px] uppercase font-bold tracking-widest">Current Team</span>
-                <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-full bg-red-600 flex items-center justify-center font-bold border border-white/20">M</div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-bold text-sm">Manchester Red</span>
-                    </div>
-                    <span className="text-xs text-white/40">In Progress...</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-auto flex items-center gap-2">
-              <button className="w-full h-10 bg-yellow-500 text-black rounded-lg text-xs font-black uppercase tracking-wider hover:bg-yellow-400 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(251,191,36,0.3)]">
-                <span className="material-symbols-outlined text-base">resume</span> Resume Auction
-              </button>
-            </div>
-          </div>
-
-          {/* Card 3 */}
-          <div className="card-hoverable bg-panel-dark/60 backdrop-blur-md border border-white/10 rounded-2xl p-6 flex flex-col relative overflow-hidden group">
-            <div className="flex justify-between items-start mb-6 relative z-10">
-              <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
-                <div className="size-2 rounded-full bg-primary shadow-[0_0_10px_#0df259]"></div>
-                <span className="text-primary text-[10px] font-black tracking-widest uppercase">Completed</span>
-              </div>
-              <span className="text-white/30 text-xs font-mono">Sep 15, 2025</span>
-            </div>
-
-            <h3 className="text-2xl font-black italic uppercase leading-none mb-1 text-white group-hover:text-primary transition-colors">Global Stars</h3>
-            <span className="text-xs font-bold text-white/40 uppercase tracking-widest mb-6 block">Non-Seasonal • Exhibition</span>
-
-            <div className="w-full h-px bg-white/10 mb-6"></div>
-
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex flex-col gap-1">
-                <span className="text-white/30 text-[9px] uppercase font-bold tracking-widest">Acquired Team</span>
-                <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-full bg-white text-black flex items-center justify-center font-bold border border-white/20">R</div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-bold text-sm">Real Madrid</span>
-                      <div className="flex text-auction-gold text-[10px]">
-                        <span className="material-symbols-outlined text-sm">star</span>
-                        <span className="material-symbols-outlined text-sm">star</span>
-                        <span className="material-symbols-outlined text-sm">star</span>
-                        <span className="material-symbols-outlined text-sm">star</span>
-                        <span className="material-symbols-outlined text-sm">star</span>
-                      </div>
-                    </div>
-                    <span className="text-xs text-white/40">14 Players</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-auto flex justify-end">
-              <button onClick={() => openSquadModal('Real Madrid', 'exhibition')} className="w-full h-10 rounded-lg bg-white/5 border border-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 flex items-center justify-center gap-2 transition-all text-xs font-bold uppercase tracking-wider">
-                <span className="material-symbols-outlined">visibility</span> View Squad
-              </button>
-            </div>
-          </div>
+      {/* Actions */}
+      <div className="mt-auto">
+        {auction.status === "PAUSED" ? (
+          <button className="w-full h-10 bg-yellow-500 text-black rounded-lg text-xs font-black uppercase">
+            Resume Auction
+          </button>
+        ) : (
+          <button
+            onClick={() =>
+              openSquadModal(auction.auctionId, auction.team.name, auction.type)
+            }
+            className="w-full h-10 rounded-lg bg-white/5 border border-white/10 hover:bg-primary/20 hover:text-primary"
+          >
+            View Squad
+          </button>
+        )}
+      </div>
+    </div>
+            ))
+          )}
         </div>
       </main>
 
