@@ -5,45 +5,52 @@ import Footer from "../components/Footer";
 
 const View_all_auctions = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState("");
-  const [modalType, setModalType] = useState("");
-  const [currentSeason, setCurrentSeason] = useState(1);
-const [auctions, setAuctions] = useState([]);
-const [squadData, setSquadData] = useState([]);
+  const [selectedAuction, setSelectedAuction] = useState(null);
+  const [squadData, setSquadData] = useState([]);
+  const [auctions, setAuctions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  useEffect(() => {
+    fetchAuctions();
+  }, []);
 
-useEffect(() => {
-  fetch("http://localhost:5000/api/auctions/history?user_id=1")
-    .then(res => res.json())
-    .then(data => {
-      console.log("Auction history:", data);
+  const fetchAuctions = async () => {
+    try {
+      const userData = JSON.parse(localStorage.getItem('user'));
+      if (!userData) {
+        setError('User not logged in');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/api/auctions/history?user_id=${userData.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch auctions');
+      }
+      
+      const data = await response.json();
       setAuctions(data);
-    })
-    .catch(err => console.error(err));
-}, []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-
-
-const openSquadModal = async (auctionId, teamName, type) => {
-  setSelectedTeam(teamName);
-  setModalType(type);
-  setCurrentSeason(1);
-
-  try {
-    const res = await fetch(
-      `http://localhost:5000/api/auctions/${auctionId}/squad`
-    );
-    const data = await res.json();
-    setSquadData(data);
-  } catch (err) {
-    console.error("Failed to load squad", err);
-    setSquadData([]);
-  }
-
-  setIsModalOpen(true);
-};
-
-
+  const fetchSquadData = async (auctionId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/auctions/${auctionId}/squad`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch squad data');
+      }
+      
+      const data = await response.json();
+      setSquadData(data);
+    } catch (err) {
+      console.error('Error fetching squad:', err);
+      setSquadData([]);
+    }
+  };
 
   const getCardStyle = (rating) => {
     if (rating >= 90) return { border: 'border-auction-gold', text: 'text-auction-gold', bg: 'bg-gradient-to-b from-[#4a3b00] to-black', glow: 'shadow-[0_0_20px_rgba(255,215,0,0.2)]' };
@@ -51,18 +58,20 @@ const openSquadModal = async (auctionId, teamName, type) => {
     return { border: 'border-white/30', text: 'text-white/60', bg: 'bg-gradient-to-b from-gray-800 to-black', glow: '' };
   };
 
+  const openSquadModal = async (auction) => {
+    setSelectedAuction(auction);
+    setIsModalOpen(true);
+    await fetchSquadData(auction.auctionId);
+  };
 
   const closeSquadModal = () => {
     setIsModalOpen(false);
+    setSelectedAuction(null);
+    setSquadData([]);
   };
 
   const changeSeason = (dir) => {
-    setCurrentSeason(prev => {
-      const newSeason = prev + dir;
-      if (newSeason < 1) return 1;
-      if (newSeason > 5) return 5;
-      return newSeason;
-    });
+    // Keep existing season change logic if needed
   };
 
   return (
@@ -89,88 +98,65 @@ const openSquadModal = async (auctionId, teamName, type) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {auctions.length === 0 ? (
-            <p className="col-span-full text-center text-white/50">No auction history found.</p>
+          {loading ? (
+            <div className="col-span-full flex justify-center items-center py-20">
+              <div className="text-white/60">Loading auctions...</div>
+            </div>
+          ) : error ? (
+            <div className="col-span-full flex justify-center items-center py-20">
+              <div className="text-red-400">Error: {error}</div>
+            </div>
+          ) : auctions.length === 0 ? (
+            <div className="col-span-full flex justify-center items-center py-20">
+              <div className="text-white/60">No auctions found</div>
+            </div>
           ) : (
             auctions.map((auction) => (
-    <div
-      key={auction.auctionId}
-      className={`card-hoverable bg-panel-dark/60 backdrop-blur-md border rounded-2xl p-6 flex flex-col
-        ${auction.status === "PAUSED"
-          ? "border-auction-yellow/30"
-          : "border-white/10"}
-      `}
-    >
-      {/* Status + Date */}
-      <div className="flex justify-between items-start mb-6">
-        <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase
-          ${auction.status === "COMPLETED"
-            ? "bg-primary/10 text-primary"
-            : "bg-auction-yellow/10 text-auction-yellow"}
-        `}>
-          {auction.status}
-        </div>
-        <span className="text-white/30 text-xs font-mono">
-          {auction.displayDate}
-        </span>
-      </div>
+              <div key={auction.auctionId} className="card-hoverable bg-panel-dark/60 backdrop-blur-md border border-white/10 rounded-2xl p-6 flex flex-col relative overflow-hidden group">
+                <div className="flex justify-between items-start mb-6 relative z-10">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
+                    <div className="size-2 rounded-full bg-primary shadow-[0_0_10px_#0df259]"></div>
+                    <span className="text-primary text-[10px] font-black tracking-widest uppercase">{auction.status}</span>
+                  </div>
+                  <span className="text-white/30 text-xs font-mono">{auction.displayDate}</span>
+                </div>
 
-      {/* Title */}
-      <h3 className="text-2xl font-black italic uppercase mb-1">
-        {auction.name}
-      </h3>
+                <h3 className="text-2xl font-black italic uppercase leading-none mb-1 text-white group-hover:text-primary transition-colors">{auction.name}</h3>
+                <span className="text-xs font-bold text-white/40 uppercase tracking-widest mb-6 block">{auction.season || 'Non-Seasonal'} • {auction.type}</span>
 
-      <span className="text-xs text-white/40 uppercase tracking-widest mb-6 block">
-        {auction.type}
-      </span>
+                <div className="w-full h-px bg-white/10 mb-6"></div>
 
-      <div className="w-full h-px bg-white/10 mb-6" />
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-white/30 text-[9px] uppercase font-bold tracking-widest">Acquired Team</span>
+                    <div className="flex items-center gap-3">
+                      <div className="size-8 rounded-full bg-blue-600 flex items-center justify-center font-bold border border-white/20">
+                        {auction.team.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-bold text-sm">{auction.team.name}</span>
+                          <div className="flex text-auction-gold text-[10px]">
+                            {[...Array(5)].map((_, i) => (
+                              <span key={i} className={`material-symbols-outlined text-sm ${i < auction.team.stars ? 'text-auction-gold' : 'text-white/20'}`}>star</span>
+                            ))}
+                          </div>
+                        </div>
+                        <span className="text-xs text-white/40">{auction.team.playerCount} Players</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-      {/* Team */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="size-8 rounded-full bg-white/10 flex items-center justify-center font-bold">
-          {auction.team.name[0]}
-        </div>
-
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-bold">{auction.team.name}</span>
-
-            {auction.team.stars !== null && (
-              <div className="flex text-auction-gold text-[10px]">
-                {Array.from({ length: auction.team.stars }).map((_, i) => (
-                  <span key={i} className="material-symbols-outlined text-sm">
-                    star
-                  </span>
-                ))}
+                <div className="mt-auto flex items-center gap-2">
+                  <Link to="/create_lobby" className="flex-1 h-10 bg-white/5 border border-white/10 hover:bg-primary hover:text-black hover:border-primary rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2">
+                    New Auction <span className="material-symbols-outlined text-sm">play_arrow</span>
+                  </Link>
+                  <button onClick={() => openSquadModal(auction)} className="size-10 rounded-lg bg-white/5 border border-white/10 hover:bg-white/20 hover:text-primary flex items-center justify-center transition-colors" title="View Full Squad">
+                    <span className="material-symbols-outlined">visibility</span>
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
-
-          <span className="text-xs text-white/40">
-            {auction.team.playerCount} Players
-          </span>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="mt-auto">
-        {auction.status === "PAUSED" ? (
-          <button className="w-full h-10 bg-yellow-500 text-black rounded-lg text-xs font-black uppercase">
-            Resume Auction
-          </button>
-        ) : (
-          <button
-            onClick={() =>
-              openSquadModal(auction.auctionId, auction.team.name, auction.type)
-            }
-            className="w-full h-10 rounded-lg bg-white/5 border border-white/10 hover:bg-primary/20 hover:text-primary"
-          >
-            View Squad
-          </button>
-        )}
-      </div>
-    </div>
             ))
           )}
         </div>
@@ -185,7 +171,7 @@ const openSquadModal = async (auctionId, teamName, type) => {
             <div className="flex flex-col border-b border-white/10 bg-black/40">
               <div className="flex items-center justify-between p-6">
                 <div>
-                  <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">{selectedTeam}</h2>
+                  <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">{selectedAuction?.team?.name || 'Squad'}</h2>
                   <p className="text-primary text-xs font-bold uppercase tracking-widest mt-1">Full Squad List</p>
                 </div>
                 <button onClick={closeSquadModal} className="size-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors">
@@ -207,27 +193,33 @@ const openSquadModal = async (auctionId, teamName, type) => {
 
             <div className="flex-1 overflow-x-auto overflow-y-hidden p-8 flex items-center custom-scroll bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1a2e24] to-[#0a0f0b]">
               <div className="flex gap-6 px-4">
-                {squadData.map((player, index) => {
-                  const style = getCardStyle(player.rating);
-                  return (
-                    <div key={index} className={`flex-shrink-0 w-64 h-96 ${style.bg} rounded-2xl border-2 ${style.border} relative overflow-hidden group ${style.glow} transition-transform hover:scale-105 hover:z-10 cursor-pointer`}>
-                      <div className="absolute top-4 left-4 z-10">
-                        <span className="text-4xl font-black text-white drop-shadow-md block leading-none">{player.rating}</span>
-                        <span className="text-sm font-bold text-white/60 uppercase tracking-widest">{player.pos}</span>
-                      </div>
-                      <div className="absolute inset-0 flex items-end justify-center pb-20">
-                        <img src={player.img} className="w-[90%] object-contain drop-shadow-2xl grayscale group-hover:grayscale-0 transition-all duration-500" alt={player.name} />
-                      </div>
-                      <div className="absolute bottom-0 w-full p-4 bg-black/60 backdrop-blur-sm border-t border-white/10">
-                        <h4 className="text-xl font-black text-white uppercase italic truncate">{player.name}</h4>
-                        <div className="flex justify-between items-center mt-2">
-                          <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider">Acquired For</span>
-                          <span className={`text-lg font-black ${style.text}`}>{player.price}</span>
+                {squadData.length === 0 ? (
+                  <div className="w-full flex justify-center items-center py-20">
+                    <div className="text-white/60">Loading squad data...</div>
+                  </div>
+                ) : (
+                  squadData.map((player, index) => {
+                    const style = getCardStyle(player.rating);
+                    return (
+                      <div key={index} className={`flex-shrink-0 w-64 h-96 ${style.bg} rounded-2xl border-2 ${style.border} relative overflow-hidden group ${style.glow} transition-transform hover:scale-105 hover:z-10 cursor-pointer`}>
+                        <div className="absolute top-4 left-4 z-10">
+                          <span className="text-4xl font-black text-white drop-shadow-md block leading-none">{player.rating}</span>
+                          <span className="text-sm font-bold text-white/60 uppercase tracking-widest">{player.pos}</span>
+                        </div>
+                        <div className="absolute inset-0 flex items-end justify-center pb-20">
+                          <img src={player.img} className="w-[90%] object-contain drop-shadow-2xl grayscale group-hover:grayscale-0 transition-all duration-500" alt={player.name} />
+                        </div>
+                        <div className="absolute bottom-0 w-full p-4 bg-black/60 backdrop-blur-sm border-t border-white/10">
+                          <h4 className="text-xl font-black text-white uppercase italic truncate">{player.name}</h4>
+                          <div className="flex justify-between items-center mt-2">
+                            <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider">Acquired For</span>
+                            <span className={`text-lg font-black ${style.text}`}>{player.price}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>

@@ -255,6 +255,7 @@ def manager_dashboard(user_id):
         "teams": teams_data
     })
 
+
 @app.route("/api/auctions/history", methods=["GET"])
 def auction_history():
     user_id = request.args.get("user_id", type=int)
@@ -265,74 +266,64 @@ def auction_history():
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
-        SELECT 
-            id,
-            name,
-            season,
-            status,
-            start_date,
-            end_date
-        FROM auctions
-        ORDER BY COALESCE(end_date, start_date) DESC
-    """)
+        SELECT
+            a.id                    AS auction_id,
+            a.name                  AS auction_name,
+            a.season,
+            a.status,
+            a.start_date,
+            a.end_date,
+
+            t.id                    AS team_id,
+            t.name                  AS team_name,
+            t.stars,
+
+            COUNT(tp.player_id)     AS player_count
+
+        FROM auction_results ar
+        JOIN auctions a
+            ON a.id = ar.auction_id
+        JOIN teams t
+            ON t.id = ar.team_id
+        LEFT JOIN team_players tp
+            ON tp.team_id = t.id
+
+        WHERE ar.user_id = %s
+
+        GROUP BY
+            a.id,
+            t.id
+
+        ORDER BY
+            COALESCE(a.end_date, a.start_date) DESC
+    """, (user_id,))
 
     rows = cur.fetchall()
     cur.close()
 
     result = []
     for r in rows:
-        date_value = r["end_date"] or r["start_date"]
-        
         result.append({
-            "auctionId": r["id"],
-            "name": r["name"],
+            "auctionId": r["auction_id"],
+            "name": r["auction_name"],
             "season": r["season"],
-            "type": "SEASONAL" if r["season"] != "Non Seasonal" else "ONE-OFF",
+            "type": "SEASONAL" if r["season"] else "ONE-OFF",
             "status": r["status"],
-            "displayDate": date_value.strftime("%b %d, %Y") if date_value else None,
+            "displayDate": (
+                r["end_date"] or r["start_date"]
+            ).strftime("%b %d, %Y"),
+
             "team": {
-                "id": 1,
-                "name": "Sample Team",
-                "stars": 3,
-                "playerCount": 11
+                "id": r["team_id"],
+                "name": r["team_name"],
+                "stars": r["stars"],
+                "playerCount": r["player_count"]
             }
         })
 
-    return jsonify(result)
+    return jsonify(result), 200
 
-@app.route("/api/auctions/<int:auction_id>/squad", methods=["GET"])
-def get_auction_squad(auction_id):
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    
-    # Get sample players for the squad
-    cur.execute("""
-        SELECT 
-            id,
-            name,
-            overall as rating,
-            position_group as pos,
-            image_url as img,
-            value as price
-        FROM players 
-        LIMIT 11
-    """)
-    
-    players = cur.fetchall()
-    cur.close()
-    
-    # Format for frontend
-    squad_data = []
-    for player in players:
-        squad_data.append({
-            "name": player["name"],
-            "rating": player["rating"],
-            "pos": player["pos"],
-            "img": player["img"] or "https://via.placeholder.com/250x250",
-            "price": f"${player['price'] or '50M'}"
-        })
-    
-    return jsonify(squad_data)
+
 
 
 
