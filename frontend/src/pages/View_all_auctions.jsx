@@ -10,6 +10,10 @@ const View_all_auctions = () => {
   const [auctions, setAuctions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [modalType, setModalType] = useState('team');
+  const [currentSeason, setCurrentSeason] = useState(1);
+  const [squadLoading, setSquadLoading] = useState(false);
+  const [filter, setFilter] = useState('ALL');
 
   useEffect(() => {
     fetchAuctions();
@@ -39,16 +43,26 @@ const View_all_auctions = () => {
 
   const fetchSquadData = async (auctionId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/auctions/${auctionId}/squad`);
+      setSquadLoading(true);
+      const userData = JSON.parse(localStorage.getItem('user'));
+      if (!userData) {
+        console.error('User not logged in');
+        setSquadData([]);
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/api/auctions/${auctionId}/squad?user_id=${userData.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch squad data');
       }
-      
+
       const data = await response.json();
       setSquadData(data);
     } catch (err) {
       console.error('Error fetching squad:', err);
       setSquadData([]);
+    } finally {
+      setSquadLoading(false);
     }
   };
 
@@ -60,6 +74,8 @@ const View_all_auctions = () => {
 
   const openSquadModal = async (auction) => {
     setSelectedAuction(auction);
+    setModalType(auction.type === 'SEASONAL' ? 'season' : 'team');
+    setCurrentSeason((auction.season && auction.season.number) || 1);
     setIsModalOpen(true);
     await fetchSquadData(auction.auctionId);
   };
@@ -73,6 +89,15 @@ const View_all_auctions = () => {
   const changeSeason = (dir) => {
     // Keep existing season change logic if needed
   };
+
+  // Derived filtered list based on selected filter
+  const filteredAuctions = auctions.filter(a => {
+    if (filter === 'ALL') return true;
+    if (filter === 'PAUSED') return a.status === 'PAUSED';
+    if (filter === 'SEASONAL') return a.type === 'SEASONAL';
+    if (filter === 'ONE-OFF') return a.type === 'ONE-OFF';
+    return true;
+  });
 
   return (
     <div className="bg-background-dark font-display text-white min-h-screen stadium-bg flex flex-col">
@@ -90,11 +115,11 @@ const View_all_auctions = () => {
           </div>
           
           <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
-            <button className="px-4 py-2 bg-primary text-black rounded-lg text-xs font-bold uppercase tracking-wider">All</button>
-            <button className="px-4 py-2 text-white/60 hover:text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors">Seasonal</button>
-            <button className="px-4 py-2 text-white/60 hover:text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors">One-Off</button>
-            <button className="px-4 py-2 text-white/60 hover:text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors">Paused</button>
-          </div>
+              <button onClick={() => setFilter('ALL')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filter==='ALL' ? 'bg-primary text-black' : 'text-white/60 hover:text-white'}`}>All</button>
+              <button onClick={() => setFilter('SEASONAL')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filter==='SEASONAL' ? 'bg-primary text-black' : 'text-white/60 hover:text-white'}`}>Seasonal</button>
+              <button onClick={() => setFilter('ONE-OFF')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filter==='ONE-OFF' ? 'bg-primary text-black' : 'text-white/60 hover:text-white'}`}>One-Off</button>
+              <button onClick={() => setFilter('PAUSED')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filter==='PAUSED' ? 'bg-primary text-black' : 'text-white/60 hover:text-white'}`}>Paused</button>
+            </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -110,8 +135,12 @@ const View_all_auctions = () => {
             <div className="col-span-full flex justify-center items-center py-20">
               <div className="text-white/60">No auctions found</div>
             </div>
+          ) : filteredAuctions.length === 0 ? (
+            <div className="col-span-full flex justify-center items-center py-20">
+              <div className="text-white/60">No auctions found for selected filter</div>
+            </div>
           ) : (
-            auctions.map((auction) => (
+            filteredAuctions.map((auction) => (
               <div key={auction.auctionId} className="card-hoverable bg-panel-dark/60 backdrop-blur-md border border-white/10 rounded-2xl p-6 flex flex-col relative overflow-hidden group">
                 <div className="flex justify-between items-start mb-6 relative z-10">
                   <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
@@ -149,12 +178,24 @@ const View_all_auctions = () => {
                 </div>
 
                 <div className="mt-auto flex items-center gap-2">
-                  <Link to="/create_lobby" className="flex-1 h-10 bg-white/5 border border-white/10 hover:bg-primary hover:text-black hover:border-primary rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2">
-                    New Auction <span className="material-symbols-outlined text-sm">play_arrow</span>
-                  </Link>
-                  <button onClick={() => openSquadModal(auction)} className="size-10 rounded-lg bg-white/5 border border-white/10 hover:bg-white/20 hover:text-primary flex items-center justify-center transition-colors" title="View Full Squad">
-                    <span className="material-symbols-outlined">visibility</span>
-                  </button>
+                  {auction.status === 'PAUSED' ? (
+                    <button className="w-full h-10 bg-yellow-500 text-black rounded-lg text-xs font-black uppercase tracking-wider hover:bg-yellow-400 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(251,191,36,0.3)]">
+                      <span className="material-symbols-outlined text-base">resume</span> Resume
+                    </button>
+                  ) : auction.type === 'SEASONAL' ? (
+                    <>
+                      <Link to="/create_lobby" className="flex-1 h-10 bg-white/5 border border-white/10 hover:bg-primary hover:text-black hover:border-primary rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2">
+                        Start Season 2 <span className="material-symbols-outlined text-sm">play_arrow</span>
+                      </Link>
+                      <button onClick={() => openSquadModal(auction)} className="size-10 rounded-lg bg-white/5 border border-white/10 hover:bg-white/20 hover:text-primary flex items-center justify-center transition-colors" title="View Squad">
+                        <span className="material-symbols-outlined">visibility</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={() => openSquadModal(auction)} className="w-full h-10 rounded-lg bg-white/5 border border-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 flex items-center justify-center gap-2 transition-all text-xs font-bold uppercase tracking-wider">
+                      <span className="material-symbols-outlined">visibility</span> View Team
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -193,27 +234,31 @@ const View_all_auctions = () => {
 
             <div className="flex-1 overflow-x-auto overflow-y-hidden p-8 flex items-center custom-scroll bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1a2e24] to-[#0a0f0b]">
               <div className="flex gap-6 px-4">
-                {squadData.length === 0 ? (
+                {squadLoading ? (
                   <div className="w-full flex justify-center items-center py-20">
                     <div className="text-white/60">Loading squad data...</div>
+                  </div>
+                ) : squadData.length === 0 ? (
+                  <div className="w-full flex justify-center items-center py-20">
+                    <div className="text-white/60">No players found</div>
                   </div>
                 ) : (
                   squadData.map((player, index) => {
                     const style = getCardStyle(player.rating);
                     return (
-                      <div key={index} className={`flex-shrink-0 w-64 h-96 ${style.bg} rounded-2xl border-2 ${style.border} relative overflow-hidden group ${style.glow} transition-transform hover:scale-105 hover:z-10 cursor-pointer`}>
-                        <div className="absolute top-4 left-4 z-10">
-                          <span className="text-4xl font-black text-white drop-shadow-md block leading-none">{player.rating}</span>
-                          <span className="text-sm font-bold text-white/60 uppercase tracking-widest">{player.pos}</span>
+                      <div key={index} className={`flex-shrink-0 w-48 h-80 ${style.bg} rounded-2xl border ${style.border} relative overflow-hidden group ${style.glow} transition-transform hover:scale-105 hover:z-10 cursor-pointer shadow-md`}>
+                        <div className="absolute top-3 left-3 z-10">
+                          <span className="text-3xl font-black text-white drop-shadow block leading-none">{player.rating}</span>
+                          <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">{player.pos}</span>
                         </div>
-                        <div className="absolute inset-0 flex items-end justify-center pb-20">
-                          <img src={player.img} className="w-[90%] object-contain drop-shadow-2xl grayscale group-hover:grayscale-0 transition-all duration-500" alt={player.name} />
+                        <div className="absolute inset-0 flex items-end justify-center pb-16">
+                          <img src={player.img} className="w-[72%] object-contain drop-shadow-xl grayscale group-hover:grayscale-0 transition-all duration-400" alt={player.name} />
                         </div>
-                        <div className="absolute bottom-0 w-full p-4 bg-black/60 backdrop-blur-sm border-t border-white/10">
-                          <h4 className="text-xl font-black text-white uppercase italic truncate">{player.name}</h4>
+                        <div className="absolute bottom-0 w-full p-3 bg-black/60 backdrop-blur-sm border-t border-white/8">
+                          <h4 className="text-lg font-black text-white uppercase italic truncate">{player.name}</h4>
                           <div className="flex justify-between items-center mt-2">
-                            <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider">Acquired For</span>
-                            <span className={`text-lg font-black ${style.text}`}>{player.price}</span>
+                            <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider">Acquired</span>
+                            <span className={`text-md font-black px-2 py-1 rounded-md ${style.text} bg-white/5`}>{player.price}</span>
                           </div>
                         </div>
                       </div>

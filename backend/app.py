@@ -307,7 +307,7 @@ def auction_history():
             "auctionId": r["auction_id"],
             "name": r["auction_name"],
             "season": r["season"],
-            "type": "SEASONAL" if r["season"] else "ONE-OFF",
+            "type": "SEASONAL" if r["season"] != 'One-off' else "ONE-OFF",
             "status": r["status"],
             "displayDate": (
                 r["end_date"] or r["start_date"]
@@ -322,6 +322,63 @@ def auction_history():
         })
 
     return jsonify(result), 200
+
+
+@app.route("/api/auctions/<int:auction_id>/squad", methods=["GET"])
+def auction_squad(auction_id):
+    user_id = request.args.get('user_id', type=int)
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # Find the team for this user in the given auction
+    cur.execute(
+        "SELECT team_id FROM auction_results WHERE auction_id = %s AND user_id = %s",
+        (auction_id, user_id)
+    )
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        return jsonify([]), 200
+
+    team_id = row["team_id"]
+
+    # Fetch the players for the team with acquired price
+    cur.execute(
+        """
+        SELECT
+            p.id,
+            p.name,
+            p.overall AS rating,
+            p.position_group AS pos,
+            p.image_url AS img,
+            tp.acquired_price AS price
+        FROM team_players tp
+        JOIN players p ON tp.player_id = p.id
+        WHERE tp.team_id = %s
+        ORDER BY tp.acquired_price DESC NULLS LAST, p.overall DESC
+        """,
+        (team_id,)
+    )
+
+    rows = cur.fetchall()
+    cur.close()
+
+    players = [
+        {
+            "id": r["id"],
+            "name": r["name"],
+            "rating": r["rating"],
+            "pos": r["pos"],
+            "img": r["img"],
+            "price": r["price"]
+        }
+        for r in rows
+    ]
+
+    return jsonify(players), 200
 
 
 
