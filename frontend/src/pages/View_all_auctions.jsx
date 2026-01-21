@@ -72,6 +72,17 @@ const View_all_auctions = () => {
     return { border: 'border-white/30', text: 'text-white/60', bg: 'bg-gradient-to-b from-gray-800 to-black', glow: '' };
   };
 
+  const getStatusClasses = (status) => {
+    if (!status) return { dot: 'bg-white/30', text: 'text-white/60', bg: 'bg-white/5', border: 'border-white/10' };
+    if (status === 'PAUSED') {
+      return { dot: 'bg-yellow-400 shadow-[0_0_10px_rgba(251,191,36,0.3)]', text: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' };
+    }
+    if (status === 'COMPLETED' || status === 'FINISHED' || status === 'ENDED') {
+      return { dot: 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.25)]', text: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' };
+    }
+    return { dot: 'bg-primary shadow-[0_0_10px_#0df259]', text: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' };
+  };
+
   const openSquadModal = async (auction) => {
     setSelectedAuction(auction);
     setModalType(auction.type === 'SEASONAL' ? 'season' : 'team');
@@ -143,10 +154,15 @@ const View_all_auctions = () => {
             filteredAuctions.map((auction) => (
               <div key={auction.auctionId} className="card-hoverable bg-panel-dark/60 backdrop-blur-md border border-white/10 rounded-2xl p-6 flex flex-col relative overflow-hidden group">
                 <div className="flex justify-between items-start mb-6 relative z-10">
-                  <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
-                    <div className="size-2 rounded-full bg-primary shadow-[0_0_10px_#0df259]"></div>
-                    <span className="text-primary text-[10px] font-black tracking-widest uppercase">{auction.status}</span>
-                  </div>
+                  {(() => {
+                    const sc = getStatusClasses(auction.status);
+                    return (
+                      <div className={`flex items-center gap-2 px-3 py-1 ${sc.bg} border ${sc.border} rounded-full`}>
+                        <div className={`size-2 rounded-full ${sc.dot}`}></div>
+                        <span className={`${sc.text} text-[10px] font-black tracking-widest uppercase`}>{auction.status}</span>
+                      </div>
+                    );
+                  })()}
                   <span className="text-white/30 text-xs font-mono">{auction.displayDate}</span>
                 </div>
 
