@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Footer from '../components/Footer';
 import Navbar from '../components/Navbar';
 
@@ -77,26 +77,8 @@ const Formation_settings = () => {
   const [squadChemistry, setSquadChemistry] = useState('33/33');
 
   // Initial Data
-  const allPlayers = [
-    { id: 1, name: "Mbappé", pos: "ST", rating: 97, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p223094.png", stat: "PAC 97" },
-    { id: 2, name: "Salah", pos: "RW", rating: 90, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p118748.png", stat: "PAC 91" },
-    { id: 3, name: "Son", pos: "LW", rating: 89, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p85971.png", stat: "SHO 89" },
-    { id: 4, name: "De Bruyne", pos: "CM", rating: 96, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p61366.png", stat: "PAS 94" },
-    { id: 5, name: "Fernandes", pos: "CM", rating: 88, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p122798.png", stat: "PAS 90" },
-    { id: 6, name: "Rice", pos: "CDM", rating: 86, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p204480.png", stat: "DEF 85" },
-    { id: 7, name: "Shaw", pos: "LB", rating: 83, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p106760.png", stat: "PAC 82" },
-    { id: 8, name: "Dias", pos: "CB", rating: 89, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p171287.png", stat: "DEF 89" },
-    { id: 9, name: "Saliba", pos: "CB", rating: 87, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p243016.png", stat: "DEF 88" },
-    { id: 10, name: "Trippier", pos: "RB", rating: 84, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p101178.png", stat: "PAS 86" },
-    { id: 11, name: "Ederson", pos: "GK", rating: 89, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p106573.png", stat: "REF 91" },
-    { id: 12, name: "Varane", pos: "CB", rating: 84, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p93111.png", stat: "DEF 85" },
-    { id: 13, name: "Rashford", pos: "LW", rating: 83, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p172780.png", stat: "PAC 88" },
-    { id: 14, name: "Saka", pos: "RW", rating: 86, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p223340.png", stat: "DRI 87" },
-    { id: 15, name: "Ramsdale", pos: "GK", rating: 81, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p172649.png", stat: "REF 82" },
-    { id: 16, name: "Nketiah", pos: "ST", rating: 78, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p179402.png", stat: "PAC 82" },
-    { id: 17, name: "Maguire", pos: "CB", rating: 79, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p95658.png", stat: "PHY 85" },
-    { id: 18, name: "Young", pos: "LB", rating: 75, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p173954.png", stat: "PAC 70" }
-  ];
+  // default placeholder players (used briefly before team load)
+  const allPlayers = [];
 
   const formations = {
     "4-3-3": [{role:"GK",left:50,top:85},{role:"LB",left:15,top:70},{role:"CB",left:38,top:75},{role:"CB",left:62,top:75},{role:"RB",left:85,top:70},{role:"CM",left:30,top:45},{role:"CM",left:50,top:50},{role:"CM",left:70,top:45},{role:"LW",left:15,top:15},{role:"ST",left:50,top:10},{role:"RW",left:85,top:15}],
@@ -106,11 +88,36 @@ const Formation_settings = () => {
     "5-3-2": [{role:"GK",left:50,top:85},{role:"LWB",left:8,top:60},{role:"CB",left:30,top:72},{role:"CB",left:50,top:75},{role:"CB",left:70,top:72},{role:"RWB",left:92,top:60},{role:"CM",left:30,top:40},{role:"CM",left:50,top:45},{role:"CM",left:70,top:40},{role:"ST",left:35,top:12},{role:"ST",left:65,top:12}]
   };
 
+  const location = useLocation();
+
   useEffect(() => {
-    setPitchPlayers(allPlayers.slice(0, 11));
-    setSubPlayers(allPlayers.slice(11, 15));
-    setResPlayers(allPlayers.slice(15));
-  }, []);
+    // If a team_id is provided in the URL, fetch that team's players
+    const qs = new URLSearchParams(location.search);
+    const teamId = qs.get('team_id');
+    if (teamId) {
+      fetchTeamPlayers(teamId);
+    } else {
+      // fallback to sample data if no team specified
+      setPitchPlayers(allPlayers.slice(0, 11));
+      setSubPlayers(allPlayers.slice(11, 15));
+      setResPlayers(allPlayers.slice(15));
+    }
+  }, [location.search]);
+
+  const fetchTeamPlayers = async (teamId) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/teams/${teamId}/players`);
+      if (!res.ok) throw new Error('Failed to load team players');
+      const data = await res.json();
+
+      // Distribute players: first 11 to pitch, next 4 to subs, rest to reserves
+      setPitchPlayers(data.slice(0, 11).map(p => ({ id: p.id, name: p.name, pos: p.pos, rating: p.rating, img: p.img, stat: `VAL ${p.price || ''}` })));
+      setSubPlayers(data.slice(11, 15).map(p => ({ id: p.id, name: p.name, pos: p.pos, rating: p.rating, img: p.img, stat: `VAL ${p.price || ''}` })));
+      setResPlayers(data.slice(15).map(p => ({ id: p.id, name: p.name, pos: p.pos, rating: p.rating, img: p.img, stat: `VAL ${p.price || ''}` })));
+    } catch (err) {
+      console.error('Error fetching team players', err);
+    }
+  };
 
   useEffect(() => {
     const total = pitchPlayers.reduce((acc, p) => acc + (p ? p.rating : 0), 0);

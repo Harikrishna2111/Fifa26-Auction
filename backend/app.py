@@ -382,7 +382,159 @@ def auction_squad(auction_id):
 
 
 
+@app.route("/api/teams/manage")
+def manage_teams():
+    user_id = request.args.get("user_id", type=int)
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
 
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            t.id AS team_id,
+            t.name AS team_name,
+            t.rating AS team_ovr,
+            t.status,
+            COALESCE(SUM(p.value), 0) AS market_value,
+            COUNT(tp.player_id) AS player_count,
+
+            -- Active auction check
+            CASE
+                WHEN a.status IN ('LIVE', 'PAUSED') THEN 'ACTIVE'
+                ELSE 'IDLE'
+            END AS auction_state
+
+        FROM teams t
+        LEFT JOIN team_players tp ON tp.team_id = t.id
+        LEFT JOIN players p ON p.id = tp.player_id
+        LEFT JOIN auction_results ar ON ar.team_id = t.id
+        LEFT JOIN auctions a ON a.id = ar.auction_id
+
+        WHERE t.manager_id = %s
+
+        GROUP BY t.id, a.status
+        ORDER BY auction_state DESC, t.name
+    """, (user_id,))
+
+    teams = cur.fetchall()
+
+    # Fetch player avatars per team
+    result = []
+    for team in teams:
+        cur.execute("""
+            SELECT image_url
+            FROM players p
+            JOIN team_players tp ON tp.player_id = p.id
+            WHERE tp.team_id = %s
+            LIMIT 4
+        """, (team["team_id"],))
+
+        avatars = [r["image_url"] for r in cur.fetchall()]
+
+        result.append({
+            "id": team["team_id"],
+            "name": team["team_name"],
+            "league": "EUROPE",  # placeholder (can be improved later)
+            "status": team["auction_state"],
+            "teamOVR": team["team_ovr"],
+            "marketValue": team["market_value"],
+            "playerCount": team["player_count"],
+            "avatars": avatars
+        })
+
+    cur.close()
+    return jsonify(result)
+
+
+@app.route('/api/teams/<int:team_id>/players', methods=['GET'])
+def team_players(team_id):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute(
+        """
+        SELECT
+            p.id,
+            p.name,
+            p.overall AS rating,
+            p.position_group AS pos,
+            p.image_url AS img,
+            tp.acquired_price AS price
+        FROM team_players tp
+        JOIN players p ON tp.player_id = p.id
+        WHERE tp.team_id = %s
+        ORDER BY tp.acquired_price DESC NULLS LAST, p.overall DESC
+        """,
+        (team_id,)
+    )
+
+    rows = cur.fetchall()
+    cur.close()
+
+    players = [
+        {
+            'id': r['id'],
+            'name': r['name'],
+            'rating': r['rating'],
+            'pos': r['pos'],
+            'img': r['img'],
+            'price': r['price']
+        }
+        for r in rows
+    ]
+
+    return jsonify(players), 200
+
+@app.route("/api/players/market")
+def get_market_players():
+    search = request.args.get("search", "")
+    position = request.args.get("position")  # FWD / MID / DEF / GK
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    query = """
+        SELECT
+            id,
+            name,
+            overall,
+            pace,
+            sho,
+            dri,
+            position_group,
+            club,
+            nation,
+            value,
+            image_url
+        FROM players
+        WHERE 1=1
+    """
+    params = []
+
+    if search:
+        query += """
+            AND (
+                LOWER(name) LIKE %s
+                OR LOWER(club) LIKE %s
+                OR LOWER(nation) LIKE %s
+            )
+        """
+        like = f"%{search.lower()}%"
+        params.extend([like, like, like])
+
+    if position and position != "ALL":
+        query += " AND position_group = %s"
+        params.append(position)
+
+    query += " ORDER BY overall DESC LIMIT 50"
+
+    cur.execute(query, params)
+    players = cur.fetchall()
+    cur.close()
+
+    return jsonify(players)
 
 
 if __name__ == '__main__':
