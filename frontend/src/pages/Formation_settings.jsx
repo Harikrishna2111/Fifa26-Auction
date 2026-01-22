@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Footer from '../components/Footer';
 import Navbar from '../components/Navbar';
 
@@ -61,6 +61,8 @@ const PlayerCard = ({ player, sizeClass, locationType, index, isDragging, isHove
 
 // --- MAIN COMPONENT ---
 const Formation_settings = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [currentFormation, setCurrentFormation] = useState('4-3-3');
   
   // Data State
@@ -88,9 +90,26 @@ const Formation_settings = () => {
     "5-3-2": [{role:"GK",left:50,top:85},{role:"LWB",left:8,top:60},{role:"CB",left:30,top:72},{role:"CB",left:50,top:75},{role:"CB",left:70,top:72},{role:"RWB",left:92,top:60},{role:"CM",left:30,top:40},{role:"CM",left:50,top:45},{role:"CM",left:70,top:40},{role:"ST",left:35,top:12},{role:"ST",left:65,top:12}]
   };
 
-  const location = useLocation();
-
   useEffect(() => {
+    // Check if players were passed from Create_team page
+    const passedPlayers = location.state?.selectedPlayers;
+    if (passedPlayers && passedPlayers.length > 0) {
+      // Convert to formation format
+      const formattedPlayers = passedPlayers.map(p => ({
+        id: p.id,
+        name: p.name,
+        pos: p.position_group || p.pos,
+        rating: p.overall || p.rating,
+        img: p.image_url || p.img,
+        stat: `VAL ${p.price || ''}`
+      }));
+      
+      setPitchPlayers(formattedPlayers.slice(0, 11));
+      setSubPlayers(formattedPlayers.slice(11, 18));
+      setResPlayers(formattedPlayers.slice(18));
+      return;
+    }
+
     // If a team_id is provided in the URL, fetch that team's players
     const qs = new URLSearchParams(location.search);
     const teamId = qs.get('team_id');
@@ -102,7 +121,7 @@ const Formation_settings = () => {
       setSubPlayers(allPlayers.slice(11, 15));
       setResPlayers(allPlayers.slice(15));
     }
-  }, [location.search]);
+  }, [location.search, location.state]);
 
   const fetchTeamPlayers = async (teamId) => {
     try {
@@ -200,6 +219,19 @@ const Formation_settings = () => {
       setList(sourceType, sourceList);
       setList(targetType, targetList);
     }
+  };
+
+  const handleSaveSquad = () => {
+    const allSelectedPlayers = [...pitchPlayers, ...subPlayers, ...resPlayers].filter(p => p);
+    const playersToReturn = allSelectedPlayers.map(p => ({
+      id: p.id,
+      name: p.name,
+      position_group: p.pos,
+      overall: p.rating,
+      image_url: p.img,
+      price: p.stat?.replace('VAL ', '') || ''
+    }));
+    navigate('/create_team', { state: { selectedPlayers: playersToReturn } });
   };
 
   return (
@@ -332,11 +364,9 @@ const Formation_settings = () => {
               </div>
 
               <div className="p-4 border-t border-white/10 bg-black/40 backdrop-blur-md">
-                <Link to="/manage_teams">
-                  <button className="w-full bg-[#39ff14] hover:bg-[#2bff00] text-black py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(57,255,20,0.3)] flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined">save</span> Save Squad
-                  </button>
-                </Link>
+                <button onClick={handleSaveSquad} className="w-full bg-[#39ff14] hover:bg-[#2bff00] text-black py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(57,255,20,0.3)] flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined">save</span> Save Squad
+                </button>
               </div>
             </div>
 

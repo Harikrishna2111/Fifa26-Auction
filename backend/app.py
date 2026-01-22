@@ -7,6 +7,7 @@ import psycopg2
 import psycopg2.extras
 import redis
 import json
+import traceback
 import threading
 import time
 
@@ -400,7 +401,6 @@ def manage_teams():
             COALESCE(SUM(p.value), 0) AS market_value,
             COUNT(tp.player_id) AS player_count,
 
-            -- Active auction check
             CASE
                 WHEN a.status IN ('LIVE', 'PAUSED') THEN 'ACTIVE'
                 ELSE 'IDLE'
@@ -489,52 +489,146 @@ def team_players(team_id):
 
 @app.route("/api/players/market")
 def get_market_players():
-    search = request.args.get("search", "")
-    position = request.args.get("position")  # FWD / MID / DEF / GK
+    # query params
+    search = request.args.get("search", "").strip()
+    position = request.args.get("position", "ALL")
+    try:
+        limit = int(request.args.get("limit", 18))
+    except Exception:
+        limit = 18
+    try:
+        offset = int(request.args.get("offset", 0))
+    except Exception:
+        offset = 0
 
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    query = """
-        SELECT
-            id,
-            name,
-            overall,
-            pace,
-            sho,
-            dri,
-            position_group,
-            club,
-            nation,
-            value,
-            image_url
-        FROM players
-        WHERE 1=1
-    """
+    # Build WHERE clause safely
+    where_clauses = ["1=1"]
     params = []
 
     if search:
-        query += """
-            AND (
-                LOWER(name) LIKE %s
-                OR LOWER(club) LIKE %s
-                OR LOWER(nation) LIKE %s
-            )
-        """
         like = f"%{search.lower()}%"
+        where_clauses.append("(LOWER(name) LIKE %s OR LOWER(club) LIKE %s OR LOWER(nation) LIKE %s)")
         params.extend([like, like, like])
 
+    # support group filters (FWD/MID/DEF/GK) -> map to actual position_group values
     if position and position != "ALL":
-        query += " AND position_group = %s"
-        params.append(position)
+        # include both human-readable groups and common position codes
+        group_map = {
+            'FWD': ['Forward','ST','CF','LF','RF','LW','RW','LS','RS'],
+            'MID': ['Midfielder','CAM','CM','CDM','LM','RM'],
+            'DEF': ['Defender','LB','LWB','RWB','RB','CB'],
+            'GK': ['Goalkeeper','GK']
+        }
+        if position in group_map:
+            vals = group_map[position]
+            placeholders = ",".join(["%s"] * len(vals))
+            where_clauses.append(f"position_group IN ({placeholders})")
+            params.extend(vals)
+        else:
+            where_clauses.append("position_group = %s")
+            params.append(position)
 
-    query += " ORDER BY overall DESC LIMIT 50"
+    where_sql = " WHERE " + " AND ".join(where_clauses)
 
-    cur.execute(query, params)
+    # total count
+    count_sql = "SELECT COUNT(*) AS total FROM players" + where_sql
+    cur.execute(count_sql, params)
+    total_row = cur.fetchone()
+    total = total_row["total"] if total_row else 0
+
+    # fetch page
+    query = f"SELECT id, name, overall, pac, sho, dri, position_group, club, nation, value, image_url FROM players {where_sql} ORDER BY overall DESC LIMIT %s OFFSET %s"
+    page_params = params + [limit, offset]
+    cur.execute(query, page_params)
     players = cur.fetchall()
     cur.close()
+    for i in players:
+        if i["position_group"] == 'Forward':
+            i["position_group"] = "FWD"
+        elif i["position_group"] == 'Midfielder':
+            i["position_group"] = "MID"
+        elif i["position_group"] == 'Defender':
+            i["position_group"] = "DEF"
+        elif i["position_group"] == 'Goalkeeper':
+            i["position_group"] = "GK"
+    return jsonify({"total": total, "players": players})
 
-    return jsonify(players)
+
+@app.route('/api/teams', methods=['POST'])
+def create_team():
+    data = request.json or {}
+    name = data.get('name')
+    manager_id = data.get('manager_id')
+    players = data.get('players', [])
+
+    if not name:
+        return jsonify({"error": "Team name is required"}), 400
+    if not manager_id:
+        return jsonify({"error": "manager_id is required"}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        # compute team rating (avg of players.overall) and market value (sum of players.value)
+        player_ids = [int(p.get('player_id')) for p in players if p.get('player_id')]
+        team_rating = 0
+        team_value = 0
+        if player_ids:
+            placeholders = ','.join(['%s'] * len(player_ids))
+            agg_sql = f"SELECT AVG(overall) AS avg_overall, COALESCE(SUM(value),0) AS total_value FROM players WHERE id IN ({placeholders})"
+            cur.execute(agg_sql, tuple(player_ids))
+            agg = cur.fetchone()
+            if isinstance(agg, dict):
+                avg_overall = agg.get('avg_overall') or 0
+                total_value = agg.get('total_value') or 0
+            else:
+                avg_overall = agg[0] or 0
+                total_value = agg[1] or 0
+            try:
+                team_rating = int(round(float(avg_overall)))
+            except Exception:
+                team_rating = int(avg_overall or 0)
+            team_value = int(total_value or 0)
+
+        cur.execute(
+            "INSERT INTO teams (name, manager_id, rating, value, status, created_at) VALUES (%s, %s, %s, %s, %s, now()) RETURNING id",
+            (name, manager_id, team_rating, team_value, 'IDLE')
+        )
+        new_row = cur.fetchone()
+        if isinstance(new_row, dict):
+            team_id = new_row.get('id')
+        else:
+            team_id = new_row[0]
+
+        # insert team_players if provided
+        for p in players:
+            player_id = p.get('player_id')
+            acquired_price = p.get('acquired_price')
+            if player_id:
+                cur.execute(
+                    "INSERT INTO team_players (team_id, player_id, acquired_price) VALUES (%s, %s, %s)",
+                    (team_id, player_id, acquired_price)
+                )
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        # print traceback to server console for debugging
+        tb = traceback.format_exc()
+        print(tb)
+        try:
+            cur.close()
+        except Exception:
+            pass
+        return jsonify({"error": str(e), "trace": tb}), 500
+
+    cur.close()
+    return jsonify({"team_id": team_id}), 201
+
 
 
 if __name__ == '__main__':

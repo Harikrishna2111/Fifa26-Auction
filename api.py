@@ -1,37 +1,54 @@
-import requests
+import pandas as pd
+import psycopg2
 
-API_URL = "https://fantasy.premierleague.com/api/bootstrap-static/"
-IMG_BASE = "https://resources.premierleague.com/premierleague/photos/players/250x250/p{}.png"
+# -----------------------------
+# CONFIG
+# -----------------------------
+CSV_PATH = "data.csv"
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0",
-    "Referer": "https://www.premierleague.com/",
-    "Origin": "https://www.premierleague.com"
+POSTGRES_CONFIG = {
+    "dbname": "fifa_auction",
+    "user": "postgres",
+    "password": "fifa",
+    "host": "localhost",
+    "port": 5432,
 }
 
-PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+# -----------------------------
+# LOAD CSV
+# -----------------------------
+print(" Loading CSV...")
+df = pd.read_csv(CSV_PATH, usecols=["player_id", "player_face_url"])
 
-data = requests.get(API_URL).json()
-players = data["elements"]
+# Drop empty URLs
+df = df.dropna(subset=["player_face_url"])
 
-real_image_urls = []
+print(f"Found {len(df)} player images to update")
 
-for player in players:
-    player_id = player["photo"].split(".")[0]
-    url = IMG_BASE.format(player_id)
+# -----------------------------
+# CONNECT POSTGRES
+# -----------------------------
+conn = psycopg2.connect(**POSTGRES_CONFIG)
+cur = conn.cursor()
 
-    try:
-        r = requests.get(url, headers=HEADERS, stream=True, timeout=5)
+# -----------------------------
+# UPDATE QUERY
+# -----------------------------
+update_query = """
+    UPDATE players
+    SET image_url = %s
+    WHERE id = %s
+"""
 
-        first_bytes = r.raw.read(8)
+updated = 0
 
-        if first_bytes == PNG_MAGIC:
-            real_image_urls.append(url)
+for _, row in df.iterrows():
+    cur.execute(update_query, (row["player_face_url"], int(row["player_id"])))
+    if cur.rowcount > 0:
+        updated += 1
 
-    except requests.RequestException:
-        continue
+conn.commit()
+cur.close()
+conn.close()
 
-with open("real_player_image_urls.txt", "w") as f:
-    f.write("\n".join(real_image_urls))
-
-print(f"Verified {len(real_image_urls)} real player images")
+print(f" Updated image URLs for {updated} players")
