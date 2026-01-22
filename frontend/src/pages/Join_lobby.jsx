@@ -1,9 +1,86 @@
-import React from "react";
+import React, { useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { API_URL } from "../config";
 
 const Join_lobby = () => {
+  const navigate = useNavigate();
+  const [joinCode, setJoinCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [teamName, setTeamName] = useState("");
+  const [verifiedAuctionId, setVerifiedAuctionId] = useState(null);
+
+  const handleJoin = async () => {
+    if (!joinCode.trim()) return;
+    
+    setLoading(true);
+    setError("");
+    
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        setError("Please login first");
+        setLoading(false);
+        return;
+      }
+      
+      // Verify lobby code
+      const res = await fetch(`${API_URL}/api/lobby/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ join_code: joinCode.toUpperCase() })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        setVerifiedAuctionId(data.auction_id);
+        setShowModal(true);
+      } else {
+        setError(data.error || "Invalid lobby code");
+      }
+    } catch (err) {
+      setError("Connection error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmTeam = async () => {
+    if (!teamName.trim()) return;
+    
+    setLoading(true);
+    
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      
+      const res = await fetch(`${API_URL}/api/lobby/join`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          auction_id: verifiedAuctionId,
+          user_id: user.id,
+          team_name: teamName
+        })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        navigate(`/lobby?auction_id=${data.auction_id}&join_code=${data.join_code}`);
+      } else {
+        setError(data.error || "Failed to join lobby");
+        setShowModal(false);
+      }
+    } catch (err) {
+      setError("Connection error. Please try again.");
+      setShowModal(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
 
 <div className="font-display bg-background-light dark:bg-background-dark text-white min-h-screen" style={{backgroundColor: '#102216', backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(13, 242, 89, 0.05) 1px, transparent 0)', backgroundSize: '32px 32px'}}>
@@ -30,26 +107,28 @@ const Join_lobby = () => {
 <div className="flex flex-col gap-2">
 <label className="text-primary text-xs font-bold uppercase tracking-widest pl-1">Lobby Code</label>
 <div className="relative rounded-xl overflow-hidden transition-all duration-300" style={{boxShadow: '0 0 15px rgba(13, 242, 89, 0.4)'}}>
-<input autoFocus className="form-input flex w-full border-none bg-black/40 text-white text-2xl text-center tracking-[0.2em] font-bold h-16 rounded-xl focus:ring-2 focus:ring-primary placeholder:text-white/20 placeholder:tracking-normal uppercase" placeholder="882-FTB" type="text"/>
+<input autoFocus value={joinCode} onChange={(e) => setJoinCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleJoin()} className="form-input flex w-full border-none bg-black/40 text-white text-2xl text-center tracking-[0.2em] font-bold h-16 rounded-xl focus:ring-2 focus:ring-primary placeholder:text-white/20 placeholder:tracking-normal uppercase" placeholder="882-FTB" type="text"/>
 </div>
 </div>
 {/* CTA Button */}
-<Link to="/lobby"><button className="mt-10 w-full flex items-center justify-center gap-3 bg-primary hover:bg-primary/90 text-black h-14 rounded-xl font-extrabold text-base tracking-wide transition-all active:scale-[0.98] shadow-[0_0_20px_rgba(13,242,89,0.2)]">
-<span>JOIN AUCTION</span>
+<button onClick={handleJoin} disabled={loading || !joinCode.trim()} className="mt-10 w-full flex items-center justify-center gap-3 bg-primary hover:bg-primary/90 text-black h-14 rounded-xl font-extrabold text-base tracking-wide transition-all active:scale-[0.98] shadow-[0_0_20px_rgba(13,242,89,0.2)] disabled:opacity-50">
+<span>{loading ? "JOINING..." : "JOIN AUCTION"}</span>
 <span className="material-symbols-outlined font-bold">bolt</span>
-</button></Link>
+</button>
 {/* Feedback Messages */}
 <div className="min-h-[24px] text-center">
-{/* Example Error State: hidden by default or toggle visibility */}
-<p className="text-red-400 text-sm font-medium flex items-center justify-center gap-2 hidden">
+{error && (
+<p className="text-red-400 text-sm font-medium flex items-center justify-center gap-2">
 <span className="material-symbols-outlined text-sm">error</span>
-                            Lobby code not found. Please verify and try again.
-                        </p>
-{/* Example Success State: shown during transition */}
+{error}
+</p>
+)}
+{!error && joinCode && (
 <p className="text-primary text-sm font-bold flex items-center justify-center gap-2">
 <span className="material-symbols-outlined text-sm animate-pulse">check_circle</span>
-                            Ready to enter the pitch.
-                        </p>
+Ready to enter the pitch.
+</p>
+)}
 </div>
 </div>
 </div>
@@ -65,6 +144,20 @@ const Join_lobby = () => {
 </div>
 </div>
 </main>
+{/* Team Name Modal */}
+{showModal && (
+<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{backgroundColor: 'rgba(0, 0, 0, 0.8)'}}>
+<div className="w-full max-w-md bg-[#183422]/90 backdrop-blur-2xl border border-primary/30 rounded-xl p-8 shadow-2xl" style={{boxShadow: '0 0 40px rgba(13, 242, 89, 0.3)'}}>
+<h2 className="text-white text-2xl font-bold mb-2 text-center">Enter Team Name</h2>
+<p className="text-white/60 text-sm mb-6 text-center">Choose a name for your team in this auction</p>
+<input autoFocus value={teamName} onChange={(e) => setTeamName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleConfirmTeam()} className="w-full bg-black/40 text-white text-lg text-center font-bold h-14 rounded-xl border border-white/20 focus:border-primary focus:ring-2 focus:ring-primary/50 placeholder:text-white/30 mb-6" placeholder="My Dream Team" type="text" maxLength="30"/>
+<div className="flex gap-3">
+<button onClick={() => setShowModal(false)} className="flex-1 bg-white/10 hover:bg-white/20 text-white h-12 rounded-xl font-bold transition-all">Cancel</button>
+<button onClick={handleConfirmTeam} disabled={!teamName.trim() || loading} className="flex-1 bg-primary hover:bg-primary/90 text-black h-12 rounded-xl font-bold transition-all disabled:opacity-50">{loading ? "Joining..." : "Confirm"}</button>
+</div>
+</div>
+</div>
+)}
 {/* Decorative Element */}
 <div className="fixed bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
 </div>

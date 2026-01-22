@@ -37,21 +37,35 @@ def register():
     if not fullname or not username or not password:
         return jsonify({"error": "All fields are required"}), 400
 
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    
+    # Check if username already exists
+    cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+    existing = cur.fetchone()
+    
+    if existing:
+        cur.close()
+        print(f"Registration failed: Username '{username}' already exists (ID: {existing['id']})")
+        return jsonify({"error": "Username already exists"}), 409
+    
     password_hash = generate_password_hash(password)
-
+    
     try:
-        conn = get_db()
-        cur = conn.cursor()
         cur.execute(
-            "INSERT INTO users (fullname, username, password_hash) VALUES (%s, %s, %s)",
+            "INSERT INTO users (fullname, username, password_hash) VALUES (%s, %s, %s) RETURNING id",
             (fullname, username, password_hash)
         )
+        result = cur.fetchone()
         conn.commit()
         cur.close()
-    except psycopg2.IntegrityError:
-        return jsonify({"error": "Username already exists"}), 409
-
-    return jsonify({"message": "User registered successfully"}), 201
+        print(f"User '{username}' registered successfully with ID: {result['id']}")
+        return jsonify({"message": "User registered successfully"}), 201
+    except Exception as e:
+        conn.rollback()
+        cur.close()
+        print(f"Registration error: {str(e)}")
+        return jsonify({"error": "Registration failed"}), 500
 
 @app.route("/api/auth/login", methods=["POST", "OPTIONS"])
 def login():
@@ -76,11 +90,14 @@ def login():
     cur.close()
 
     if not user:
-        return jsonify({"error": "Invalid credentials"}), 401
+        print(f"Login failed: User '{username}' not found in database")
+        return jsonify({"error": "Invalid username or password"}), 401
 
     if not check_password_hash(user["password_hash"], password):
-        return jsonify({"error": "Invalid credentials"}), 401
+        print(f"Login failed: Invalid password for user '{username}'")
+        return jsonify({"error": "Invalid username or password"}), 401
 
+    print(f"Login successful for user '{username}'")
     return jsonify({
         "message": "Login successful",
         "user": {
@@ -629,8 +646,183 @@ def create_team():
     cur.close()
     return jsonify({"team_id": team_id}), 201
 
+@app.route("/api/lobby/create", methods=["POST"])
+def create_lobby():
+    data = request.json
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    import random, string
+    join_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
+    cur.execute("""
+        INSERT INTO auctions (
+            name, season, status,
+            join_code, host_id,
+            purse_per_team,
+            bid_inc_min, bid_inc_mid, bid_inc_max,
+            min_players, bidding_time
+        )
+        VALUES (%s, %s, 'LOBBY', %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
+    """, (
+        data["auction_name"],
+        data.get("season"),
+        join_code,
+        data["host_id"],
+        data["purse"],
+        data["inc_min"],
+        data["inc_mid"],
+        data["inc_max"],
+        data["min_players"],
+        data["bidding_time"]
+    ))
+
+    result = cur.fetchone()
+    auction_id = result["id"]
+    conn.commit()
+    cur.close()
+
+    return jsonify({
+        "auction_id": auction_id,
+        "join_code": join_code
+    })
+
+
+
+@app.route("/api/lobby/verify", methods=["POST"])
+def verify_lobby():
+    data = request.json
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT id FROM auctions
+        WHERE join_code = %s AND status = 'LOBBY'
+    """, (data["join_code"],))
+    auction = cur.fetchone()
+    cur.close()
+
+    if not auction:
+        return jsonify({"error": "Invalid or expired lobby code"}), 404
+
+    return jsonify({"auction_id": auction["id"]})
+
+@app.route("/api/lobby/join", methods=["POST"])
+def join_lobby():
+    data = request.json
+    print(f"Join lobby request: {data}")
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # Add participant with team name
+    cur.execute("""
+        INSERT INTO auction_participants (auction_id, user_id, team_name)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (auction_id, user_id) DO UPDATE SET team_name = EXCLUDED.team_name
+        RETURNING auction_id
+    """, (data["auction_id"], data["user_id"], data["team_name"]))
+
+    result = cur.fetchone()
+    print(f"Inserted participant: auction_id={result['auction_id']}, user_id={data['user_id']}, team_name={data['team_name']}")
+    
+    # Get join_code for navigation
+    cur.execute("SELECT join_code FROM auctions WHERE id = %s", (result["auction_id"],))
+    auction = cur.fetchone()
+    
+    conn.commit()
+    cur.close()
+
+    return jsonify({
+        "auction_id": result["auction_id"],
+        "join_code": auction["join_code"],
+        "message": "Joined lobby successfully"
+    })
+
+
+@app.route("/api/lobby/<int:auction_id>")
+def get_lobby(auction_id):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            a.id,
+            a.name,
+            a.status,
+            a.join_code,
+            a.host_id,
+            a.purse_per_team,
+            a.bidding_time,
+            COUNT(p.user_id) AS player_count
+        FROM auctions a
+        LEFT JOIN auction_participants p ON p.auction_id = a.id
+        WHERE a.id = %s
+        GROUP BY a.id
+    """, (auction_id,))
+
+    lobby = cur.fetchone()
+    cur.close()
+
+    return jsonify(lobby)
+
+@app.route("/api/lobby/<int:auction_id>/participants")
+def get_lobby_participants(auction_id):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            ap.user_id,
+            u.username,
+            ap.team_name
+        FROM auction_participants ap
+        JOIN users u ON u.id = ap.user_id
+        WHERE ap.auction_id = %s
+        ORDER BY ap.joined_at
+    """, (auction_id,))
+
+    participants = cur.fetchall()
+    cur.close()
+
+    return jsonify([dict(p) for p in participants])
+
+@socketio.on("join_lobby")
+def join_lobby_socket(data):
+    room = f"lobby_{data['auction_id']}"
+    join_room(room)
+
+    emit("user_joined", {
+        "user_id": data["user_id"],
+        "team_name": data["team_name"]
+    }, room=room)
+
+@socketio.on("leave_lobby")
+def leave_lobby_socket(data):
+    auction_id = data['auction_id']
+    user_id = data['user_id']
+    room = f"lobby_{auction_id}"
+    
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM auction_participants WHERE auction_id = %s AND user_id = %s",
+        (auction_id, user_id)
+    )
+    conn.commit()
+    cur.close()
+    
+    leave_room(room)
+    emit("user_left", {"user_id": user_id}, room=room)
+
+@socketio.on("start_auction")
+def start_auction(data):
+    auction_id = data["auction_id"]
+
+    r.set(f"auction:{auction_id}:status", "LIVE")
+    emit("auction_started", {}, room=f"lobby_{auction_id}")
 
 
 if __name__ == '__main__':
     # Run with SocketIO support
-    socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', debug=True, port=5000, allow_unsafe_werkzeug=True)

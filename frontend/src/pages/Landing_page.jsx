@@ -1,7 +1,8 @@
- import React from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import stadiumBg from "../static/stadium.png";
 
 const Landing_page = () => {
   return (<div className="dark">
@@ -14,6 +15,7 @@ const Landing_page = () => {
 <section className="relative w-full min-h-[85vh] flex items-center justify-center overflow-hidden">
 {/* Background Image with Overlay*/}
 <div className="absolute inset-0 z-0">
+<img src={stadiumBg} alt="Stadium" className="w-[90%] mt-20 h-full object-cover" />
 <div className="absolute inset-0 bg-gradient-to-b from-background-dark/60 via-background-dark/80 z-10"></div>
 </div>
 <div className="relative z-20 max-w-4xl px-6 text-center flex flex-col items-center">

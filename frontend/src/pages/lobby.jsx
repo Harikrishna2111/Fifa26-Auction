@@ -1,9 +1,83 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { Link } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import io from "socket.io-client";
+import { API_URL } from "../config";
 
 const Lobby = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const auctionId = searchParams.get("auction_id");
+  const joinCode = searchParams.get("join_code");
+  
+  const [lobbyData, setLobbyData] = useState(null);
+  const [participants, setParticipants] = useState([]);
+  const [socket, setSocket] = useState(null);
+
+  useEffect(() => {
+    if (!auctionId) return;
+
+    // Get user from localStorage
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      navigate('/login');
+      return;
+    }
+    const user = JSON.parse(userStr);
+
+    // Fetch lobby data and participants
+    const fetchLobby = () => {
+      fetch(`${API_URL}/api/lobby/${auctionId}`)
+        .then(res => res.json())
+        .then(data => setLobbyData(data));
+      
+      fetch(`${API_URL}/api/lobby/${auctionId}/participants`)
+        .then(res => res.json())
+        .then(data => setParticipants(data));
+    };
+    
+    fetchLobby();
+    const interval = setInterval(fetchLobby, 3000);
+
+    // Connect to socket
+    const newSocket = io(API_URL);
+    setSocket(newSocket);
+
+    newSocket.emit("join_lobby", {
+      auction_id: auctionId,
+      user_id: user.id,
+      team_name: user.username || "Your Team"
+    });
+
+    newSocket.on("user_joined", (data) => {
+      fetchLobby(); // Refresh when someone joins
+    });
+
+    newSocket.on("user_left", (data) => {
+      fetchLobby(); // Refresh when someone leaves
+    });
+
+    newSocket.on("auction_started", () => {
+      navigate("/preauction_phase");
+    });
+
+    return () => {
+      clearInterval(interval);
+      newSocket.emit("leave_lobby", {
+        auction_id: auctionId,
+        user_id: user.id
+      });
+      newSocket.close();
+    };
+  }, [auctionId, navigate]);
+
+  const handleStartAuction = () => {
+    if (socket) {
+      socket.emit("start_auction", { auction_id: auctionId });
+    }
+  };
+
   const stadiumGradientStyle = {
     background: 'radial-gradient(circle at top, #1a3a24 0%, #102216 70%)'
   };
@@ -26,79 +100,51 @@ const Lobby = () => {
 <div className="max-w-[1000px] w-full flex flex-col items-center">
 {/* Headline & Stats */}
 <div className="flex flex-col items-center gap-2 mb-10">
-<h1 className="text-white tracking-tight text-4xl md:text-5xl font-black leading-tight text-center">Elite Champions League</h1>
+<h1 className="text-white tracking-tight text-4xl md:text-5xl font-black leading-tight text-center">{lobbyData?.name || "Loading..."}</h1>
 <div className="mt-6 bg-primary/10 border border-primary/30 rounded-xl p-4 flex flex-col items-center min-w-[200px]" style={{boxShadow: '0 0 15px rgba(13, 242, 89, 0.4)'}}>
 <p className="text-primary/70 text-xs font-bold uppercase tracking-widest">Lobby Code</p>
-<p className="text-primary text-3xl font-black tracking-widest">Z7-K92</p>
+<p className="text-primary text-3xl font-black tracking-widest">{lobbyData?.join_code || joinCode || "N/A"}</p>
 </div>
 </div>
 {/* Section Header */}
 <div className="w-full flex justify-between items-end px-4 mb-4">
 <h2 className="text-white text-xl font-bold flex items-center gap-2">
 <span className="material-symbols-outlined text-primary">groups</span>
-                        Joined Managers (12/20)
-                    </h2>
+Joined Managers ({lobbyData?.player_count || 0}/20)
+</h2>
 <span className="text-white/40 text-sm font-medium">Waiting for players to join...</span>
 </div>
 {/* Image Grid (Managers) */}
 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 w-full p-4 bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm">
-{/* Admin (Highlighted) */}
-<div className="flex flex-col items-center gap-3">
+{participants.map((participant, idx) => (
+<div key={participant.user_id} className="flex flex-col items-center gap-3">
 <div className="relative group">
+{idx === 0 && (
 <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
 <span className="material-symbols-outlined text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]">workspace_premium</span>
 </div>
-<div className="size-24 rounded-full border-4 border-primary p-1 relative overflow-hidden bg-background-dark" style={{boxShadow: '0 0 15px rgba(13, 242, 89, 0.4)'}}>
-<div className="w-full h-full rounded-full bg-cover bg-center" data-alt="Admin user avatar" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCZKqcLIIMCVHjGyKKj06jlaQn_NgtotA6TcEd08QrF-3q0xvvkMYwReMmS0_JiORrT2auix3A-veACDjENIKpJi3oagxX0i0_okuAslcjODxcmQylLxUQvyA4qlnkEGQJuBpFN8c5Ge-x8QWJ2cHL4hBfI4pn5EMzB9lsnAxgtercVca44-p-rytuy3RIehAJNnlSFr1ReOhnIOvTZUPgutDYqrnaPYLzcKp1efnrKbvdik9QOvp0QLYeSc-Vp04jdHb-Kyzz-pxk")'}}></div>
+)}
+<div className={`size-24 rounded-full ${idx === 0 ? 'border-4 border-primary' : 'border-2 border-white/20'} p-1 relative overflow-hidden bg-background-dark hover:border-white/40 transition-all`} style={idx === 0 ? {boxShadow: '0 0 15px rgba(13, 242, 89, 0.4)'} : {}}>
+<div className="w-full h-full rounded-full bg-gradient-to-br from-primary/20 to-background-dark flex items-center justify-center">
+<span className="text-white text-2xl font-black">{participant.team_name?.charAt(0) || 'U'}</span>
 </div>
+</div>
+{idx === 0 && (
 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#FFD700] text-black text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Admin</div>
+)}
 </div>
-<p className="text-primary text-sm font-bold truncate max-w-[120px]">Marcus (You)</p>
+<p className={`${idx === 0 ? 'text-primary' : 'text-white/80'} text-sm font-bold truncate max-w-[120px]`}>{participant.team_name}</p>
 </div>
-{/* Other Managers */}
-<div className="flex flex-col items-center gap-3">
-<div className="size-24 rounded-full border-2 border-white/20 p-1 hover:border-white/40 transition-all">
-<div className="w-full h-full rounded-full bg-cover bg-center" data-alt="Manager avatar 2" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBn9EEqlJuWADvjrEIuPElperbqbx0GSl_8PmN2MzMmRkphDh5-yrEXgJ3yfA92SyJ_zLV0WMDN9Jevj9jUd4-hNp0f13torX1nwIRr9yRXYjMNHfIHYu5sfwQonS8KFWwIye2Pj47UBiVCh1yOHgILsSAlxh4pRCS14UgJiaw79LEfptSwXI_Jv1ktQw1bzZr95pf8TX-2w9ZyKTc4djTtYjdDcTTs8CQaEgrllYfQlI8HN1v-T33lRe_NvXx8VgWcIS0f5tDTPiI")'}}></div>
-</div>
-<p className="text-white/80 text-sm font-medium">Davey Jones</p>
-</div>
-<div className="flex flex-col items-center gap-3">
-<div className="size-24 rounded-full border-2 border-white/20 p-1 hover:border-white/40 transition-all">
-<div className="w-full h-full rounded-full bg-cover bg-center" data-alt="Manager avatar 3" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuB6OpxS1pHB6c8EIn0C6VK4mFZ9vTRtQgdaCpXDdDAZ7FRhmfoXBrgR8KcX5INfl2khXrOqx_bCC-hpEfFLFPCW0dxGQ1poR7P0et8sX5TOl9-bmUwDbTnxqr7228qP-kaUrW9ckWL0jEERYGs9X9noisJ_GS7oiwALfLgtERjaxOnGI4ifXr5ngEVRt6iijvRjawi8utZirYDAxbIU272uw73u4SVG_KPLPbOWwxi-l1kccbexxpn9rQh2DAngbqhcXWyyVe6sExQ")'}}></div>
-</div>
-<p className="text-white/80 text-sm font-medium">Sarah FC</p>
-</div>
-<div className="flex flex-col items-center gap-3">
-<div className="size-24 rounded-full border-2 border-white/20 p-1 hover:border-white/40 transition-all">
-<div className="w-full h-full rounded-full bg-cover bg-center" data-alt="Manager avatar 4" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCfBNZbKBwUsNg7sPWxEJlFnvSsLjvZH6N5VXf8qmA4glmGE9XnxFQJAj1jtFtgnKcRVXlyeF2BvBQmoF0h_u4PKZ77xPa6jsj5h8RIPH4DK5lsoL8Lmrwcio_fbH-BOHAW9TvDltQevtbXBMDEnmT3x7wPcw4EwWFSrjLFeP4NG1CMi0k-hzUguuuSDddxCpFWIylXMiO1_-sGZo8pTBxU5sOvroPXEjctbPltmujKdFyyuheefh889ckR-DM-YFrjvNzzgRYnH5Q")'}}></div>
-</div>
-<p className="text-white/80 text-sm font-medium">Beto Manager</p>
-</div>
-<div className="flex flex-col items-center gap-3">
-<div className="size-24 rounded-full border-2 border-white/20 p-1 hover:border-white/40 transition-all">
-<div className="w-full h-full rounded-full bg-cover bg-center" data-alt="Manager avatar 5" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBrxFIFAvNAI1IzHhd2759h4Gw5C7aPwUne2gpfB7nUaXcHmdX053UXbahsrEDRFc2hEGfJWoS9xszMPMy2Fvmz0maa_5tyXZHkRf0N9STBImKOu53bcj2lzeqeiz5e4JKXlS5PtjsWa75wqVwluh-g14OxGwCJMc7nuQTJueibQi9gYIFPDGvH0PeoDvNx-qVF_O4yAMZcOgOvCPh_NjbkyaXwk7JypM-6n7pg9IHzltGLaToMa3VvE_qMIk2syB6Vf-a3pitov2Q")'}}></div>
-</div>
-<p className="text-white/80 text-sm font-medium">Elena United</p>
-</div>
-<div className="flex flex-col items-center gap-3">
-<div className="size-24 rounded-full border-2 border-white/20 p-1 hover:border-white/40 transition-all">
-<div className="w-full h-full rounded-full bg-cover bg-center" data-alt="Manager avatar 6" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuD6vyoQ6FYsBNtpikBWJPEZt7ub7ao4bWp7BmcyX97XoSP7m4PXZyWxzwUUrpK0pt7P6FAWA0dDMcTrv98w2jCP4gS8Dbt0rj71RyTwH9lQRvX2xhoAuvMpArp6taQY6DZtq_GMM8YTzgUZJFS44-lod3oRCNLGk7chrGG9aJSPAD4o91g_nxSd1JAB83_tAyiUVrk0M519PvEtTse1Ivq3kcxAC8dHyH_a-XWwcfvmtcrGazxMli9sbtnDWbg9uBm2CGMhKFUiAIk")'}}></div>
-</div>
-<p className="text-white/80 text-sm font-medium">The Gaffer</p>
-</div>
-{/* Placeholder slots */}
-<div className="flex flex-col items-center gap-3 opacity-30">
+))}
+{/* Empty slots */}
+{Array.from({ length: Math.max(0, 20 - participants.length) }).map((_, idx) => (
+<div key={`empty-${idx}`} className="flex flex-col items-center gap-3 opacity-30">
 <div className="size-24 rounded-full border-2 border-dashed border-white/40 flex items-center justify-center">
 <span className="material-symbols-outlined text-3xl">person_add</span>
 </div>
 <p className="text-white/40 text-xs font-medium italic">Empty Slot</p>
 </div>
-<div className="flex flex-col items-center gap-3 opacity-30">
-<div className="size-24 rounded-full border-2 border-dashed border-white/40 flex items-center justify-center">
-<span className="material-symbols-outlined text-3xl">person_add</span>
-</div>
-<p className="text-white/40 text-xs font-medium italic">Empty Slot</p>
-</div>
+))}
 </div>
 {/* Action Section */}
 <div className="mt-16 w-full flex flex-col items-center gap-6">
@@ -106,13 +152,20 @@ const Lobby = () => {
 <span className="size-2 rounded-full bg-primary inline-block"></span>
                         Waiting for admin to start auction...
                     </p>
-{/* High Impact Start Button (Visible for Admin) */}
-<Link to="/preauction_phase"><button className="group relative flex min-w-[320px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-16 px-8 bg-primary text-background-dark text-xl font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(13,242,89,0.5)]">
+{/* High Impact Start Button (Visible for Host Only) */}
+{lobbyData?.host_id === JSON.parse(localStorage.getItem('user') || '{}').id ? (
+<button onClick={handleStartAuction} className="group relative flex min-w-[320px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-16 px-8 bg-primary text-background-dark text-xl font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(13,242,89,0.5)]">
 <span className="flex items-center gap-2">
-                            Start Auction
-                            <span className="material-symbols-outlined font-bold">play_arrow</span>
+Start Auction
+<span className="material-symbols-outlined font-bold">play_arrow</span>
 </span>
-</button></Link>
+</button>
+) : (
+<div className="text-white/60 text-base font-medium flex items-center gap-2">
+<span className="material-symbols-outlined text-xl">schedule</span>
+Waiting for host to start...
+</div>
+)}
 </div>
 </div>
 </main>

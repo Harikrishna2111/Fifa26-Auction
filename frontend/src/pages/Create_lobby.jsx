@@ -1,8 +1,46 @@
-import React from "react";
+import React, { useState } from "react";
 import Navbar from "../components/Navbar";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const Create_lobby = () => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    auction_name: "",
+    team_name: "",
+    season: false,
+    purse: 100000000,
+    inc_min: 1,
+    inc_mid: 5,
+    inc_max: 10,
+    bidding_time: 30,
+    min_players: 11,
+    host_id: 1 // TODO: Get from auth context
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const res = await fetch("http://localhost:5000/api/lobby/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        navigate(`/lobby?auction_id=${data.auction_id}&join_code=${data.join_code}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create lobby");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-background-dark font-display text-white min-h-screen">
       {/* HEADER */}
@@ -28,7 +66,7 @@ const Create_lobby = () => {
           {/* Subtle Background Texture */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
 
-          <form className="space-y-12 relative z-10">
+          <form onSubmit={handleSubmit} className="space-y-12 relative z-10">
             {/* SECTION 1: GENERAL INFO */}
             <div>
               <h3 className="text-sm font-bold text-primary uppercase tracking-widest mb-6 flex items-center gap-2">
@@ -45,6 +83,9 @@ const Create_lobby = () => {
                   </label>
                   <input
                     type="text"
+                    value={formData.auction_name}
+                    onChange={(e) => setFormData({...formData, auction_name: e.target.value})}
+                    required
                     className="w-full bg-black/40 border border-white/10 rounded-lg py-3 px-4 text-white placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
                     placeholder="e.g. Premier League 2026"
                   />
@@ -57,6 +98,8 @@ const Create_lobby = () => {
                   </label>
                   <input
                     type="text"
+                    value={formData.team_name}
+                    onChange={(e) => setFormData({...formData, team_name: e.target.value})}
                     className="w-full bg-black/40 border border-white/10 rounded-lg py-3 px-4 text-white placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
                     placeholder="e.g. The Invincibles"
                   />
@@ -80,6 +123,8 @@ const Create_lobby = () => {
                   <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
                     <input
                       type="checkbox"
+                      checked={formData.season}
+                      onChange={(e) => setFormData({...formData, season: e.target.checked})}
                       name="seasonal"
                       id="seasonal"
                       className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary"
@@ -115,6 +160,8 @@ const Create_lobby = () => {
                     </span>
                     <input
                       type="number"
+                      value={formData.purse}
+                      onChange={(e) => setFormData({...formData, purse: parseInt(e.target.value)})}
                       className="w-full bg-black/40 border border-white/10 rounded-lg py-3 pl-8 pr-4 text-white font-mono focus:border-primary focus:outline-none transition-all"
                       placeholder="100000000"
                     />
@@ -146,6 +193,8 @@ const Create_lobby = () => {
                       </span>
                       <input
                         type="number"
+                        value={formData.inc_min}
+                        onChange={(e) => setFormData({...formData, inc_min: parseInt(e.target.value)})}
                         className="w-full bg-black/40 border border-white/10 rounded-lg py-3 px-4 text-center font-mono text-sm focus:border-primary focus:outline-none"
                         placeholder="1"
                       />
@@ -156,6 +205,8 @@ const Create_lobby = () => {
                       </span>
                       <input
                         type="number"
+                        value={formData.inc_mid}
+                        onChange={(e) => setFormData({...formData, inc_mid: parseInt(e.target.value)})}
                         className="w-full bg-black/40 border border-white/10 rounded-lg py-3 px-4 text-center font-mono text-sm focus:border-primary focus:outline-none"
                         placeholder="5"
                       />
@@ -166,6 +217,8 @@ const Create_lobby = () => {
                       </span>
                       <input
                         type="number"
+                        value={formData.inc_max}
+                        onChange={(e) => setFormData({...formData, inc_max: parseInt(e.target.value)})}
                         className="w-full bg-black/40 border border-white/10 rounded-lg py-3 px-4 text-center font-mono text-sm focus:border-primary focus:outline-none"
                         placeholder="10"
                       />
@@ -192,6 +245,8 @@ const Create_lobby = () => {
                   <div className="relative">
                     <input
                       type="number"
+                      value={formData.bidding_time}
+                      onChange={(e) => setFormData({...formData, bidding_time: parseInt(e.target.value)})}
                       className="w-full bg-black/40 border border-white/10 rounded-lg py-3 px-4 text-white focus:border-primary focus:outline-none transition-all"
                       placeholder="30"
                     />
@@ -214,6 +269,8 @@ const Create_lobby = () => {
                     </div>
                     <input
                       type="number"
+                      value={formData.min_players}
+                      onChange={(e) => setFormData({...formData, min_players: parseInt(e.target.value)})}
                       className="w-full bg-transparent border-none py-3 px-4 text-white placeholder:text-slate-600 focus:ring-0"
                       placeholder="11"
                     />
@@ -241,17 +298,16 @@ const Create_lobby = () => {
 
             {/* ACTION BUTTON */}
             <div className="pt-8">
-              <Link to="/lobby">
                 <button
-                  className="w-full group relative bg-primary text-background-dark py-5 rounded-xl font-black uppercase tracking-[0.2em] overflow-hidden transition-all hover:scale-[1.01] hover:shadow-[0_0_40px_rgba(13,242,89,0.3)]"
-                  type="button"
+                  type="submit"
+                  disabled={loading}
+                  className="w-full group relative bg-primary text-background-dark py-5 rounded-xl font-black uppercase tracking-[0.2em] overflow-hidden transition-all hover:scale-[1.01] hover:shadow-[0_0_40px_rgba(13,242,89,0.3)] disabled:opacity-50"
                 >
                   <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shine"></div>
                   <span className="relative z-10 flex items-center justify-center gap-3">
-                    Initialize Lobby <span className="material-symbols-outlined">rocket_launch</span>
+                    {loading ? "Creating..." : "Initialize Lobby"} <span className="material-symbols-outlined">rocket_launch</span>
                   </span>
                 </button>
-              </Link>
               <p className="text-xs text-slate-500 text-center mt-4 font-mono">
                 * Managers will receive join codes after initialization.
               </p>

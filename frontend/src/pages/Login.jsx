@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { API_URL } from "../config";
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -12,9 +13,9 @@ const handleLogin = async () => {
   console.log("Attempting login with:", { username, password: "***" });
 
   try {
-    console.log("Sending request to: http://localhost:5000/api/auth/login");
+    console.log(`Sending request to: ${API_URL}/api/auth/login`);
     
-    const res = await fetch("http://localhost:5000/api/auth/login", {
+    const res = await fetch(`${API_URL}/api/auth/login`, {
       method: "POST",
       mode: "cors",
       headers: { 
@@ -59,7 +60,7 @@ const handleSignup = async () => {
   setLoading(true);
 
   try {
-    const res = await fetch("http://localhost:5000/api/auth/register", {
+    const res = await fetch(`${API_URL}/api/auth/register`, {
       method: "POST",
       mode: "cors",
       headers: { 
