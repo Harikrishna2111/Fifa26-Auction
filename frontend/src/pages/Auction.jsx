@@ -1,6 +1,96 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Environment, Float, ContactShadows } from '@react-three/drei';
+import * as THREE from 'three';
 import Navbar from '../components/Navbar';
+
+// --- 3D GAVEL COMPONENT ---
+const GavelModel = ({ result }) => {
+  const group = useRef();
+  const pivotRef = useRef();
+  const startTime = useRef(null);
+
+  const bandColor = result === 'sold' ? "#ffd700" : "#999999";
+  
+  useFrame((state) => {
+     if(!pivotRef.current) return;
+     
+     // Initialize start time on first frame to ensure consistency
+     if (startTime.current === null) {
+       startTime.current = state.clock.getElapsedTime();
+     }
+
+     const t = state.clock.getElapsedTime() - startTime.current;
+     
+     let rotZ = 0;
+     
+     // ANIMATION SEQUENCE (ONE TAP)
+     // 0.0s - 0.5s: Raise Gavel (0 -> 45 deg)
+     // 0.5s - 0.6s: Strike! (45 -> -10 deg)
+     // 0.6s+: Stay down (with small bounce)
+
+     if (t < 0.5) {
+         // Raise up
+         rotZ = THREE.MathUtils.lerp(0, Math.PI / 4, t / 0.5); 
+     } else if (t < 0.6) {
+         // STRIKE DOWN FAST!
+         const strikePhase = (t - 0.5) / 0.1; 
+         rotZ = THREE.MathUtils.lerp(Math.PI / 4, -0.1, strikePhase);
+     } else {
+         // Settle at -0.1
+         rotZ = -0.1;
+         // Small rebound effect
+         if (t < 1.0) {
+            rotZ += Math.sin((t - 0.6) * 15) * 0.05 * (1 - (t - 0.6) / 0.4);
+         }
+     }
+     
+     pivotRef.current.rotation.z = rotZ;
+     
+     // Gentle float/spin for visual flair
+     if (group.current) {
+         group.current.rotation.y = t * 0.2; 
+         group.current.position.y = -0.5 + Math.sin(t) * 0.05;
+     }
+  });
+  
+  return (
+    <group ref={group} dispose={null} scale={1.0} position={[0, -0.5, 0]}>
+       {/* Pivot Group for Animation */}
+       <group ref={pivotRef} position={[1, -1, 0]}> 
+          {/* Offset the model so handle end is at pivot (0,0,0) */}
+          <group position={[-1, 1, 0]}> 
+              {/* Handle */}
+              <mesh position={[0, 0.5, 0]}>
+                <cylinderGeometry args={[0.08, 0.12, 3, 32]} />
+                <meshStandardMaterial color="#4a2c18" roughness={0.4} />
+              </mesh>
+              
+              {/* Head */}
+              <group position={[0, 2, 0]} rotation={[0, 0, Math.PI / 2]}>
+                {/* Main Cylinder */}
+                <mesh>
+                  <cylinderGeometry args={[0.4, 0.4, 1.8, 32]} />
+                  <meshStandardMaterial color="#3e2723" roughness={0.2} metalness={0.1} />
+                </mesh>
+                
+                {/* Metal Caps */}
+                <mesh position={[0, 0.95, 0]}>
+                  <cylinderGeometry args={[0.42, 0.4, 0.1, 32]} />
+                  <meshStandardMaterial color={bandColor} metalness={0.8} roughness={0.2} />
+                </mesh>
+                <mesh position={[0, -0.95, 0]}>
+                  <cylinderGeometry args={[0.4, 0.42, 0.1, 32]} />
+                  <meshStandardMaterial color={bandColor} metalness={0.8} roughness={0.2} />
+                </mesh>
+              </group>
+          </group>
+       </group>
+    </group>
+  );
+};
+
 
 // --- HELPER: PLAYER CARD (Defined Outside) ---
 const PlayerCard = ({ player, sizeClass, locationType, index, isDragging, isHovered, isMatch, onDragStart, onDrop, onDragOver, onDragEnd }) => {
@@ -67,6 +157,8 @@ const Auction = () => {
   // --- STATE ---
   const [showBoughtPlayersModal, setShowBoughtPlayersModal] = useState(false);
   const [showCompareModal, setShowCompareModal] = useState(false);
+  // Auction Result State (sold, unsold, null)
+  const [auctionResult, setAuctionResult] = useState(null); 
   const [selectedManager, setSelectedManager] = useState(null);
 
   // Trade State
@@ -421,6 +513,45 @@ const Auction = () => {
     );
   };
 
+  const GavelModal = () => {
+    return (
+      <div className="fixed inset-0 z-[5000] flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/95 backdrop-blur-md animate-in fade-in duration-300"></div>
+        <div className="relative z-10 flex flex-col items-center animate-in zoom-in-50 duration-500 w-full">
+          
+          {/* 3D GAVEL SCENE */}
+          <div className="relative mb-0 w-[500px] h-[400px]">
+            <div className={`absolute inset-0 blur-[100px] opacity-20 rounded-full ${auctionResult === 'sold' ? 'bg-[#39ff14]' : 'bg-red-500'}`}></div>
+            <Canvas camera={{ position: [0, 0, 8], fov: 40 }}>
+               <ambientLight intensity={0.5} />
+               <pointLight position={[5, 10, 5]} intensity={1.5} color={auctionResult === 'sold' ? "#ffd700" : "#ffffff"} />
+               <pointLight position={[-5, 5, -5]} intensity={1} color={auctionResult === 'sold' ? "#39ff14" : "#ff4444"} />
+               <Environment preset="city" />
+                <GavelModel result={auctionResult} />
+            </Canvas>
+          </div>
+
+          <h1 className={`text-[80px] font-black italic tracking-tighter leading-none mb-4 drop-shadow-lg ${auctionResult === 'sold' ? 'text-white' : 'text-white/50'}`}>
+            {auctionResult === 'sold' ? 'SOLD!' : 'UNSOLD'}
+          </h1>
+
+          {auctionResult === 'sold' ? (
+            <div className="flex flex-col items-center gap-2 mb-8">
+              <div className="text-3xl font-bold uppercase tracking-widest text-[#39ff14]">GalacticManager_7</div>
+              <div className="text-6xl font-black italic text-white">$85,000,000</div>
+            </div>
+          ) : (
+            <div className="text-2xl font-bold text-white/40 uppercase tracking-widest mb-8">No Bids Received</div>
+          )}
+
+          <button onClick={() => setAuctionResult(null)} className="px-12 py-4 bg-white/10 border border-white/20 rounded-full text-white font-bold uppercase tracking-widest hover:bg-white/20 hover:scale-105 transition-all">
+            Continue to Next Player
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-[#0a0f0b] font-display text-white overflow-hidden h-screen" style={{
       background: "linear-gradient(rgba(10, 15, 11, 0.9), rgba(10, 15, 11, 0.95)), url('https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&q=80&w=2000')",
@@ -510,8 +641,9 @@ const Auction = () => {
               </div>
               <div className="flex gap-4">
                 <input className="flex-1 bg-black/50 border border-white/20 rounded px-6 font-bold text-lg text-white" placeholder="Custom bid..." type="text"/>
-                <button className="h-14 w-32 bg-[#39ff14] text-black font-black text-xl italic rounded hover:scale-105">BID</button>
-                <button className="h-14 px-8 bg-white/10 border border-white/10 rounded font-bold uppercase hover:bg-white/20">Pass</button>
+                <button className="h-14 w-24 bg-[#39ff14] text-black font-black text-xl italic rounded hover:scale-105 shadow-[0_0_20px_rgba(57,255,20,0.4)]">BID</button>
+                <button onClick={() => setAuctionResult('sold')} className="h-14 w-24 bg-[#ffd700] text-black font-black text-xl italic rounded hover:scale-105 shadow-[0_0_20px_rgba(255,215,0,0.4)]">SELL</button>
+                <button onClick={() => setAuctionResult('unsold')} className="h-14 px-8 bg-white/10 border border-white/10 rounded font-bold uppercase text-white/60 hover:text-white hover:bg-white/20 transition-all">Pass</button>
               </div>
             </div>
           </div>
@@ -608,6 +740,7 @@ const Auction = () => {
 
       {showBoughtPlayersModal && <BoughtPlayersModal />}
       {showCompareModal && <CompareModal />}
+      {auctionResult && <GavelModal />}
 
     </div>
   );
