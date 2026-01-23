@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
+import { API_URL } from "../config";
+
 const Create_team = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -53,7 +55,7 @@ const Create_team = () => {
             q.set('limit', currentPageSize);
             q.set('offset', (currentPage - 1) * currentPageSize);
 
-            const res = await fetch(`http://localhost:5000/api/players/market?${q.toString()}`);
+            const res = await fetch(`${API_URL}/api/players/market?${q.toString()}`);
             if (!res.ok) throw new Error('Failed to load players');
             const data = await res.json();
             // API returns { total, players } now — handle both shapes
@@ -124,11 +126,11 @@ const Create_team = () => {
                                 <div className="flex gap-2">
                                     <button onClick={handleSearch} className="ml-2 bg-white/6 hover:bg-white/10 text-white font-semibold px-3 py-2 rounded-lg text-sm border border-white/10">Search</button>
 
-                                    <button onClick={() => handlePositionClick('ALL')} className={`px-4 py-2 rounded-lg text-sm transition-transform active:scale-95 font-bold ${position==='ALL' ? 'bg-primary text-background-dark' : 'bg-white/5 text-white border border-white/10'}`}>ALL</button>
-                                    <button onClick={() => handlePositionClick('FWD')} className={`px-4 py-2 rounded-lg text-sm transition-colors ${position==='FWD' ? 'bg-primary text-background-dark font-bold' : 'bg-white/5 text-white border border-white/10'}`}>FWD</button>
-                                    <button onClick={() => handlePositionClick('MID')} className={`px-4 py-2 rounded-lg text-sm transition-colors ${position==='MID' ? 'bg-primary text-background-dark font-bold' : 'bg-white/5 text-white border border-white/10'}`}>MID</button>
-                                    <button onClick={() => handlePositionClick('DEF')} className={`px-4 py-2 rounded-lg text-sm transition-colors ${position==='DEF' ? 'bg-primary text-background-dark font-bold' : 'bg-white/5 text-white border border-white/10'}`}>DEF</button>
-                                    <button onClick={() => handlePositionClick('GK')} className={`px-4 py-2 rounded-lg text-sm transition-colors ${position==='GK' ? 'bg-primary text-background-dark font-bold' : 'bg-white/5 text-white border border-white/10'}`}>GK</button>
+                                    <button onClick={() => handlePositionClick('ALL')} className={`px-4 py-2 rounded-lg text-sm transition-transform active:scale-95 font-bold ${position === 'ALL' ? 'bg-primary text-background-dark' : 'bg-white/5 text-white border border-white/10'}`}>ALL</button>
+                                    <button onClick={() => handlePositionClick('FWD')} className={`px-4 py-2 rounded-lg text-sm transition-colors ${position === 'FWD' ? 'bg-primary text-background-dark font-bold' : 'bg-white/5 text-white border border-white/10'}`}>FWD</button>
+                                    <button onClick={() => handlePositionClick('MID')} className={`px-4 py-2 rounded-lg text-sm transition-colors ${position === 'MID' ? 'bg-primary text-background-dark font-bold' : 'bg-white/5 text-white border border-white/10'}`}>MID</button>
+                                    <button onClick={() => handlePositionClick('DEF')} className={`px-4 py-2 rounded-lg text-sm transition-colors ${position === 'DEF' ? 'bg-primary text-background-dark font-bold' : 'bg-white/5 text-white border border-white/10'}`}>DEF</button>
+                                    <button onClick={() => handlePositionClick('GK')} className={`px-4 py-2 rounded-lg text-sm transition-colors ${position === 'GK' ? 'bg-primary text-background-dark font-bold' : 'bg-white/5 text-white border border-white/10'}`}>GK</button>
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 h-[700px] overflow-y-auto pr-2 custom-scrollbar">
@@ -189,93 +191,93 @@ const Create_team = () => {
                             <div className="flex items-center justify-between gap-4 mt-3">
                                 <div className="text-white/60 text-sm">{total} players</div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => { if (page > 1) { setPage(page-1); } }} disabled={page<=1} className="px-3 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-40">Prev</button>
+                                    <button onClick={() => { if (page > 1) { setPage(page - 1); } }} disabled={page <= 1} className="px-3 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-40">Prev</button>
                                     <div className="text-white/80 text-sm">Page {page} of {Math.max(1, Math.ceil(total / pageSize))}</div>
-                                    <button onClick={() => { if (page * pageSize < total) { setPage(page+1); } }} disabled={page * pageSize >= total} className="px-3 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-40">Next</button>
+                                    <button onClick={() => { if (page * pageSize < total) { setPage(page + 1); } }} disabled={page * pageSize >= total} className="px-3 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-40">Next</button>
                                 </div>
                             </div>
                         </div>
-{/* Right Panel: Your Team */}
-<div className="col-span-12 lg:col-span-4 space-y-6 lg:sticky lg:top-24">
-{/* Team Summary Card */}
-<div className="bg-primary text-background-dark rounded-xl p-6 shadow-xl relative overflow-hidden">
-<div className="absolute right-[-20px] top-[-20px] opacity-10">
-<span className="material-symbols-outlined !text-9xl">shield</span>
-</div>
-<div className="relative z-10">
-<div className="flex justify-between items-start mb-6">
-<div>
-<h3 className="font-black text-2xl italic leading-none uppercase tracking-tighter">Squad Status</h3>
-<p className="text-background-dark/70 font-bold uppercase text-xs tracking-widest mt-1">Elite League Season 2</p>
-</div>
-<div className="text-right">
-<div className="text-4xl font-black italic">{selectedPlayers.length > 0 ? Math.round(selectedPlayers.reduce((sum, p) => sum + (p.overall || 0), 0) / selectedPlayers.length) : 0}</div>
-<div className="text-[10px] font-bold uppercase tracking-widest leading-none">Avg OVR</div>
-</div>
-</div>
-<div className="space-y-2 mb-4">
-<div className="flex justify-between items-end">
-<span className="font-bold text-sm uppercase">Squad Depth</span>
-<span className="font-black text-lg italic leading-none">{selectedPlayers.length}/{MAX_SQUAD}</span>
-</div>
-<div className="w-full h-3 bg-background-dark/20 rounded-full overflow-hidden">
-<div className="h-full bg-background-dark rounded-full" style={{width: `${(selectedPlayers.length / MAX_SQUAD) * 100}%`}}></div>
-</div>
-</div>
-<div className="flex items-center gap-4 pt-4 border-t border-background-dark/10">
-<div className="flex-1">
-<div className="text-[10px] font-bold uppercase tracking-widest opacity-60">Remaining Budget</div>
-<div className="text-xl font-black italic">€ 42.5M</div>
-</div>
-<div className="size-10 bg-background-dark text-primary rounded-lg flex items-center justify-center">
-<span className="material-symbols-outlined">trending_up</span>
-</div>
-</div>
-</div>
-</div>
-{/* Selected Players List */}
-<div className="glass-panel rounded-xl overflow-hidden flex flex-col">
-<div className="p-4 border-b border-white/10 flex justify-between items-center">
-<h4 className="text-white font-bold uppercase tracking-wider text-sm italic">Active Roster</h4>
-<span className="text-white/40 text-[10px] font-bold uppercase">{selectedPlayers.length} of {MAX_SQUAD}</span>
-</div>
-<div className="max-h-[460px] overflow-y-auto custom-scrollbar">
-{selectedPlayers.length === 0 ? (
-<div className="p-4 bg-white/2 border border-dashed border-white/10 m-3 rounded-lg flex flex-col items-center justify-center py-8 text-center">
-<span className="material-symbols-outlined text-white/10 text-4xl mb-2">person_add</span>
-<p className="text-white/30 text-xs font-bold uppercase tracking-widest">Select {MAX_SQUAD} players</p>
-</div>
-) : (
-<>
-{selectedPlayers.map((player) => (
-<div key={player.id} className="flex items-center gap-4 p-4 border-b border-white/5 hover:bg-white/5 transition-colors group">
-<div className="size-12 rounded-lg overflow-hidden flex-shrink-0 bg-white/10">
-<img alt={player.name} className="w-full h-full object-cover" src={player.image_url} />
-</div>
-<div className="flex-1">
-<h5 className="text-white font-bold text-sm uppercase tracking-tight">{player.name}</h5>
-<div className="flex items-center gap-2">
-<span className="text-primary text-[10px] font-black italic">{player.overall} OVR</span>
-<span className="text-white/40 text-[10px] uppercase font-bold">{player.position_group}</span>
-</div>
-</div>
-<button onClick={() => removePlayer(player.id)} className="text-white/20 hover:text-red-500 transition-colors">
-<span className="material-symbols-outlined text-lg">cancel</span>
-</button>
-</div>
-))}
-{selectedPlayers.length < MAX_SQUAD && (
-<div className="p-4 bg-white/2 border border-dashed border-white/10 m-3 rounded-lg flex flex-col items-center justify-center py-8 text-center">
-<span className="material-symbols-outlined text-white/10 text-4xl mb-2">person_add</span>
-<p className="text-white/30 text-xs font-bold uppercase tracking-widest">Select {MAX_SQUAD - selectedPlayers.length} more player{MAX_SQUAD - selectedPlayers.length !== 1 ? 's' : ''}</p>
-</div>
-)}
-</>
-)}
-</div>
-</div>
-</div>
-</div>
+                        {/* Right Panel: Your Team */}
+                        <div className="col-span-12 lg:col-span-4 space-y-6 lg:sticky lg:top-24">
+                            {/* Team Summary Card */}
+                            <div className="bg-primary text-background-dark rounded-xl p-6 shadow-xl relative overflow-hidden">
+                                <div className="absolute right-[-20px] top-[-20px] opacity-10">
+                                    <span className="material-symbols-outlined !text-9xl">shield</span>
+                                </div>
+                                <div className="relative z-10">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div>
+                                            <h3 className="font-black text-2xl italic leading-none uppercase tracking-tighter">Squad Status</h3>
+                                            <p className="text-background-dark/70 font-bold uppercase text-xs tracking-widest mt-1">Elite League Season 2</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-4xl font-black italic">{selectedPlayers.length > 0 ? Math.round(selectedPlayers.reduce((sum, p) => sum + (p.overall || 0), 0) / selectedPlayers.length) : 0}</div>
+                                            <div className="text-[10px] font-bold uppercase tracking-widest leading-none">Avg OVR</div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2 mb-4">
+                                        <div className="flex justify-between items-end">
+                                            <span className="font-bold text-sm uppercase">Squad Depth</span>
+                                            <span className="font-black text-lg italic leading-none">{selectedPlayers.length}/{MAX_SQUAD}</span>
+                                        </div>
+                                        <div className="w-full h-3 bg-background-dark/20 rounded-full overflow-hidden">
+                                            <div className="h-full bg-background-dark rounded-full" style={{ width: `${(selectedPlayers.length / MAX_SQUAD) * 100}%` }}></div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 pt-4 border-t border-background-dark/10">
+                                        <div className="flex-1">
+                                            <div className="text-[10px] font-bold uppercase tracking-widest opacity-60">Remaining Budget</div>
+                                            <div className="text-xl font-black italic">€ 42.5M</div>
+                                        </div>
+                                        <div className="size-10 bg-background-dark text-primary rounded-lg flex items-center justify-center">
+                                            <span className="material-symbols-outlined">trending_up</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {/* Selected Players List */}
+                            <div className="glass-panel rounded-xl overflow-hidden flex flex-col">
+                                <div className="p-4 border-b border-white/10 flex justify-between items-center">
+                                    <h4 className="text-white font-bold uppercase tracking-wider text-sm italic">Active Roster</h4>
+                                    <span className="text-white/40 text-[10px] font-bold uppercase">{selectedPlayers.length} of {MAX_SQUAD}</span>
+                                </div>
+                                <div className="max-h-[460px] overflow-y-auto custom-scrollbar">
+                                    {selectedPlayers.length === 0 ? (
+                                        <div className="p-4 bg-white/2 border border-dashed border-white/10 m-3 rounded-lg flex flex-col items-center justify-center py-8 text-center">
+                                            <span className="material-symbols-outlined text-white/10 text-4xl mb-2">person_add</span>
+                                            <p className="text-white/30 text-xs font-bold uppercase tracking-widest">Select {MAX_SQUAD} players</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {selectedPlayers.map((player) => (
+                                                <div key={player.id} className="flex items-center gap-4 p-4 border-b border-white/5 hover:bg-white/5 transition-colors group">
+                                                    <div className="size-12 rounded-lg overflow-hidden flex-shrink-0 bg-white/10">
+                                                        <img alt={player.name} className="w-full h-full object-cover" src={player.image_url} />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <h5 className="text-white font-bold text-sm uppercase tracking-tight">{player.name}</h5>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-primary text-[10px] font-black italic">{player.overall} OVR</span>
+                                                            <span className="text-white/40 text-[10px] uppercase font-bold">{player.position_group}</span>
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={() => removePlayer(player.id)} className="text-white/20 hover:text-red-500 transition-colors">
+                                                        <span className="material-symbols-outlined text-lg">cancel</span>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            {selectedPlayers.length < MAX_SQUAD && (
+                                                <div className="p-4 bg-white/2 border border-dashed border-white/10 m-3 rounded-lg flex flex-col items-center justify-center py-8 text-center">
+                                                    <span className="material-symbols-outlined text-white/10 text-4xl mb-2">person_add</span>
+                                                    <p className="text-white/30 text-xs font-bold uppercase tracking-widest">Select {MAX_SQUAD - selectedPlayers.length} more player{MAX_SQUAD - selectedPlayers.length !== 1 ? 's' : ''}</p>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </main>
                 <footer className="fixed bottom-0 left-0 right-0 z-50 bg-background-dark/90 backdrop-blur-xl border-t border-white/10 px-6 lg:px-20 py-4">
                     <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -323,7 +325,7 @@ const Create_team = () => {
                                             manager_id,
                                             players: selectedPlayers.map(p => ({ player_id: p.id, acquired_price: p.value || 0 }))
                                         };
-                                        const res = await fetch('http://localhost:5000/api/teams', {
+                                        const res = await fetch(`${API_URL}/api/teams`, {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify(payload)
@@ -350,7 +352,7 @@ const Create_team = () => {
                 <div className="h-24"></div>
             </div>
         </>
-  );
+    );
 };
 
 export default Create_team;

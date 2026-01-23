@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar';
 
 // --- HELPER COMPONENT (Defined Outside to prevent re-mount issues) ---
 const PlayerCard = ({ player, sizeClass, locationType, index, isDragging, isHovered, onDragStart, onDrop, onDragOver, onDragEnd }) => {
-  
+
   // Style Logic based on rating
   const getCardStyle = (rating) => {
     if (rating >= 90) return { bg: 'bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-900', border: 'border-cyan-400', text: 'text-cyan-300', shadow: 'shadow-cyan-500/40' };
@@ -60,16 +60,18 @@ const PlayerCard = ({ player, sizeClass, locationType, index, isDragging, isHove
 };
 
 // --- MAIN COMPONENT ---
+import { API_URL } from "../config";
+
 const Formation_settings = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [currentFormation, setCurrentFormation] = useState('4-3-3');
-  
+
   // Data State
   const [pitchPlayers, setPitchPlayers] = useState([]);
   const [subPlayers, setSubPlayers] = useState([]);
   const [resPlayers, setResPlayers] = useState([]);
-  
+
   // Drag State
   const [draggedInfo, setDraggedInfo] = useState(null); // { type, index }
   const [hoveredInfo, setHoveredInfo] = useState(null); // { type, index }
@@ -83,11 +85,11 @@ const Formation_settings = () => {
   const allPlayers = [];
 
   const formations = {
-    "4-3-3": [{role:"GK",left:50,top:85},{role:"LB",left:15,top:70},{role:"CB",left:38,top:75},{role:"CB",left:62,top:75},{role:"RB",left:85,top:70},{role:"CM",left:30,top:45},{role:"CM",left:50,top:50},{role:"CM",left:70,top:45},{role:"LW",left:15,top:15},{role:"ST",left:50,top:10},{role:"RW",left:85,top:15}],
-    "4-4-2": [{role:"GK",left:50,top:85},{role:"LB",left:15,top:70},{role:"CB",left:38,top:75},{role:"CB",left:62,top:75},{role:"RB",left:85,top:70},{role:"LM",left:15,top:40},{role:"CM",left:40,top:45},{role:"CM",left:60,top:45},{role:"RM",left:85,top:40},{role:"ST",left:35,top:15},{role:"ST",left:65,top:15}],
-    "4-2-3-1": [{role:"GK",left:50,top:85},{role:"LB",left:12,top:70},{role:"CB",left:36,top:75},{role:"CB",left:64,top:75},{role:"RB",left:88,top:70},{role:"CDM",left:35,top:55},{role:"CDM",left:65,top:55},{role:"CAM",left:20,top:35},{role:"CAM",left:50,top:38},{role:"CAM",left:80,top:35},{role:"ST",left:50,top:12}],
-    "3-5-2": [{role:"GK",left:50,top:85},{role:"CB",left:20,top:72},{role:"CB",left:50,top:68},{role:"CB",left:80,top:72},{role:"LM",left:10,top:40},{role:"CDM",left:35,top:50},{role:"CM",left:50,top:35},{role:"CDM",left:65,top:50},{role:"RM",left:90,top:40},{role:"ST",left:35,top:15},{role:"ST",left:65,top:15}],
-    "5-3-2": [{role:"GK",left:50,top:85},{role:"LWB",left:8,top:60},{role:"CB",left:30,top:72},{role:"CB",left:50,top:75},{role:"CB",left:70,top:72},{role:"RWB",left:92,top:60},{role:"CM",left:30,top:40},{role:"CM",left:50,top:45},{role:"CM",left:70,top:40},{role:"ST",left:35,top:12},{role:"ST",left:65,top:12}]
+    "4-3-3": [{ role: "GK", left: 50, top: 85 }, { role: "LB", left: 15, top: 70 }, { role: "CB", left: 38, top: 75 }, { role: "CB", left: 62, top: 75 }, { role: "RB", left: 85, top: 70 }, { role: "CM", left: 30, top: 45 }, { role: "CM", left: 50, top: 50 }, { role: "CM", left: 70, top: 45 }, { role: "LW", left: 15, top: 15 }, { role: "ST", left: 50, top: 10 }, { role: "RW", left: 85, top: 15 }],
+    "4-4-2": [{ role: "GK", left: 50, top: 85 }, { role: "LB", left: 15, top: 70 }, { role: "CB", left: 38, top: 75 }, { role: "CB", left: 62, top: 75 }, { role: "RB", left: 85, top: 70 }, { role: "LM", left: 15, top: 40 }, { role: "CM", left: 40, top: 45 }, { role: "CM", left: 60, top: 45 }, { role: "RM", left: 85, top: 40 }, { role: "ST", left: 35, top: 15 }, { role: "ST", left: 65, top: 15 }],
+    "4-2-3-1": [{ role: "GK", left: 50, top: 85 }, { role: "LB", left: 12, top: 70 }, { role: "CB", left: 36, top: 75 }, { role: "CB", left: 64, top: 75 }, { role: "RB", left: 88, top: 70 }, { role: "CDM", left: 35, top: 55 }, { role: "CDM", left: 65, top: 55 }, { role: "CAM", left: 20, top: 35 }, { role: "CAM", left: 50, top: 38 }, { role: "CAM", left: 80, top: 35 }, { role: "ST", left: 50, top: 12 }],
+    "3-5-2": [{ role: "GK", left: 50, top: 85 }, { role: "CB", left: 20, top: 72 }, { role: "CB", left: 50, top: 68 }, { role: "CB", left: 80, top: 72 }, { role: "LM", left: 10, top: 40 }, { role: "CDM", left: 35, top: 50 }, { role: "CM", left: 50, top: 35 }, { role: "CDM", left: 65, top: 50 }, { role: "RM", left: 90, top: 40 }, { role: "ST", left: 35, top: 15 }, { role: "ST", left: 65, top: 15 }],
+    "5-3-2": [{ role: "GK", left: 50, top: 85 }, { role: "LWB", left: 8, top: 60 }, { role: "CB", left: 30, top: 72 }, { role: "CB", left: 50, top: 75 }, { role: "CB", left: 70, top: 72 }, { role: "RWB", left: 92, top: 60 }, { role: "CM", left: 30, top: 40 }, { role: "CM", left: 50, top: 45 }, { role: "CM", left: 70, top: 40 }, { role: "ST", left: 35, top: 12 }, { role: "ST", left: 65, top: 12 }]
   };
 
   useEffect(() => {
@@ -103,7 +105,7 @@ const Formation_settings = () => {
         img: p.image_url || p.img,
         stat: `VAL ${p.price || ''}`
       }));
-      
+
       setPitchPlayers(formattedPlayers.slice(0, 11));
       setSubPlayers(formattedPlayers.slice(11, 18));
       setResPlayers(formattedPlayers.slice(18));
@@ -125,7 +127,7 @@ const Formation_settings = () => {
 
   const fetchTeamPlayers = async (teamId) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/teams/${teamId}/players`);
+      const res = await fetch(`${API_URL}/api/teams/${teamId}/players`);
       if (!res.ok) throw new Error('Failed to load team players');
       const data = await res.json();
 
@@ -176,7 +178,7 @@ const Formation_settings = () => {
   const handleDrop = (e, targetType, targetIndex) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     setDraggedInfo(null);
     setHoveredInfo(null);
 
@@ -236,11 +238,11 @@ const Formation_settings = () => {
 
   return (
     <>
-      <div className="font-display flex flex-col h-screen overflow-hidden bg-[#050807]" style={{backgroundImage: 'radial-gradient(#152a1e 1px, transparent 1px)', backgroundSize: '40px 40px'}}>
+      <div className="font-display flex flex-col h-screen overflow-hidden bg-[#050807]" style={{ backgroundImage: 'radial-gradient(#152a1e 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
         <Navbar isLoggedIn={true} userName="Alex Smith" userRole="Pro Manager" />
 
         <div className="flex-1 flex overflow-hidden">
-          
+
           {/* Controls Bar */}
           <div className="absolute top-[80px] left-0 right-0 z-40 bg-[#050807]/80 backdrop-blur-md px-8 py-3 border-b border-white/5 flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -261,16 +263,16 @@ const Formation_settings = () => {
           </div>
 
           <div className="w-full h-full pt-[130px] grid grid-cols-1 lg:grid-cols-[1fr_380px] 2xl:grid-cols-[1fr_450px] gap-0">
-            
+
             {/* Pitch */}
-            <div 
-              className="relative overflow-y-auto p-6 pb-32 bg-[#050807]" 
+            <div
+              className="relative overflow-y-auto p-6 pb-32 bg-[#050807]"
               onClick={() => { setDraggedInfo(null); setHoveredInfo(null); }}
               onDragOver={(e) => e.preventDefault()} // Allow drop on empty pitch areas
             >
-              <div className="relative w-full max-w-[1200px] aspect-[16/11] mx-auto rounded-[3rem] border-[6px] border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.6)] overflow-hidden" 
-                   style={{background: 'repeating-linear-gradient(90deg, #152a1e 0px, #152a1e 100px, #112218 100px, #112218 200px)'}}>
-                
+              <div className="relative w-full max-w-[1200px] aspect-[16/11] mx-auto rounded-[3rem] border-[6px] border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.6)] overflow-hidden"
+                style={{ background: 'repeating-linear-gradient(90deg, #152a1e 0px, #152a1e 100px, #112218 100px, #112218 200px)' }}>
+
                 {/* Markings */}
                 <div className="absolute inset-0 opacity-40 pointer-events-none">
                   <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[2px] bg-white/30"></div>
@@ -286,17 +288,17 @@ const Formation_settings = () => {
                     const isCorrect = player && player.pos === coord.role;
                     const posColor = isCorrect ? "bg-[#39ff14] text-black border-[#39ff14]" : "bg-red-500 text-white border-red-500";
                     return (
-                      <div 
-                        key={index} 
-                        className="absolute w-24 h-36 transition-all duration-500" 
-                        style={{left: `${coord.left}%`, top: `${coord.top}%`, transform: 'translate(-50%, -50%)'}}
+                      <div
+                        key={index}
+                        className="absolute w-24 h-36 transition-all duration-500"
+                        style={{ left: `${coord.left}%`, top: `${coord.top}%`, transform: 'translate(-50%, -50%)' }}
                       >
                         <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${posColor} border font-black text-[9px] px-1.5 py-0.5 rounded shadow-lg z-0 transition-colors pointer-events-none whitespace-nowrap`}>{coord.role}</div>
-                        
-                        <PlayerCard 
-                          player={player} 
-                          sizeClass="w-full h-full" 
-                          locationType="pitch" 
+
+                        <PlayerCard
+                          player={player}
+                          sizeClass="w-full h-full"
+                          locationType="pitch"
                           index={index}
                           isDragging={draggedInfo?.type === 'pitch' && draggedInfo?.index === index}
                           isHovered={hoveredInfo?.type === 'pitch' && hoveredInfo?.index === index}
@@ -317,18 +319,18 @@ const Formation_settings = () => {
               <div className="p-4 border-b border-white/10 bg-black/20">
                 <h3 className="text-sm font-bold uppercase tracking-widest text-white flex items-center gap-2"><span className="material-symbols-outlined text-[#39ff14]">groups</span> Squad Depth</h3>
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 <div>
                   <div className="flex justify-between items-center mb-3 px-1"><span className="text-xs font-bold text-[#39ff14] uppercase tracking-wider">Substitutes</span><span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-white/50">7 MAX</span></div>
                   <div className="grid grid-cols-2 gap-3">
                     {subPlayers.map((player, index) => (
                       <div key={`sub-${index}`} className="flex-none">
-                        <PlayerCard 
-                          player={player} 
-                          sizeClass="w-full h-40" 
-                          locationType="sub" 
-                          index={index} 
+                        <PlayerCard
+                          player={player}
+                          sizeClass="w-full h-40"
+                          locationType="sub"
+                          index={index}
                           isDragging={draggedInfo?.type === 'sub' && draggedInfo?.index === index}
                           isHovered={hoveredInfo?.type === 'sub' && hoveredInfo?.index === index}
                           onDragStart={handleDragStart}
@@ -345,11 +347,11 @@ const Formation_settings = () => {
                   <div className="grid grid-cols-2 gap-3">
                     {resPlayers.map((player, index) => (
                       <div key={`res-${index}`} className="flex-none">
-                        <PlayerCard 
-                          player={player} 
-                          sizeClass="w-full h-40" 
-                          locationType="res" 
-                          index={index} 
+                        <PlayerCard
+                          player={player}
+                          sizeClass="w-full h-40"
+                          locationType="res"
+                          index={index}
                           isDragging={draggedInfo?.type === 'res' && draggedInfo?.index === index}
                           isHovered={hoveredInfo?.type === 'res' && hoveredInfo?.index === index}
                           onDragStart={handleDragStart}

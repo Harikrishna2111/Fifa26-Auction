@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
+import { API_URL } from "../config";
+
 const View_all_auctions = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAuction, setSelectedAuction] = useState(null);
@@ -27,11 +29,11 @@ const View_all_auctions = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/auctions/history?user_id=${userData.id}`);
+      const response = await fetch(`${API_URL}/api/auctions/history?user_id=${userData.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch auctions');
       }
-      
+
       const data = await response.json();
       setAuctions(data);
     } catch (err) {
@@ -51,7 +53,7 @@ const View_all_auctions = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/auctions/${auctionId}/squad?user_id=${userData.id}`);
+      const response = await fetch(`${API_URL}/api/auctions/${auctionId}/squad?user_id=${userData.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch squad data');
       }
@@ -112,7 +114,7 @@ const View_all_auctions = () => {
 
   return (
     <div className="bg-background-dark font-display text-white min-h-screen stadium-bg flex flex-col">
- <Navbar isLoggedIn={true} userName="Alex Smith" userRole="Pro Manager" />
+      <Navbar isLoggedIn={true} userName="Alex Smith" userRole="Pro Manager" />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-10">
         <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-10">
@@ -124,13 +126,13 @@ const View_all_auctions = () => {
             <h1 className="text-5xl font-black uppercase italic tracking-tight">Auction History</h1>
             <p className="text-white/50 mt-2 max-w-lg">Review your past drafts, resume paused sessions, and manage your seasonal progress.</p>
           </div>
-          
+
           <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
-              <button onClick={() => setFilter('ALL')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filter==='ALL' ? 'bg-primary text-black' : 'text-white/60 hover:text-white'}`}>All</button>
-              <button onClick={() => setFilter('SEASONAL')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filter==='SEASONAL' ? 'bg-primary text-black' : 'text-white/60 hover:text-white'}`}>Seasonal</button>
-              <button onClick={() => setFilter('ONE-OFF')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filter==='ONE-OFF' ? 'bg-primary text-black' : 'text-white/60 hover:text-white'}`}>One-Off</button>
-              <button onClick={() => setFilter('PAUSED')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filter==='PAUSED' ? 'bg-primary text-black' : 'text-white/60 hover:text-white'}`}>Paused</button>
-            </div>
+            <button onClick={() => setFilter('ALL')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filter === 'ALL' ? 'bg-primary text-black' : 'text-white/60 hover:text-white'}`}>All</button>
+            <button onClick={() => setFilter('SEASONAL')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filter === 'SEASONAL' ? 'bg-primary text-black' : 'text-white/60 hover:text-white'}`}>Seasonal</button>
+            <button onClick={() => setFilter('ONE-OFF')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filter === 'ONE-OFF' ? 'bg-primary text-black' : 'text-white/60 hover:text-white'}`}>One-Off</button>
+            <button onClick={() => setFilter('PAUSED')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${filter === 'PAUSED' ? 'bg-primary text-black' : 'text-white/60 hover:text-white'}`}>Paused</button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

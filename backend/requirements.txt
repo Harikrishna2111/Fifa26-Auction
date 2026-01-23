@@ -1,0 +1,7 @@
+Flask
+Flask-SocketIO
+Flask-CORS
+psycopg2-binary
+redis
+pandas
+werkzeug
