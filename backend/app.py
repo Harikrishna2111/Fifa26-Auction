@@ -274,6 +274,76 @@ def manager_dashboard(user_id):
     })
 
 
+@app.route("/api/auctions", methods=["GET"])
+def get_all_auctions():
+    user_id = request.args.get("user_id", type=int) # Optional
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            a.id                    AS auction_id,
+            a.name                  AS auction_name,
+            a.season,
+            a.status,
+            a.start_date,
+            a.end_date,
+
+            t.id                    AS team_id,
+            t.name                  AS team_name,
+            t.stars,
+
+            COUNT(tp.player_id)     AS player_count
+
+        FROM auctions a
+        LEFT JOIN auction_results ar
+            ON a.id = ar.auction_id AND ar.user_id = %s
+        LEFT JOIN teams t
+            ON t.id = ar.team_id
+        LEFT JOIN team_players tp
+            ON tp.team_id = t.id
+
+        GROUP BY
+            a.id,
+            t.id
+
+        ORDER BY
+            COALESCE(a.end_date, a.start_date) DESC
+    """, (user_id,))
+
+    rows = cur.fetchall()
+    cur.close()
+
+    result = []
+    for r in rows:
+        # Determine type based on season column
+        # 0 -> ONE-OFF, anything else -> SEASONAL
+        season_val = r["season"]
+        is_seasonal = True
+        if str(season_val) == '0' or season_val == 0 or season_val == 'One-off':
+            is_seasonal = False
+
+        result.append({
+            "auctionId": r["auction_id"],
+            "name": r["auction_name"],
+            "season": season_val if is_seasonal else "One-off", # Display 'One-off' if 0
+            "type": "SEASONAL" if is_seasonal else "ONE-OFF",
+            "status": r["status"],
+            "displayDate": (
+                r["end_date"] or r["start_date"]
+            ).strftime("%b %d, %Y") if (r["end_date"] or r["start_date"]) else "TBD",
+
+            "team": {
+                "id": r["team_id"],
+                "name": r["team_name"],
+                "stars": r["stars"],
+                "playerCount": r["player_count"]
+            } if r["team_id"] else None
+        })
+    return jsonify(result)
+
+
 @app.route("/api/auctions/history", methods=["GET"])
 def auction_history():
     user_id = request.args.get("user_id", type=int)
@@ -749,10 +819,15 @@ def get_lobby(auction_id):
         SELECT
             a.id,
             a.name,
+            a.season,
             a.status,
             a.join_code,
             a.host_id,
             a.purse_per_team,
+            a.bid_inc_min,
+            a.bid_inc_mid,
+            a.bid_inc_max,
+            a.min_players,
             a.bidding_time,
             COUNT(p.user_id) AS player_count
         FROM auctions a

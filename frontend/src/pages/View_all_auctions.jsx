@@ -23,13 +23,15 @@ const View_all_auctions = () => {
 
   const fetchAuctions = async () => {
     try {
-      const userData = JSON.parse(localStorage.getItem('user'));
-      if (!userData) {
-        setError('User not logged in');
-        return;
+      const userDataStr = localStorage.getItem('user');
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+
+      let url = `${API_URL}/api/auctions`;
+      if (userData) {
+        url += `?user_id=${userData.id}`;
       }
 
-      const response = await fetch(`${API_URL}/api/auctions/history?user_id=${userData.id}`);
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch auctions');
       }
@@ -174,25 +176,32 @@ const View_all_auctions = () => {
                 <div className="w-full h-px bg-white/10 mb-6"></div>
 
                 <div className="flex items-center justify-between mb-6">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-white/30 text-[9px] uppercase font-bold tracking-widest">Acquired Team</span>
-                    <div className="flex items-center gap-3">
-                      <div className="size-8 rounded-full bg-blue-600 flex items-center justify-center font-bold border border-white/20">
-                        {auction.team.name.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-bold text-sm">{auction.team.name}</span>
-                          <div className="flex text-auction-gold text-[10px]">
-                            {[...Array(5)].map((_, i) => (
-                              <span key={i} className={`material-symbols-outlined text-sm ${i < auction.team.stars ? 'text-auction-gold' : 'text-white/20'}`}>star</span>
-                            ))}
-                          </div>
+                  {auction.team ? (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-white/30 text-[9px] uppercase font-bold tracking-widest">Acquired Team</span>
+                      <div className="flex items-center gap-3">
+                        <div className="size-8 rounded-full bg-blue-600 flex items-center justify-center font-bold border border-white/20">
+                          {auction.team.name.charAt(0)}
                         </div>
-                        <span className="text-xs text-white/40">{auction.team.playerCount} Players</span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-white font-bold text-sm">{auction.team.name}</span>
+                            <div className="flex text-auction-gold text-[10px]">
+                              {[...Array(5)].map((_, i) => (
+                                <span key={i} className={`material-symbols-outlined text-sm ${i < auction.team.stars ? 'text-auction-gold' : 'text-white/20'}`}>star</span>
+                              ))}
+                            </div>
+                          </div>
+                          <span className="text-xs text-white/40">{auction.team.playerCount} Players</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-white/30 text-[9px] uppercase font-bold tracking-widest">Status</span>
+                      <span className="text-white/50 text-sm italic">Didn't Participate</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-auto flex items-center gap-2">
@@ -202,8 +211,8 @@ const View_all_auctions = () => {
                     </button>
                   ) : auction.type === 'SEASONAL' ? (
                     <>
-                      <Link to="/create_lobby" className="flex-1 h-10 bg-white/5 border border-white/10 hover:bg-primary hover:text-black hover:border-primary rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2">
-                        Start Season 2 <span className="material-symbols-outlined text-sm">play_arrow</span>
+                      <Link to={`/create_lobby?continue_season=${auction.auctionId}`} className="flex-1 h-10 bg-white/5 border border-white/10 hover:bg-primary hover:text-black hover:border-primary rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2">
+                        Start Season {parseInt(auction.season || 0) + 1} <span className="material-symbols-outlined text-sm">play_arrow</span>
                       </Link>
                       <button onClick={() => openSquadModal(auction)} className="size-10 rounded-lg bg-white/5 border border-white/10 hover:bg-white/20 hover:text-primary flex items-center justify-center transition-colors" title="View Squad">
                         <span className="material-symbols-outlined">visibility</span>

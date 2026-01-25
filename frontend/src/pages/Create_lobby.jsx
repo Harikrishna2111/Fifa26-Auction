@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { API_URL } from "../config";
 
 const Create_lobby = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const continueSeasonId = searchParams.get("continue_season");
+
   const [formData, setFormData] = useState({
     auction_name: "",
     team_name: "",
@@ -19,16 +22,60 @@ const Create_lobby = () => {
     host_id: 1 // TODO: Get from auth context
   });
   const [loading, setLoading] = useState(false);
+  const [pastParticipants, setPastParticipants] = useState([]);
+  const [previousSeason, setPreviousSeason] = useState(0);
+
+  useEffect(() => {
+    // If we are continuing a season, fetch the previous lobby details
+    if (continueSeasonId) {
+      fetch(`${API_URL}/api/lobby/${continueSeasonId}`)
+        .then(res => res.json())
+        .then(data => {
+          setPreviousSeason(data.season ? parseInt(data.season) : 0);
+          setFormData(prev => ({
+            ...prev,
+            auction_name: data.name,
+            purse: data.purse_per_team,
+            season: true,
+            inc_min: data.bid_inc_min,
+            inc_mid: data.bid_inc_mid,
+            inc_max: data.bid_inc_max,
+            bidding_time: data.bidding_time,
+            min_players: data.min_players
+          }));
+
+          // Fetch participants for the locked ID
+          fetch(`${API_URL}/api/lobby/${continueSeasonId}/participants`)
+            .then(res => res.json())
+            .then(pData => setPastParticipants(pData));
+        })
+        .catch(err => console.error("Failed to fetch lobby details", err));
+    }
+  }, [continueSeasonId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
+    let seasonValue = 0;
+    if (formData.season) {
+      if (continueSeasonId) {
+        seasonValue = previousSeason + 1;
+      } else {
+        seasonValue = 1;
+      }
+    }
+
+    const payload = {
+      ...formData,
+      season: seasonValue
+    };
+
     try {
       const res = await fetch(`${API_URL}/api/lobby/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -88,7 +135,8 @@ const Create_lobby = () => {
                     value={formData.auction_name}
                     onChange={(e) => setFormData({ ...formData, auction_name: e.target.value })}
                     required
-                    className="w-full bg-black/40 border border-white/10 rounded-lg py-3 px-4 text-white placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                    disabled={!!continueSeasonId}
+                    className={`w-full bg-black/40 border border-white/10 rounded-lg py-3 px-4 text-white placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all ${continueSeasonId ? 'opacity-50 cursor-not-allowed' : ''}`}
                     placeholder="e.g. Premier League 2026"
                   />
                 </div>
@@ -108,7 +156,7 @@ const Create_lobby = () => {
                 </div>
 
                 {/* Seasonal Toggle */}
-                <div className="md:col-span-2 bg-white/5 border border-white/5 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:border-white/20 transition-all group">
+                <div className={`md:col-span-2 bg-white/5 border border-white/5 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:border-white/20 transition-all group ${continueSeasonId ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg text-primary">
                       <span className="material-symbols-outlined">
@@ -129,6 +177,7 @@ const Create_lobby = () => {
                       onChange={(e) => setFormData({ ...formData, season: e.target.checked })}
                       name="seasonal"
                       id="seasonal"
+                      disabled={!!continueSeasonId}
                       className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary"
                     />
                     <label
@@ -137,6 +186,25 @@ const Create_lobby = () => {
                     ></label>
                   </div>
                 </div>
+
+                {formData.season && pastParticipants.length > 0 && (
+                  <div className="md:col-span-2 mt-2 p-4 bg-white/5 border border-white/10 rounded-xl space-y-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase font-bold text-slate-400">Participants from Previous Season</label>
+                      <div className="max-h-40 overflow-y-auto bg-black/20 rounded-lg p-2 border border-white/5 scrollbar-thin scrollbar-thumb-white/10">
+                        {pastParticipants.map((p, idx) => (
+                          <div key={idx} className="flex justify-between items-center text-sm py-2 px-3 hover:bg-white/5 rounded border-b border-white/5 last:border-0">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-white">{p.team_name}</span>
+                              <span className="text-xs text-white/50 font-mono">User ID: {p.user_id}</span>
+                            </div>
+                            <span className="text-xs text-primary font-mono bg-primary/10 px-2 py-1 rounded">@{p.username}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -164,7 +232,8 @@ const Create_lobby = () => {
                       type="number"
                       value={formData.purse}
                       onChange={(e) => setFormData({ ...formData, purse: parseInt(e.target.value) })}
-                      className="w-full bg-black/40 border border-white/10 rounded-lg py-3 pl-8 pr-4 text-white font-mono focus:border-primary focus:outline-none transition-all"
+                      disabled={!!continueSeasonId}
+                      className={`w-full bg-black/40 border border-white/10 rounded-lg py-3 pl-8 pr-4 text-white font-mono focus:border-primary focus:outline-none transition-all ${continueSeasonId ? 'opacity-50 cursor-not-allowed' : ''}`}
                       placeholder="100000000"
                     />
                   </div>
