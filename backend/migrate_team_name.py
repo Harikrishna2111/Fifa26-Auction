@@ -4,7 +4,7 @@ conn = psycopg2.connect(
     dbname="fifa_auction",
     user="postgres",
     password="postgres",
-    host="localhost",
+    host="10.133.206.100",
     port="5432"
 )
 

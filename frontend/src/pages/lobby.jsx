@@ -10,10 +10,12 @@ const Lobby = () => {
   const [searchParams] = useSearchParams();
   const auctionId = searchParams.get("auction_id");
   const joinCode = searchParams.get("join_code");
+  const urlTeamName = searchParams.get("team_name");
 
   const [lobbyData, setLobbyData] = useState(null);
   const [participants, setParticipants] = useState([]);
   const [socket, setSocket] = useState(null);
+  const isNavigatingToAuction = React.useRef(false);
 
   useEffect(() => {
     if (!auctionId) return;
@@ -40,15 +42,36 @@ const Lobby = () => {
     fetchLobby();
     const interval = setInterval(fetchLobby, 3000);
 
-    // Connect to socket
-    const newSocket = io(API_URL);
+    // Connect to socket with explicit websocket transport for stability
+    const newSocket = io(API_URL, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5
+    });
     setSocket(newSocket);
 
-    newSocket.emit("join_lobby", {
-      auction_id: auctionId,
-      user_id: user.id,
-      team_name: user.username || "Your Team"
+    // Ensure we join the room only after connection is established
+    newSocket.on("connect", () => {
+      console.log("Connected to socket:", newSocket.id);
+      console.log("Joining room:", `lobby_${auctionId}`);
+      newSocket.emit("join_lobby", {
+        auction_id: auctionId,
+        user_id: user.id,
+        team_name: urlTeamName || user.username || "Your Team"
+      });
     });
+
+    newSocket.on("connect_error", (err) => {
+      console.error("Socket Connection Error:", err);
+    });
+
+    // Fallback in case it's already connected (re-renders)
+    if (newSocket.connected) {
+      newSocket.emit("join_lobby", {
+        auction_id: auctionId,
+        user_id: user.id,
+        team_name: urlTeamName || user.username || "Your Team"
+      });
+    }
 
     newSocket.on("user_joined", (data) => {
       fetchLobby(); // Refresh when someone joins
@@ -58,24 +81,46 @@ const Lobby = () => {
       fetchLobby(); // Refresh when someone leaves
     });
 
-    newSocket.on("auction_started", () => {
-      navigate("/preauction_phase");
+    newSocket.on("auction_started", (data) => {
+      console.log("Auction started event received:", data);
+      isNavigatingToAuction.current = true;
+      // Logic: Season 1 -> Auction Page, Season >= 2 -> Pre-Auction Phase
+      if (data && data.season >= 2) {
+        navigate(`/preauction_phase?auction_id=${auctionId}`);
+      } else {
+        navigate(`/auction?auction_id=${auctionId}`);
+      }
     });
 
     return () => {
       clearInterval(interval);
-      newSocket.emit("leave_lobby", {
-        auction_id: auctionId,
-        user_id: user.id
-      });
+      if (!isNavigatingToAuction.current) {
+        newSocket.emit("leave_lobby", {
+          auction_id: auctionId,
+          user_id: user.id
+        });
+      }
       newSocket.close();
     };
   }, [auctionId, navigate]);
 
   const handleStartAuction = () => {
-    if (socket) {
+    if (socket && socket.connected) {
+      console.log("Emitting start_auction for ID:", auctionId);
       socket.emit("start_auction", { auction_id: auctionId });
-      navigate("/preauction_phase");
+      isNavigatingToAuction.current = true;
+
+      // Admin Logic: Navigate slightly delayed to ensure emit is sent
+      setTimeout(() => {
+        if (lobbyData && lobbyData.season >= 2) {
+          navigate(`/preauction_phase?auction_id=${auctionId}`);
+        } else {
+          navigate(`/auction?auction_id=${auctionId}`);
+        }
+      }, 500);
+    } else {
+      console.error("Socket not connected. Cannot start auction.");
+      alert("Connection to server lost. Please refresh the page.");
     }
   };
 

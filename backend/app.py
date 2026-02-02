@@ -19,7 +19,75 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Initialize Redis (For Live Auction State)
-r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+class MockRedis:
+    def __init__(self):
+        self.store = {}
+    
+    def get(self, name):
+        return self.store.get(name)
+        
+    def set(self, name, value):
+        self.store[name] = value
+        return True
+        
+    def hset(self, name, mapping):
+        if name not in self.store:
+            self.store[name] = {}
+        self.store[name].update(mapping)
+        return len(mapping)
+        
+    def hgetall(self, name):
+        return self.store.get(name, {})
+        
+    def delete(self, *names):
+        count = 0
+        for name in names:
+            if name in self.store:
+                del self.store[name]
+                count += 1
+        return count
+        
+    def sadd(self, name, *values):
+        if name not in self.store:
+            self.store[name] = set()
+        
+        count = 0
+        # Ensure name points to a set
+        if not isinstance(self.store[name], set):
+             self.store[name] = set() # Overwrite if conflict for mock
+             
+        for v in values:
+            if v not in self.store[name]:
+                self.store[name].add(v)
+                count += 1
+        return count
+        
+    def scard(self, name):
+         if name in self.store and isinstance(self.store[name], set):
+             return len(self.store[name])
+         return 0
+    
+    def rpush(self, name, *values):
+        if name not in self.store:
+             self.store[name] = []
+        if not isinstance(self.store[name], list):
+             self.store[name] = []
+        self.store[name].extend(values)
+        return len(self.store[name])
+        
+    def incr(self, name, amount=1):
+        val = int(self.store.get(name, 0))
+        val += amount
+        self.store[name] = val
+        return val
+
+try:
+    r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+    r.ping() # Test connection
+    print("✓ Redis connected successfully")
+except redis.exceptions.ConnectionError:
+    print("⚠ Redis connection failed. Using in-memory fallback (MockRedis).")
+    r = MockRedis()
 
 app.teardown_appcontext(close_db)
 
@@ -421,17 +489,28 @@ def auction_squad(auction_id):
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Find the team for this user in the given auction
+    # Find the team for this user in the given auction (Live Support)
+    # 1. Check auction_participants for a linked team_id
     cur.execute(
-        "SELECT team_id FROM auction_results WHERE auction_id = %s AND user_id = %s",
+        "SELECT team_id, team_name FROM auction_participants WHERE auction_id = %s AND user_id = %s",
         (auction_id, user_id)
     )
     row = cur.fetchone()
-    if not row:
+    
+    team_id = None
+    team_name = None
+    
+    if row:
+        team_id = row.get("team_id")
+        team_name = row.get("team_name")
+        
+    # 2. Fallback: If no linked team_id, check 'teams' table by manager_id and team_name (from participant)
+    if not team_id:
+        # Strict mode: Do not look up old teams. If no team is linked in auction_participants, 
+        # it means the user hasn't bought any players yet in THIS specific auction.
+        pass
         cur.close()
         return jsonify([]), 200
-
-    team_id = row["team_id"]
 
     # Fetch the players for the team with acquired price
     cur.execute(
@@ -716,6 +795,41 @@ def create_team():
     cur.close()
     return jsonify({"team_id": team_id}), 201
 
+
+@app.route("/api/admin/migrate_schema", methods=["GET"])
+def migrate_schema():
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute("ALTER TABLE auctions ADD COLUMN IF NOT EXISTS custom_bid_enabled BOOLEAN DEFAULT TRUE;")
+        cur.execute("ALTER TABLE auction_participants ADD COLUMN IF NOT EXISTS budget BIGINT;")
+        
+        # Create team_players table if it doesn't exist
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS team_players (
+                id SERIAL PRIMARY KEY,
+                auction_id INTEGER NOT NULL REFERENCES auctions(id),
+                participant_id INTEGER, -- ideally references auction_participants(id) but it might not have a PK
+                player_id INTEGER NOT NULL, -- references players(id) implicitly
+                price BIGINT NOT NULL,
+                acquired_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        # Also ensure auction_participants has a PK if we want to link cleanly, 
+        # or we just use (auction_id, user_id). 
+        # For simplicity, let's link by auction_id and user_id or team_name.
+        # Let's add user_id to team_players for easier joining.
+        cur.execute("ALTER TABLE team_players ADD COLUMN IF NOT EXISTS user_id INTEGER;")
+        
+        conn.commit()
+        return jsonify({"message": "Migration successful"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+
 @app.route("/api/lobby/create", methods=["POST"])
 def create_lobby():
     data = request.json
@@ -724,6 +838,8 @@ def create_lobby():
 
     import random, string
     join_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    
+    custom_bid = data.get("custom_bid_enabled", True)
 
     cur.execute("""
         INSERT INTO auctions (
@@ -731,9 +847,9 @@ def create_lobby():
             join_code, host_id,
             purse_per_team,
             bid_inc_min, bid_inc_mid, bid_inc_max,
-            min_players, bidding_time
+            min_players, bidding_time, custom_bid_enabled
         )
-        VALUES (%s, %s, 'LOBBY', %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, 'LOBBY', %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
     """, (
         data["auction_name"],
@@ -745,11 +861,28 @@ def create_lobby():
         data["inc_mid"],
         data["inc_max"],
         data["min_players"],
-        data["bidding_time"]
+        data["bidding_time"],
+        custom_bid
     ))
 
     result = cur.fetchone()
     auction_id = result["id"]
+    
+    # Automatically add host to participants
+    # Fetch host username for team_name default
+    cur.execute("SELECT username FROM users WHERE id = %s", (data["host_id"],))
+    host_user = cur.fetchone()
+    
+    # Use provided team_name or fallback to username
+    host_team_name = data.get("team_name")
+    if not host_team_name:
+        host_team_name = host_user["username"] if host_user else "Admin Team"
+
+    cur.execute("""
+        INSERT INTO auction_participants (auction_id, user_id, team_name, budget)
+        VALUES (%s, %s, %s, %s)
+    """, (auction_id, data["host_id"], host_team_name, data["purse"]))
+
     conn.commit()
     cur.close()
 
@@ -785,13 +918,18 @@ def join_lobby():
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Add participant with team name
+    # Fetch initial budget from auction settings
+    cur.execute("SELECT purse_per_team FROM auctions WHERE id = %s", (data["auction_id"],))
+    auction = cur.fetchone()
+    initial_budget = auction["purse_per_team"] if auction else 0
+
+    # Add participant with team name and budget
     cur.execute("""
-        INSERT INTO auction_participants (auction_id, user_id, team_name)
-        VALUES (%s, %s, %s)
+        INSERT INTO auction_participants (auction_id, user_id, team_name, budget)
+        VALUES (%s, %s, %s, %s)
         ON CONFLICT (auction_id, user_id) DO UPDATE SET team_name = EXCLUDED.team_name
         RETURNING auction_id
-    """, (data["auction_id"], data["user_id"], data["team_name"]))
+    """, (data["auction_id"], data["user_id"], data["team_name"], initial_budget))
 
     result = cur.fetchone()
     print(f"Inserted participant: auction_id={result['auction_id']}, user_id={data['user_id']}, team_name={data['team_name']}")
@@ -846,13 +984,22 @@ def get_lobby_participants(auction_id):
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+    # Dynamic Budget Calculation: (Auction Purse) - (Sum of Acquired Prices for Team)
     cur.execute("""
         SELECT
+            ap.id,
             ap.user_id,
             u.username,
-            ap.team_name
+            ap.team_name,
+            ap.team_id,
+            (a.purse_per_team - COALESCE((
+                SELECT SUM(tp.acquired_price)
+                FROM team_players tp
+                WHERE tp.team_id = ap.team_id
+            ), 0)) as budget
         FROM auction_participants ap
         JOIN users u ON u.id = ap.user_id
+        JOIN auctions a ON a.id = ap.auction_id
         WHERE ap.auction_id = %s
         ORDER BY ap.joined_at
     """, (auction_id,))
@@ -862,21 +1009,91 @@ def get_lobby_participants(auction_id):
 
     return jsonify([dict(p) for p in participants])
 
+@app.route("/api/lobby/<int:auction_id>/details")
+def get_lobby_details(auction_id):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT * FROM auctions WHERE id = %s", (auction_id,))
+    lobby = cur.fetchone()
+    cur.close()
+    return jsonify(lobby)
+
+@app.route("/api/lobby/<int:auction_id>/available_players")
+def get_auction_players(auction_id):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # 1. Get auction settings (min rating threshold)
+    cur.execute("SELECT min_players FROM auctions WHERE id = %s", (auction_id,))
+    auction = cur.fetchone()
+    
+    if not auction:
+        cur.close()
+        return jsonify({"error": "Auction not found"}), 404
+        
+    min_rating = auction["min_players"] or 0
+
+    # 2. Get eligible players
+    cur.execute("""
+        SELECT * FROM players 
+        WHERE overall >= %s
+        ORDER BY overall DESC
+    """, (min_rating,))
+    
+    players = cur.fetchall()
+    cur.close()
+    
+    return jsonify(players)
+
 @socketio.on("join_lobby")
 def join_lobby_socket(data):
-    room = f"lobby_{data['auction_id']}"
+    room = f"lobby_{str(data['auction_id'])}"
     join_room(room)
+    print(f"User {data['user_id']} joined room: {room}")
+
+    # Ensure user is in DB (Wrap in try block to prevent FK errors from blocking sync)
+    try:
+        if int(data['user_id']) > 0:
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO auction_participants (auction_id, user_id, team_name)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (auction_id, user_id) DO NOTHING
+            """, (data['auction_id'], data['user_id'], data['team_name']))
+            conn.commit()
+            cur.close()
+    except Exception as e:
+        print(f"Error adding participant {data['user_id']}: {e}")
 
     emit("user_joined", {
         "user_id": data["user_id"],
         "team_name": data["team_name"]
     }, room=room)
+    
+    # Send Current Sync State
+    # Only applicable if Auction is LIVE or PAUSED
+    auction_id_str = str(data['auction_id'])
+    status = r.get(f"auction:{auction_id_str}:status")
+
+    if status == "LIVE" or status == "PAUSED":
+        index = r.get(f"auction:{auction_id_str}:index") or 0
+        current_bid = r.hgetall(f"auction:{auction_id_str}:current_bid")
+        expires = r.get(f"auction:{auction_id_str}:round_expires")
+
+        emit("sync_auction", {
+            "current_index": int(index),
+            "highest_bid": int(current_bid.get("amount", 0)),
+            "highest_bidder": current_bid.get("bidder", "None"),
+            "round_expires": float(expires) if expires else None,
+            "status": status
+        }, room=request.sid) # Only to this user
 
 @socketio.on("leave_lobby")
 def leave_lobby_socket(data):
     auction_id = data['auction_id']
     user_id = data['user_id']
-    room = f"lobby_{auction_id}"
+    room = f"lobby_{str(auction_id)}"
     
     conn = get_db()
     cur = conn.cursor()
@@ -890,12 +1107,322 @@ def leave_lobby_socket(data):
     leave_room(room)
     emit("user_left", {"user_id": user_id}, room=room)
 
+@socketio.on("place_bid")
+def handle_place_bid(data):
+    auction_id = str(data.get("auction_id"))
+    amount = data.get("amount")
+    bidder = data.get("bidder") # team_name
+    user_id = data.get("user_id") # New: Track user ID for reliable updates
+    
+    room = f"lobby_{auction_id}"
+    
+    # Store in Redis
+    redis_key = f"auction:{auction_id}:current_bid"
+    r.hset(redis_key, mapping={
+        "amount": amount,
+        "bidder": bidder,
+        "user_id": user_id if user_id else "",
+        "timestamp": time.time()
+    })
+    
+    # Update Timer expiration (Reset clock)
+    # We need bidding_time. Ideally fetched once or stored in redis config
+    bidding_time = int(r.get(f"auction:{auction_id}:config_time") or 30)
+    new_expires = time.time() + bidding_time
+    r.set(f"auction:{auction_id}:round_expires", new_expires)
+    
+    # Log to History
+    log_key = f"auction:{auction_id}:logs"
+    r.rpush(log_key, json.dumps({
+        "type": "bid",
+        "amount": amount,
+        "bidder": bidder,
+        "timestamp": time.time()
+    }))
+
+    # Clear any pass votes since a new bid restarts the clock/logic
+    r.delete(f"auction:{auction_id}:passes")
+    
+    print(f"Bid stored in Redis for {room}: {amount} by {bidder}")
+    
+    # Broadcast to all users in the room
+    emit("bid_placed", {
+        "amount": amount,
+        "bidder": bidder,
+        "timestamp": time.time(),
+        "round_expires": new_expires 
+    }, room=room)
+
+
+@socketio.on("finalize_player")
+def handle_finalize_player(data):
+    auction_id = str(data.get("auction_id"))
+    player_id = data.get("player_id")
+    result = data.get("result") # 'sold' or 'unsold'
+    
+    room = f"lobby_{auction_id}"
+    redis_key = f"auction:{auction_id}:current_bid"
+    
+    updated_budget = None
+    user_id = None
+    
+    if result == 'sold':
+        # Get final bid details from Redis (source of truth)
+        bid_data = r.hgetall(redis_key)
+        if bid_data:
+            amount = int(bid_data.get("amount", 0))
+            bidder_team = bid_data.get("bidder")
+            user_id_redis = bid_data.get("user_id") # Get user_id if valid
+            
+            # Deduct budget from winner
+            conn = get_db()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            try:
+                # Update budget for the team (Prefer user_id, fallback to team_name)
+                # Also fetch team_id if it exists in auction_participants
+                if user_id_redis and str(user_id_redis).isdigit() and int(user_id_redis) > 0:
+                     cur.execute("""
+                        UPDATE auction_participants 
+                        SET budget = budget - %s 
+                        WHERE auction_id = %s AND user_id = %s
+                        RETURNING id, user_id, budget, team_name, team_id
+                    """, (amount, auction_id, int(user_id_redis)))
+                else:
+                     cur.execute("""
+                        UPDATE auction_participants 
+                        SET budget = budget - %s 
+                        WHERE auction_id = %s AND team_name = %s
+                        RETURNING id, user_id, budget, team_name, team_id
+                    """, (amount, auction_id, bidder_team))
+                
+                participant = cur.fetchone()
+                
+                if participant:
+                    participant_id = participant['id']
+                    user_id = participant['user_id']
+                    updated_budget = participant['budget']
+                    team_name = participant['team_name']
+                    team_id = participant.get('team_id')
+
+                    # Logic to ensure we have a valid team_id for team_players table
+                    if not team_id:
+                         # FORCE create new team for this specific auction context
+                         # Do NOT lookup old teams by name to ensure unique team per auction
+                        cur.execute("""
+                            INSERT INTO teams (name, manager_id, rating, value, status, created_at)
+                            VALUES (%s, %s, 0, 0, 'ACTIVE', NOW())
+                            RETURNING id
+                        """, (team_name, user_id))
+                        res = cur.fetchone()
+                        if res:
+                            team_id = res['id']
+
+                        # Link this team_id back to auction_participants for next time
+                        if team_id:
+                            cur.execute("UPDATE auction_participants SET team_id = %s WHERE id = %s", (team_id, participant_id))
+
+                    if team_id:
+                         # Insert into team_players table
+                         cur.execute("""
+                            INSERT INTO team_players (team_id, player_id, acquired_price)
+                            VALUES (%s, %s, %s)
+                         """, (team_id, player_id, amount))
+
+                         # Recalculate Budget Dynamically for response
+                         cur.execute("""
+                            SELECT (a.purse_per_team - COALESCE(SUM(tp.acquired_price), 0)) as remaining_budget
+                            FROM auctions a
+                            LEFT JOIN team_players tp ON tp.team_id = %s
+                            WHERE a.id = %s
+                            GROUP BY a.purse_per_team
+                         """, (team_id, auction_id))
+                         
+                         res = cur.fetchone()
+                         if res:
+                             updated_budget = res['remaining_budget']
+
+                conn.commit()
+                print(f"PLAYER SOLD: {player_id} to {bidder_team} for {amount}. Budget updated to {updated_budget}.")
+            except Exception as e:
+                print(f"Error updating budget: {e}")
+                conn.rollback()
+            finally:
+                cur.close()
+    
+    # Clear Redis for next player
+    r.delete(redis_key)
+    r.delete(f"auction:{auction_id}:passes")
+    
+    # Broadcast result to show animation/modal
+    emit("player_finalized", {
+        "player_id": player_id,
+        "result": result,
+        "amount": data.get("amount"), # passed from client for display if redis fails
+        "bidder": data.get("bidder"),
+        "updated_budget": updated_budget,
+        "user_id": user_id
+    }, room=room)
+
+
+@socketio.on("pass_turn")
+def handle_pass_turn(data):
+    auction_id = str(data.get("auction_id"))
+    user_id = data.get("user_id")
+    
+    room = f"lobby_{auction_id}"
+    pass_key = f"auction:{auction_id}:passes"
+    
+    # Add user to set of passes
+    r.sadd(pass_key, user_id)
+    pass_count = r.scard(pass_key)
+    
+    # Get total active participants
+    # Note: socket only tracks connections, but we want DB participants count ideally
+    # For speed, we can check Redis if we tracked participants there, but let's query DB for accuracy or use room size
+    # Using DB is safer for "Registered Participants"
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM auction_participants WHERE auction_id = %s", (auction_id,))
+    total_participants = cur.fetchone()[0]
+    cur.close()
+    
+    print(f"Pass vote: {pass_count}/{total_participants} in {room}")
+    
+    # If all participants passed
+    if pass_count >= total_participants:
+        # Check if there is an active bid
+        current_bid = r.hgetall(f"auction:{auction_id}:current_bid")
+        if not current_bid:
+             # No bid + All Passed = Unsold immediately
+             emit("player_finalized", {
+                 "result": "unsold",
+                 "bidder": "None",
+                 "amount": 0
+             }, room=room)
+             r.delete(pass_key)
+    else:
+        # Just notify (optional, maybe update UI with X/Y passed)
+        emit("pass_update", {"count": pass_count, "total": total_participants}, room=room)
+
 @socketio.on("start_auction")
 def start_auction(data):
-    auction_id = data["auction_id"]
+    try:
+        auction_id_str = str(data["auction_id"]) # Ensure string for room
+        auction_id_int = int(data["auction_id"]) # Ensure int for DB
+        room = f"lobby_{auction_id_str}"
+        print(f"Received start_auction for Room: {room}")
 
-    r.set(f"auction:{auction_id}:status", "LIVE")
-    emit("auction_started", {}, room=f"lobby_{auction_id}")
+        # Fetch Season & Bidding Time
+        season = 1
+        bidding_time = 30
+        try:
+            conn = get_db()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute("SELECT season, bidding_time FROM auctions WHERE id = %s", (auction_id_int,))
+            res = cur.fetchone()
+            cur.close()
+            season = res['season'] if res else 1
+            bidding_time = res['bidding_time'] if res else 30
+        except Exception as e:
+            print(f"Error fetching details: {e}")
+            season = 1
+
+        # Initialize State in Redis
+        r.set(f"auction:{auction_id_str}:status", "LIVE")
+        r.set(f"auction:{auction_id_str}:index", 0)
+        r.set(f"auction:{auction_id_str}:round_expires", time.time() + bidding_time)
+        r.delete(f"auction:{auction_id_str}:current_bid") # Clear previous if any
+        r.delete(f"auction:{auction_id_str}:passes")
+        
+        # Save Bidding Time for reference later (simpler than querying DB repeatedly)
+        r.set(f"auction:{auction_id_str}:config_time", bidding_time)
+
+        print(f"Emitting auction_started to {room} with season {season}")
+        # Emit to everyone in the room (including sender)
+        emit("auction_started", {"season": season}, room=room)
+        
+    except Exception as e:
+        print(f"Critical Error in start_auction: {e}")
+        # Try to emit error back to sender
+        emit("error", {"message": "Failed to start auction"}, room=request.sid)
+
+
+@socketio.on("next_player")
+def handle_next_player(data):
+    auction_id = str(data.get("auction_id"))
+    room = f"lobby_{auction_id}"
+
+    # Increment Index
+    new_index = r.incr(f"auction:{auction_id}:index")
+    
+    # Reset State for new round
+    r.delete(f"auction:{auction_id}:current_bid")
+    r.delete(f"auction:{auction_id}:passes")
+    
+    # Reset Timer
+    bidding_time = int(r.get(f"auction:{auction_id}:config_time") or 30)
+    expires = time.time() + bidding_time
+    r.set(f"auction:{auction_id}:round_expires", expires)
+
+    emit("round_changed", {
+        "current_index": new_index,
+        "round_expires": expires
+    }, room=room)
+
+
+@socketio.on("toggle_pause")
+def handle_toggle_pause(data):
+    auction_id = str(data.get("auction_id"))
+    room = f"lobby_{auction_id}"
+
+    # Check current status
+    status_key = f"auction:{auction_id}:status"
+    current_status = r.get(status_key)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    if current_status == "LIVE":
+        # Pause it
+        r.set(status_key, "PAUSED")
+
+        # Calculate remaining time for the current round
+        expires_key = f"auction:{auction_id}:round_expires"
+        expires = r.get(expires_key)
+        remaining = 0
+        if expires:
+            remaining = float(expires) - time.time()
+            if remaining < 0: remaining = 0
+
+        r.set(f"auction:{auction_id}:paused_remaining", remaining)
+
+        # Update DB
+        cur.execute("UPDATE auctions SET status = 'PAUSED' WHERE id = %s", (data['auction_id'],))
+        conn.commit()
+
+        emit("auction_status_change", {"status": "PAUSED"}, room=room)
+        print(f"Auction {auction_id} PAUSED. Remaining time: {remaining:.2f}s")
+
+    elif current_status == "PAUSED":
+        # Resume it
+        r.set(status_key, "LIVE")
+
+        # Restore timer
+        remaining = float(r.get(f"auction:{auction_id}:paused_remaining") or 30)
+        new_expires = time.time() + remaining
+        r.set(f"auction:{auction_id}:round_expires", new_expires)
+
+        # Update DB
+        cur.execute("UPDATE auctions SET status = 'LIVE' WHERE id = %s", (data['auction_id'],))
+        conn.commit()
+
+        emit("auction_status_change", {
+            "status": "LIVE",
+            "round_expires": new_expires
+        }, room=room)
+        print(f"Auction {auction_id} RESUMED. New expires: {new_expires}")
+
+    cur.close()
 
 
 if __name__ == '__main__':

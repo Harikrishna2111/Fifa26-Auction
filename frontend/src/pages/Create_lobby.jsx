@@ -19,6 +19,7 @@ const Create_lobby = () => {
     inc_max: 10,
     bidding_time: 30,
     min_players: 11,
+    custom_bid_enabled: true,
     host_id: 1 // TODO: Get from auth context
   });
   const [loading, setLoading] = useState(false);
@@ -80,7 +81,7 @@ const Create_lobby = () => {
 
       const data = await res.json();
       if (res.ok) {
-        navigate(`/lobby?auction_id=${data.auction_id}&join_code=${data.join_code}`);
+        navigate(`/lobby?auction_id=${data.auction_id}&join_code=${data.join_code}&team_name=${encodeURIComponent(formData.team_name || "")}`);
       }
     } catch (err) {
       console.error(err);
@@ -247,6 +248,8 @@ const Create_lobby = () => {
                     </span>
                     <input
                       type="checkbox"
+                      checked={formData.custom_bid_enabled}
+                      onChange={(e) => setFormData({ ...formData, custom_bid_enabled: e.target.checked })}
                       className="w-5 h-5 rounded border-white/20 bg-black/40 text-primary focus:ring-0 focus:ring-offset-0"
                     />
                   </div>
