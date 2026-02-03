@@ -297,7 +297,7 @@ def manager_dashboard(user_id):
             stars,
             status
         FROM teams
-        WHERE manager_id = %s
+        WHERE manager_id = %s AND status = 'IDLE'
         ORDER BY created_at DESC
     """, (user_id,))
     teams = cur.fetchall()
@@ -578,7 +578,7 @@ def manage_teams():
         LEFT JOIN auction_results ar ON ar.team_id = t.id
         LEFT JOIN auctions a ON a.id = ar.auction_id
 
-        WHERE t.manager_id = %s
+        WHERE t.manager_id = %s AND t.status = 'IDLE'
 
         GROUP BY t.id, a.status
         ORDER BY auction_state DESC, t.name

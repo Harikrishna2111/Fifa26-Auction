@@ -8,7 +8,10 @@ import { API_URL } from "../config";
 
 const User_dashboard = () => {
   const [dashboard, setDashboard] = useState(null);
-  const userId = 1; // TEMP: replace later with logged-in user id
+  // Use logged-in user ID, consistent with other pages. Fallback to 1 only if absolutely needed for demo.
+  const authUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const userId = authUser.id || parseInt(localStorage.getItem('userId') || '0') || 1;
+
 
   useEffect(() => {
     fetch(`${API_URL}/api/dashboard/${userId}`)

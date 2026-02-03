@@ -166,6 +166,215 @@ const formatMoney = (amount) => {
   return amount.toLocaleString();
 };
 
+// Moved definitions outside component to avoid recreation/passing
+const tradePool = {
+  you: ["Mbappé", "De Bruyne", "Ederson", "Rice"],
+  them: ["Haaland", "Vini Jr", "Allison", "Van Dijk", "Rashford"]
+};
+
+const formations = {
+  "4-3-3": [{ role: "GK", left: 50, top: 85 }, { role: "LB", left: 15, top: 70 }, { role: "CB", left: 38, top: 75 }, { role: "CB", left: 62, top: 75 }, { role: "RB", left: 85, top: 70 }, { role: "CM", left: 30, top: 45 }, { role: "CM", left: 50, top: 50 }, { role: "CM", left: 70, top: 45 }, { role: "LW", left: 15, top: 15 }, { role: "ST", left: 50, top: 10 }, { role: "RW", left: 85, top: 15 }],
+  "4-4-2": [{ role: "GK", left: 50, top: 85 }, { role: "LB", left: 15, top: 70 }, { role: "CB", left: 38, top: 75 }, { role: "CB", left: 62, top: 75 }, { role: "RB", left: 85, top: 70 }, { role: "LM", left: 15, top: 40 }, { role: "CM", left: 40, top: 45 }, { role: "CM", left: 60, top: 45 }, { role: "RM", left: 85, top: 40 }, { role: "ST", left: 35, top: 15 }, { role: "ST", left: 65, top: 15 }],
+  "3-5-2": [{ role: "GK", left: 50, top: 85 }, { role: "CB", left: 20, top: 72 }, { role: "CB", left: 50, top: 68 }, { role: "CB", left: 80, top: 72 }, { role: "LM", left: 10, top: 40 }, { role: "CDM", left: 35, top: 50 }, { role: "CM", left: 50, top: 35 }, { role: "CDM", left: 65, top: 50 }, { role: "RM", left: 90, top: 40 }, { role: "ST", left: 35, top: 15 }, { role: "ST", left: 65, top: 15 }],
+};
+
+// --- COMPARE MODAL ---
+const CompareModal = ({
+  onClose,
+  pitchPlayers,
+  subPlayers,
+  resPlayers,
+  liveFormation, setLiveFormation,
+  dragItem, dragOverTarget,
+  handleDragStart, handleDragOver, handleDrop, handleDragEnd
+}) => {
+  const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+  const userId = userObj.id || parseInt(localStorage.getItem('userId') || '0') || 0;
+
+  const [strategies, setStrategies] = useState([]);
+  const [currentStrategyIndex, setCurrentStrategyIndex] = useState(0);
+  const [activeStrategyPlayers, setActiveStrategyPlayers] = useState([]);
+
+  const nextStrategy = () => setCurrentStrategyIndex((prev) => (prev + 1) % (strategies.length || 1));
+  const prevStrategy = () => setCurrentStrategyIndex((prev) => (prev - 1 + (strategies.length || 1)) % (strategies.length || 1));
+
+  // 1. Fetch User Strategies (Plans)
+  useEffect(() => {
+    fetch(`${API_URL}/api/teams/manage?user_id=${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setStrategies(data);
+        }
+      })
+      .catch(err => console.error("Error fetching strategies:", err));
+  }, []);
+
+  // 2. Fetch Players for Active Strategy
+  useEffect(() => {
+    if (strategies.length > 0) {
+      const strategy = strategies[currentStrategyIndex];
+      if (strategy) {
+        fetch(`${API_URL}/api/teams/${strategy.id}/players`)
+          .then(res => res.json())
+          .then(data => {
+            setActiveStrategyPlayers(data);
+          });
+      }
+    } else {
+      setActiveStrategyPlayers([]);
+    }
+  }, [strategies, currentStrategyIndex]);
+
+  // isPlayerInStrategy CHECK
+  const isPlayerInStrategy = (player) => {
+    if (!player) return false;
+    return activeStrategyPlayers.some(p => p.name === player.name);
+  };
+
+  const currentStrategyName = strategies[currentStrategyIndex]?.name || "No Plans";
+
+  return (
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={onClose}></div>
+      <div className="relative w-[95vw] h-[95vh] bg-[#0a0f0b] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+
+        <div className="h-16 border-b border-white/10 flex items-center justify-between px-8 bg-black/40">
+          <h3 className="text-xl font-black uppercase tracking-wider italic flex items-center gap-2 text-white">
+            <span className="material-symbols-outlined text-[#39ff14]">strategy</span> Squad Comparison
+          </h3>
+          <button onClick={onClose} className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition text-white"><span className="material-symbols-outlined">close</span></button>
+        </div>
+
+        <div className="flex-1 flex overflow-hidden">
+          {/* LEFT: Strategy List */}
+          <div className="w-[28%] flex flex-col border-r border-white/10 bg-[#0e1411]">
+            <div className="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-black/20">
+              <span className="text-[#39ff14] font-bold text-xs uppercase tracking-widest">My Strategy</span>
+              <div className="flex gap-1">
+                <button onClick={prevStrategy} className="hover:bg-white/10 rounded p-1 text-white"><span className="material-symbols-outlined text-sm">chevron_left</span></button>
+                <span className="text-[10px] bg-white/5 px-2 py-1 rounded text-white/60">{currentStrategyName}</span>
+                <button onClick={nextStrategy} className="hover:bg-white/10 rounded p-1 text-white"><span className="material-symbols-outlined text-sm">chevron_right</span></button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 custom-scroll">
+              <div className="text-[9px] text-white/30 font-bold uppercase mb-1 mt-2">Planned Players</div>
+              {activeStrategyPlayers.length === 0 && <div className="text-white/20 text-xs italic">No players in this plan.</div>}
+              {activeStrategyPlayers.map((player, idx) => {
+                // Check if active strategy player is in LIVE squad
+                const isMatch = [...pitchPlayers, ...subPlayers, ...resPlayers].some(p => p && p.name === player.name);
+                return (
+                  <div key={idx} className={`flex items-center gap-2 p-2 rounded border mb-1 ${isMatch ? 'border-[#ffd700] bg-[#ffd700]/10' : 'border-white/5 bg-white/5'}`}>
+                    <div className="w-6 h-6 rounded-full bg-black/40 flex items-center justify-center text-[8px] font-bold text-white/50">{player.name.charAt(0)}</div>
+                    <span className={`text-xs font-bold ${isMatch ? 'text-[#ffd700]' : 'text-white'}`}>{player.name}</span>
+                    {isMatch && <span className="text-[8px] bg-[#ffd700] text-black font-bold px-1 rounded ml-auto">MATCH</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* RIGHT: Live Squad Interactive */}
+          <div className="flex-1 flex flex-col bg-[#0e1411]">
+            <div className="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-black/20">
+              <span className="text-white font-bold text-xs uppercase tracking-widest">Live Squad</span>
+              <div className="flex gap-1">
+                {Object.keys(formations).map(fmt => (
+                  <button key={fmt} onClick={() => setLiveFormation(fmt)} className={`text-[10px] font-bold px-2 py-1 rounded transition-colors ${liveFormation === fmt ? 'bg-[#39ff14] text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}>{fmt}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* NON-SCROLLABLE PITCH */}
+            <div
+              className="flex-1 relative p-4"
+              style={{ background: 'repeating-linear-gradient(90deg, #1a2e24 0px, #1a2e24 50px, #1f362a 50px, #1f362a 100px)' }}
+              onClick={() => { /* setDragOverTarget(null) - not passed, ignored */ }}
+              onDragOver={(e) => e.preventDefault()}
+            >
+              <div className="absolute inset-4 border-2 border-white/5 rounded-xl pointer-events-none"></div>
+              <div className="absolute top-1/2 left-4 right-4 h-px bg-white/5 pointer-events-none"></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-white/5 rounded-full pointer-events-none"></div>
+
+              {formations[liveFormation].map((coord, index) => {
+                const player = pitchPlayers[index];
+                const posColor = (player && player.pos === coord.role) ? "bg-[#39ff14] text-black border-[#39ff14]" : "bg-red-500 text-white border-red-500";
+
+                return (
+                  <div key={index} className="absolute w-20 h-32 transition-all duration-500 ease-in-out" style={{ left: `${coord.left}%`, top: `${coord.top}%`, transform: 'translate(-50%, -50%)' }}>
+                    <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${posColor} border font-black text-[9px] px-1.5 py-0.5 rounded shadow-lg z-0 transition-colors pointer-events-none whitespace-nowrap`}>{coord.role}</div>
+                    <PlayerCard
+                      player={player}
+                      sizeClass="w-full h-full"
+                      locationType="pitch"
+                      index={index}
+                      isDragging={dragItem.current?.type === 'pitch' && dragItem.current?.index === index}
+                      isHovered={dragOverTarget?.type === 'pitch' && dragOverTarget?.index === index}
+                      isMatch={isPlayerInStrategy(player)}
+                      onDragStart={handleDragStart}
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      onDragEnd={handleDragEnd}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* BENCH */}
+            <div className="h-36 border-t border-white/10 bg-black/40 grid grid-cols-2 divide-x divide-white/10 text-white">
+              <div className="p-2 flex flex-col">
+                <div className="text-[10px] text-[#39ff14]/70 uppercase font-bold mb-1 flex justify-between"><span>Substitutes</span><span className="text-[9px] bg-white/5 px-1 rounded">7 Max</span></div>
+                <div className="grid grid-cols-4 gap-2 overflow-y-auto custom-scroll">
+                  {subPlayers.map((player, index) => (
+                    <div key={`sub-${index}`} className="h-24 w-full">
+                      <PlayerCard
+                        player={player}
+                        sizeClass="w-full h-full"
+                        locationType="sub"
+                        index={index}
+                        isDragging={dragItem.current?.type === 'sub' && dragItem.current?.index === index}
+                        isHovered={dragOverTarget?.type === 'sub' && dragOverTarget?.index === index}
+                        isMatch={isPlayerInStrategy(player)}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                        onDragEnd={handleDragEnd}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="p-2 flex flex-col">
+                <div className="text-[10px] text-white/30 uppercase font-bold mb-1">Reserves</div>
+                <div className="grid grid-cols-4 gap-2 overflow-y-auto custom-scroll">
+                  {resPlayers.map((player, index) => (
+                    <div key={`res-${index}`} className="h-24 w-full">
+                      <PlayerCard
+                        player={player}
+                        sizeClass="w-full h-full"
+                        locationType="res"
+                        index={index}
+                        isDragging={dragItem.current?.type === 'res' && dragItem.current?.index === index}
+                        isHovered={dragOverTarget?.type === 'res' && dragOverTarget?.index === index}
+                        isMatch={isPlayerInStrategy(player)}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                        onDragEnd={handleDragEnd}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Auction = () => {
   const [searchParams] = useSearchParams();
   const auctionId = searchParams.get('auction_id');
@@ -296,6 +505,19 @@ const Auction = () => {
     // USER INFO for join
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
+    // 5. Fetch Live Squad (Current Auction) - MOVED HERE
+    fetch(`${API_URL}/api/auctions/${auctionId}/squad?user_id=${user.id || 0}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          // Auto-fill pitch (11), sub (7), res (rest)
+          setPitchPlayers(data.slice(0, 11));
+          setSubPlayers(data.slice(11, 18));
+          setResPlayers(data.slice(18));
+        }
+      })
+      .catch(err => console.error("Error fetching live squad:", err));
+
     newSocket.emit("join_lobby", {
       auction_id: auctionId,
       user_id: user.id || 0,
@@ -405,6 +627,19 @@ const Auction = () => {
           }
         })
         .catch(err => console.error("Failed to refresh participants", err));
+
+      // 3. Refresh Live Squad
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if ((data.user_id && user.id == data.user_id) || (data.bidder && user.username === data.bidder)) {
+        fetch(`${API_URL}/api/auctions/${auctionId}/squad?user_id=${user.id || 0}`)
+          .then(res => res.json())
+          .then(allMyPlayers => {
+            if (Array.isArray(allMyPlayers)) {
+              handleSquadUpdate(allMyPlayers);
+            }
+          })
+          .catch(err => console.error("Error refreshing live squad:", err));
+      }
     });
 
     setSocket(newSocket);
@@ -466,6 +701,61 @@ const Auction = () => {
   const [selectedManager, setSelectedManager] = useState(null);
   const [managerPlayers, setManagerPlayers] = useState([]);
 
+  // Squad Arrays
+  const [pitchPlayers, setPitchPlayers] = useState([]);
+  const [subPlayers, setSubPlayers] = useState([]);
+  const [resPlayers, setResPlayers] = useState([]);
+
+  // Ref to track current squad state for socket updates
+  const squadStateRef = useRef({ pitch: [], sub: [], res: [] });
+
+  useEffect(() => {
+    squadStateRef.current = { pitch: pitchPlayers, sub: subPlayers, res: resPlayers };
+  }, [pitchPlayers, subPlayers, resPlayers]);
+
+  const handleSquadUpdate = (allPlayers) => {
+    const { pitch, sub, res } = squadStateRef.current;
+
+    // 1. Identify Existing IDs
+    const existingIds = new Set();
+    pitch.forEach(p => { if (p) existingIds.add(p.id); });
+    sub.forEach(p => { if (p) existingIds.add(p.id); });
+    res.forEach(p => { if (p) existingIds.add(p.id); });
+
+    // 2. Find New Players
+    const newPlayers = allPlayers.filter(p => !existingIds.has(p.id));
+
+    if (newPlayers.length === 0) return; // No changes needed
+
+    console.log("Adding new players to formation:", newPlayers);
+
+    // 3. Add to Arrays (Clone first)
+    // We assume formation on pitch is sacred. Only fill empty subs or rest to reserves.
+    const nextSub = [...sub];
+    // Ensure 7 slots in sub array
+    while (nextSub.length < 7) nextSub.push(undefined);
+
+    const nextRes = [...res];
+
+    newPlayers.forEach(p => {
+      let placed = false;
+      // Try Sub
+      for (let i = 0; i < 7; i++) {
+        if (!nextSub[i]) {
+          nextSub[i] = p;
+          placed = true;
+          break;
+        }
+      }
+      // Else Reserve
+      if (!placed) nextRes.push(p);
+    });
+
+    setSubPlayers(nextSub);
+    setResPlayers(nextRes);
+    // Pitch doesn't change
+  };
+
   const openManagerPlayers = (managerName) => {
     setSelectedManager(managerName);
     setShowBoughtPlayersModal(true);
@@ -493,13 +783,7 @@ const Auction = () => {
   const [selectorSide, setSelectorSide] = useState('you');
 
   // Compare Modal State
-  const [currentStrategyIndex, setCurrentStrategyIndex] = useState(0);
   const [liveFormation, setLiveFormation] = useState('4-3-3');
-
-  // Squad Arrays
-  const [pitchPlayers, setPitchPlayers] = useState([]);
-  const [subPlayers, setSubPlayers] = useState([]);
-  const [resPlayers, setResPlayers] = useState([]);
 
   // Drag State
   const dragItem = useRef(null);
@@ -507,54 +791,8 @@ const Auction = () => {
   const [dragOverTarget, setDragOverTarget] = useState(null);
 
   // --- DATA ---
-  const allLivePlayers = [
-    { id: 1, name: "Mbappé", pos: "ST", rating: 97, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p223094.png", stat: "PAC 97" },
-    { id: 2, name: "Salah", pos: "RW", rating: 90, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p118748.png", stat: "PAC 91" },
-    { id: 3, name: "Son", pos: "LW", rating: 89, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p85971.png", stat: "SHO 89" },
-    { id: 4, name: "De Bruyne", pos: "CM", rating: 96, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p61366.png", stat: "PAS 94" },
-    { id: 5, name: "Fernandes", pos: "CM", rating: 88, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p122798.png", stat: "PAS 90" },
-    { id: 6, name: "Rice", pos: "CDM", rating: 86, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p204480.png", stat: "DEF 85" },
-    { id: 7, name: "Shaw", pos: "LB", rating: 83, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p106760.png", stat: "PAC 82" },
-    { id: 8, name: "Dias", pos: "CB", rating: 89, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p171287.png", stat: "DEF 89" },
-    { id: 9, name: "Saliba", pos: "CB", rating: 87, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p243016.png", stat: "DEF 88" },
-    { id: 10, name: "Trippier", pos: "RB", rating: 84, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p101178.png", stat: "PAS 86" },
-    { id: 11, name: "Ederson", pos: "GK", rating: 89, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p106573.png", stat: "REF 91" },
-    { id: 12, name: "Varane", pos: "CB", rating: 84, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p93111.png", stat: "DEF 85" },
-    { id: 13, name: "Rashford", pos: "LW", rating: 83, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p172780.png", stat: "PAC 88" },
-    { id: 14, name: "Saka", pos: "RW", rating: 86, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p223340.png", stat: "DRI 87" },
-    { id: 15, name: "Ramsdale", pos: "GK", rating: 81, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p172649.png", stat: "REF 82" },
-    { id: 16, name: "Nketiah", pos: "ST", rating: 78, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p179402.png", stat: "PAC 82" },
-    { id: 17, name: "Maguire", pos: "CB", rating: 79, img: "https://resources.premierleague.com/premierleague/photos/players/250x250/p95658.png", stat: "PHY 85" },
-  ];
+  // tradePool and formations moved to module scope
 
-  const boughtPlayersByManager = {
-    'GalacticManager_7': [{ id: 1, name: 'Mbappé', pos: 'FW', team: 'PSG', price: '$85M', rating: 97 }],
-    'EliteScout_X': [{ id: 4, name: 'Haaland', pos: 'ST', team: 'City', price: '$120M', rating: 98 }],
-    'StarkUnited': [{ id: 6, name: 'Modrić', pos: 'CM', team: 'Real', price: '$55M', rating: 92 }]
-  };
-
-  const tradePool = {
-    you: ["Mbappé", "De Bruyne", "Ederson", "Rice"],
-    them: ["Haaland", "Vini Jr", "Allison", "Van Dijk", "Rashford"]
-  };
-
-  const strategies = [
-    { name: "Plan A (Meta)", pitch: ["Mbappé", "Salah", "Son", "De Bruyne", "Ederson", "Dias", "Saliba", "Shaw", "Trippier", "Rodri", "Fernandes"], sub: ["Rice", "Varane"], res: ["Maguire"] },
-    { name: "Plan B (Budget)", pitch: ["Jesus", "Saka", "Diaz", "Rice", "Ramsdale"], sub: ["Nketiah"], res: [] }
-  ];
-
-  // COMPACT COORDINATES (To fit without scrolling)
-  const formations = {
-    "4-3-3": [{ role: "GK", left: 50, top: 85 }, { role: "LB", left: 15, top: 70 }, { role: "CB", left: 38, top: 75 }, { role: "CB", left: 62, top: 75 }, { role: "RB", left: 85, top: 70 }, { role: "CM", left: 30, top: 45 }, { role: "CM", left: 50, top: 50 }, { role: "CM", left: 70, top: 45 }, { role: "LW", left: 15, top: 15 }, { role: "ST", left: 50, top: 10 }, { role: "RW", left: 85, top: 15 }],
-    "4-4-2": [{ role: "GK", left: 50, top: 85 }, { role: "LB", left: 15, top: 70 }, { role: "CB", left: 38, top: 75 }, { role: "CB", left: 62, top: 75 }, { role: "RB", left: 85, top: 70 }, { role: "LM", left: 15, top: 40 }, { role: "CM", left: 40, top: 45 }, { role: "CM", left: 60, top: 45 }, { role: "RM", left: 85, top: 40 }, { role: "ST", left: 35, top: 15 }, { role: "ST", left: 65, top: 15 }],
-    "3-5-2": [{ role: "GK", left: 50, top: 85 }, { role: "CB", left: 20, top: 72 }, { role: "CB", left: 50, top: 68 }, { role: "CB", left: 80, top: 72 }, { role: "LM", left: 10, top: 40 }, { role: "CDM", left: 35, top: 50 }, { role: "CM", left: 50, top: 35 }, { role: "CDM", left: 65, top: 50 }, { role: "RM", left: 90, top: 40 }, { role: "ST", left: 35, top: 15 }, { role: "ST", left: 65, top: 15 }],
-  };
-
-  useEffect(() => {
-    setPitchPlayers(allLivePlayers.slice(0, 11));
-    setSubPlayers(allLivePlayers.slice(11, 15));
-    setResPlayers(allLivePlayers.slice(15));
-  }, []);
 
   // --- DRAG HANDLERS ---
   const handleDragStart = (e, type, index, player) => {
@@ -642,161 +880,9 @@ const Auction = () => {
 
 
 
-  const nextStrategy = () => setCurrentStrategyIndex((prev) => (prev + 1) % strategies.length);
-  const prevStrategy = () => setCurrentStrategyIndex((prev) => (prev - 1 + strategies.length) % strategies.length);
-
   // --- COMPARE MODAL ---
-  const CompareModal = () => {
-    const strategy = strategies[currentStrategyIndex];
-    const isPlayerInStrategy = (player) => {
-      if (!player) return false;
-      return [...strategy.pitch, ...strategy.sub, ...strategy.res].includes(player.name);
-    };
+  // (Component moved outside logic to avoid re-renders)
 
-    return (
-      <div className="fixed inset-0 z-[2000] flex items-center justify-center">
-        <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setShowCompareModal(false)}></div>
-        <div className="relative w-[95vw] h-[95vh] bg-[#0a0f0b] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-
-          <div className="h-16 border-b border-white/10 flex items-center justify-between px-8 bg-black/40">
-            <h3 className="text-xl font-black uppercase tracking-wider italic flex items-center gap-2 text-white">
-              <span className="material-symbols-outlined text-[#39ff14]">strategy</span> Squad Comparison
-            </h3>
-            <button onClick={() => setShowCompareModal(false)} className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition text-white"><span className="material-symbols-outlined">close</span></button>
-          </div>
-
-          <div className="flex-1 flex overflow-hidden">
-            {/* LEFT: Strategy List */}
-            <div className="w-[28%] flex flex-col border-r border-white/10 bg-[#0e1411]">
-              <div className="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-black/20">
-                <span className="text-[#39ff14] font-bold text-xs uppercase tracking-widest">My Strategy</span>
-                <div className="flex gap-1">
-                  <button onClick={prevStrategy} className="hover:bg-white/10 rounded p-1 text-white"><span className="material-symbols-outlined text-sm">chevron_left</span></button>
-                  <span className="text-[10px] bg-white/5 px-2 py-1 rounded text-white/60">{strategy.name}</span>
-                  <button onClick={nextStrategy} className="hover:bg-white/10 rounded p-1 text-white"><span className="material-symbols-outlined text-sm">chevron_right</span></button>
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 custom-scroll">
-                {['pitch', 'sub', 'res'].map(section => (
-                  <div key={section}>
-                    <div className="text-[9px] text-white/30 font-bold uppercase mb-1 mt-2">
-                      {section === 'pitch' ? 'Starting XI' : section === 'sub' ? 'Substitutes' : 'Reserves'}
-                    </div>
-                    {strategy[section].map((name, idx) => {
-                      const isMatch = [...pitchPlayers, ...subPlayers, ...resPlayers].some(p => p && p.name === name);
-                      return (
-                        <div key={idx} className={`flex items-center gap-2 p-2 rounded border mb-1 ${isMatch ? 'border-[#ffd700] bg-[#ffd700]/10' : 'border-white/5 bg-white/5'}`}>
-                          <div className="w-6 h-6 rounded-full bg-black/40 flex items-center justify-center text-[8px] font-bold text-white/50">{name.charAt(0)}</div>
-                          <span className={`text-xs font-bold ${isMatch ? 'text-[#ffd700]' : 'text-white'}`}>{name}</span>
-                          {isMatch && <span className="text-[8px] bg-[#ffd700] text-black font-bold px-1 rounded ml-auto">MATCH</span>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* RIGHT: Live Squad Interactive */}
-            <div className="flex-1 flex flex-col bg-[#0e1411]">
-              <div className="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-black/20">
-                <span className="text-white font-bold text-xs uppercase tracking-widest">Live Squad</span>
-                <div className="flex gap-1">
-                  {Object.keys(formations).map(fmt => (
-                    <button key={fmt} onClick={() => setLiveFormation(fmt)} className={`text-[10px] font-bold px-2 py-1 rounded transition-colors ${liveFormation === fmt ? 'bg-[#39ff14] text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}>{fmt}</button>
-                  ))}
-                </div>
-              </div>
-
-              {/* NON-SCROLLABLE PITCH */}
-              <div
-                className="flex-1 relative p-4"
-                style={{ background: 'repeating-linear-gradient(90deg, #1a2e24 0px, #1a2e24 50px, #1f362a 50px, #1f362a 100px)' }}
-                onClick={() => { setDragOverTarget(null); }}
-                onDragOver={(e) => e.preventDefault()}
-              >
-                <div className="absolute inset-4 border-2 border-white/5 rounded-xl pointer-events-none"></div>
-                <div className="absolute top-1/2 left-4 right-4 h-px bg-white/5 pointer-events-none"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-white/5 rounded-full pointer-events-none"></div>
-
-                {formations[liveFormation].map((coord, index) => {
-                  const player = pitchPlayers[index];
-                  const posColor = (player && player.pos === coord.role) ? "bg-[#39ff14] text-black border-[#39ff14]" : "bg-red-500 text-white border-red-500";
-
-                  return (
-                    <div key={index} className="absolute w-20 h-32 transition-all duration-500 ease-in-out" style={{ left: `${coord.left}%`, top: `${coord.top}%`, transform: 'translate(-50%, -50%)' }}>
-                      <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${posColor} border font-black text-[9px] px-1.5 py-0.5 rounded shadow-lg z-0 transition-colors pointer-events-none whitespace-nowrap`}>{coord.role}</div>
-                      <PlayerCard
-                        player={player}
-                        sizeClass="w-full h-full"
-                        locationType="pitch"
-                        index={index}
-                        isDragging={dragItem.current?.type === 'pitch' && dragItem.current?.index === index}
-                        isHovered={dragOverTarget?.type === 'pitch' && dragOverTarget?.index === index}
-                        isMatch={isPlayerInStrategy(player)}
-                        onDragStart={handleDragStart}
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                        onDragEnd={handleDragEnd}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* BENCH */}
-              <div className="h-36 border-t border-white/10 bg-black/40 grid grid-cols-2 divide-x divide-white/10 text-white">
-                <div className="p-2 flex flex-col">
-                  <div className="text-[10px] text-[#39ff14]/70 uppercase font-bold mb-1 flex justify-between"><span>Substitutes</span><span className="text-[9px] bg-white/5 px-1 rounded">7 Max</span></div>
-                  <div className="grid grid-cols-4 gap-2 overflow-y-auto custom-scroll">
-                    {subPlayers.map((player, index) => (
-                      <div key={`sub-${index}`} className="h-24 w-full">
-                        <PlayerCard
-                          player={player}
-                          sizeClass="w-full h-full"
-                          locationType="sub"
-                          index={index}
-                          isDragging={dragItem.current?.type === 'sub' && dragItem.current?.index === index}
-                          isHovered={dragOverTarget?.type === 'sub' && dragOverTarget?.index === index}
-                          isMatch={isPlayerInStrategy(player)}
-                          onDragStart={handleDragStart}
-                          onDragOver={handleDragOver}
-                          onDrop={handleDrop}
-                          onDragEnd={handleDragEnd}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="p-2 flex flex-col">
-                  <div className="text-[10px] text-white/30 uppercase font-bold mb-1">Reserves</div>
-                  <div className="grid grid-cols-4 gap-2 overflow-y-auto custom-scroll">
-                    {resPlayers.map((player, index) => (
-                      <div key={`res-${index}`} className="h-24 w-full">
-                        <PlayerCard
-                          player={player}
-                          sizeClass="w-full h-full"
-                          locationType="res"
-                          index={index}
-                          isDragging={dragItem.current?.type === 'res' && dragItem.current?.index === index}
-                          isHovered={dragOverTarget?.type === 'res' && dragOverTarget?.index === index}
-                          isMatch={isPlayerInStrategy(player)}
-                          onDragStart={handleDragStart}
-                          onDragOver={handleDragOver}
-                          onDrop={handleDrop}
-                          onDragEnd={handleDragEnd}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const BoughtPlayersModal = () => {
     // Use fetched managerPlayers instead of hardcoded data
@@ -1158,7 +1244,26 @@ const Auction = () => {
       </footer>
 
       {showBoughtPlayersModal && <BoughtPlayersModal />}
-      {showCompareModal && <CompareModal />}
+      {showCompareModal && (
+        <CompareModal
+          onClose={() => setShowCompareModal(false)}
+          pitchPlayers={pitchPlayers}
+          subPlayers={subPlayers}
+          resPlayers={resPlayers}
+          setPitchPlayers={setPitchPlayers}
+          setSubPlayers={setSubPlayers}
+          setResPlayers={setResPlayers}
+          liveFormation={liveFormation}
+          setLiveFormation={setLiveFormation}
+          dragItem={dragItem} // Pass ref
+          dragOverTarget={dragOverTarget}
+          handleDragStart={handleDragStart}
+          handleDragOver={handleDragOver}
+          handleDrop={handleDrop}
+          handleDragEnd={handleDragEnd}
+          auctionId={auctionId}
+        />
+      )}
       {auctionResult && <GavelModal />}
 
     </div>
