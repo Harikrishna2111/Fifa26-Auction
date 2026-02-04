@@ -186,11 +186,6 @@ const View_all_auctions = () => {
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-white font-bold text-sm">{auction.team.name}</span>
-                            <div className="flex text-auction-gold text-[10px]">
-                              {[...Array(5)].map((_, i) => (
-                                <span key={i} className={`material-symbols-outlined text-sm ${i < auction.team.stars ? 'text-auction-gold' : 'text-white/20'}`}>star</span>
-                              ))}
-                            </div>
                           </div>
                           <span className="text-xs text-white/40">{auction.team.playerCount} Players</span>
                         </div>

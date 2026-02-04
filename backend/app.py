@@ -349,6 +349,7 @@ def get_all_auctions():
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+    # Filter to only show auctions the user participated in (JOIN auction_participants)
     cur.execute("""
         SELECT
             a.id                    AS auction_id,
@@ -365,10 +366,10 @@ def get_all_auctions():
             COUNT(tp.player_id)     AS player_count
 
         FROM auctions a
-        LEFT JOIN auction_results ar
-            ON a.id = ar.auction_id AND ar.user_id = %s
+        JOIN auction_participants ap
+            ON a.id = ap.auction_id AND ap.user_id = %s
         LEFT JOIN teams t
-            ON t.id = ar.team_id
+            ON t.id = ap.team_id
         LEFT JOIN team_players tp
             ON tp.team_id = t.id
 
@@ -1034,16 +1035,84 @@ def get_auction_players(auction_id):
     min_rating = auction["min_players"] or 0
 
     # 2. Get eligible players
+    # User Request: "rating greater than min players value"
     cur.execute("""
         SELECT * FROM players 
-        WHERE overall >= %s
+        WHERE overall > %s
         ORDER BY overall DESC
     """, (min_rating,))
     
-    players = cur.fetchall()
+    all_players = cur.fetchall()
     cur.close()
+
+    # 3. Categorize Players
+    fwds = []
+    mids = []
+    defs = []
+    gks = []
+
+    # Map positions to 4 main groups
+    # Common mappings based on modern football/FIFA
+    fwd_roles = {'ST', 'CF', 'LF', 'RF', 'LW', 'RW', 'LS', 'RS', 'Forward'}
+    mid_roles = {'CAM', 'CM', 'CDM', 'LM', 'RM', 'Midfielder'}
+    def_roles = {'CB', 'LB', 'RB', 'LWB', 'RWB', 'Defender'}
+    gk_roles = {'GK', 'Goalkeeper'}
+
+    for p in all_players:
+        pos = p.get('position_group')
+        # Fallback if position_group is generic or specific code
+        # We check exact match first, then partial if needed, but set logic is safer
+        if pos in fwd_roles:
+            fwds.append(p)
+        elif pos in mid_roles:
+            mids.append(p)
+        elif pos in def_roles:
+            defs.append(p)
+        elif pos in gk_roles:
+            gks.append(p)
+        else:
+            # Fallback for unknown positions - maybe treat as Midfield or add to end?
+            # Let's add to Mids as generic filler or check distinct values
+            # Assuming 'Forward', 'Midfielder', etc are the main ones in DB based on get_market_players
+            if 'Forward' in str(pos): fwds.append(p)
+            elif 'Midfielder' in str(pos): mids.append(p)
+            elif 'Defender' in str(pos): defs.append(p)
+            elif 'Goalkeeper' in str(pos): gks.append(p)
+            else: mids.append(p) # Default to Mid
+
+    # 4. Cycle Logic (12 of each)
+    ordered_players = []
     
-    return jsonify(players)
+    # Pointers for each list
+    f_idx, m_idx, d_idx, g_idx = 0, 0, 0, 0
+    f_len, m_len, d_len, g_len = len(fwds), len(mids), len(defs), len(gks)
+    
+    while f_idx < f_len or m_idx < m_len or d_idx < d_len or g_idx < g_len:
+        # 12 Forwards
+        for _ in range(12):
+            if f_idx < f_len:
+                ordered_players.append(fwds[f_idx])
+                f_idx += 1
+        
+        # 12 Midfielders
+        for _ in range(12):
+            if m_idx < m_len:
+                ordered_players.append(mids[m_idx])
+                m_idx += 1
+                
+        # 12 Defenders
+        for _ in range(12):
+            if d_idx < d_len:
+                ordered_players.append(defs[d_idx])
+                d_idx += 1
+                
+        # 12 Goalkeepers
+        for _ in range(12):
+            if g_idx < g_len:
+                ordered_players.append(gks[g_idx])
+                g_idx += 1
+    
+    return jsonify(ordered_players)
 
 @socketio.on("join_lobby")
 def join_lobby_socket(data):
@@ -1318,13 +1387,32 @@ def start_auction(data):
         try:
             conn = get_db()
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute("SELECT season, bidding_time FROM auctions WHERE id = %s", (auction_id_int,))
+            
+            # Start Date: Update when auction first goes live
+            cur.execute("""
+                UPDATE auctions 
+                SET status = 'LIVE', start_date = CURRENT_DATE 
+                WHERE id = %s AND status = 'LOBBY'
+                RETURNING season, bidding_time
+            """, (auction_id_int,))
+            
             res = cur.fetchone()
+            if res:
+                season = res['season'] or 1
+                bidding_time = res['bidding_time'] or 30
+                conn.commit()
+            else:
+                # If not updated (maybe already live?), just fetch
+                cur.execute("SELECT season, bidding_time FROM auctions WHERE id = %s", (auction_id_int,))
+                res = cur.fetchone()
+                if res:
+                    season = res['season'] or 1
+                    bidding_time = res['bidding_time'] or 30
+            
             cur.close()
-            season = res['season'] if res else 1
-            bidding_time = res['bidding_time'] if res else 30
         except Exception as e:
-            print(f"Error fetching details: {e}")
+            print(f"Error updating/fetching details: {e}")
+            if conn: conn.rollback()
             season = 1
 
         # Initialize State in Redis

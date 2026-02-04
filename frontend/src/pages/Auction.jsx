@@ -884,6 +884,54 @@ const Auction = () => {
   // (Component moved outside logic to avoid re-renders)
 
 
+  const getPositionCategory = (pos) => {
+    const fwds = ['ST', 'CF', 'LF', 'RF', 'LW', 'RW', 'LS', 'RS', 'Forward', 'FWD'];
+    const mids = ['CAM', 'CM', 'CDM', 'LM', 'RM', 'Midfielder', 'MID'];
+    const defs = ['CB', 'LB', 'RB', 'LWB', 'RWB', 'Defender', 'DEF'];
+    const gks = ['GK', 'Goalkeeper'];
+
+    if (fwds.includes(pos) || (pos && pos.includes('Forward'))) return 'FORWARDS';
+    if (mids.includes(pos) || (pos && pos.includes('Midfielder'))) return 'MIDFIELDERS';
+    if (defs.includes(pos) || (pos && pos.includes('Defender'))) return 'DEFENDERS';
+    if (gks.includes(pos) || (pos && pos.includes('Goalkeeper'))) return 'GOALKEEPERS';
+    return 'OTHERS';
+  };
+
+  const upcomingPool = React.useMemo(() => {
+    if (!availablePlayers || availablePlayers.length === 0) return { name: '---', count: 0 };
+    if (currentIndex >= availablePlayers.length - 1) return { name: 'END', count: 0 };
+
+    const currentP = availablePlayers[currentIndex];
+    const currentGroup = getPositionCategory(currentP?.position_group || currentP?.pos);
+
+    // Find next different group
+    let nextIndex = -1;
+    let nextGroup = null;
+
+    for (let i = currentIndex + 1; i < availablePlayers.length; i++) {
+      const p = availablePlayers[i];
+      const g = getPositionCategory(p?.position_group || p?.pos);
+      if (g !== currentGroup) {
+        nextIndex = i;
+        nextGroup = g;
+        break;
+      }
+    }
+
+    if (nextIndex === -1) return { name: 'END', count: 0 };
+
+    // Count how many in nextGroup
+    let count = 0;
+    for (let i = nextIndex; i < availablePlayers.length; i++) {
+      const p = availablePlayers[i];
+      const g = getPositionCategory(p?.position_group || p?.pos);
+      if (g === nextGroup) count++;
+      else break;
+    }
+
+    return { name: nextGroup, count };
+  }, [availablePlayers, currentIndex]);
+
   const BoughtPlayersModal = () => {
     // Use fetched managerPlayers instead of hardcoded data
     const players = managerPlayers;
@@ -1059,8 +1107,8 @@ const Auction = () => {
                 <span className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-0.5">Upcoming Pool</span>
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-white/60 text-sm">groups_3</span>
-                  <span className="text-xs font-black text-white tracking-wider">MIDFIELDERS</span>
-                  <span className="text-[9px] text-black bg-[#39ff14] px-1.5 py-0.5 rounded font-bold">12</span>
+                  <span className="text-xs font-black text-white tracking-wider">{upcomingPool.name}</span>
+                  <span className="text-[9px] text-black bg-[#39ff14] px-1.5 py-0.5 rounded font-bold">{upcomingPool.count}</span>
                 </div>
               </div>
               <div className="h-8 w-px bg-white/10"></div>
