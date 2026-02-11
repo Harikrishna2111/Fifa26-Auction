@@ -400,17 +400,68 @@ const Auction = () => {
   const [highestBid, setHighestBid] = useState(0);
   const [highestBidder, setHighestBidder] = useState("None");
   const [socket, setSocket] = useState(null);
+  const [hasPassed, setHasPassed] = useState(false); // Track if user passed for this round
   const biddingTimeRef = useRef(30);
   const roundExpiresRef = useRef(0); // Store absolute expiration time (ms)
   const [customBid, setCustomBid] = useState("");
+  
+  const handleBidClick = (increment) => {
+      console.log("=== BID BUTTON CLICKED ===");
+      console.log("Increment value:", increment);
+      console.log("Current highestBid:", highestBid);
+      console.log("isPaused:", isPaused);
+      console.log("hasPassed:", hasPassed);
+      console.log("Socket connected:", socket?.connected);
+      console.log("Participants count:", participants.length);
+      
+      try {
+          const current = Number(highestBid) || 0;
+          const inc = Number(increment) || 1000000;
+          const finalAmount = current + inc;
+          console.log("Calculated bid amount:", finalAmount);
+          console.log("Calling placeBid with:", finalAmount);
+          placeBid(finalAmount);
+      } catch (err) {
+          console.error("Error in handleBidClick:", err);
+          alert("Error placing bid. Check console.");
+      }
+  };
 
   const placeBid = (amount) => {
-    if (!socket || !amount) return;
+    console.log("=== PLACE BID CALLED ===");
+    console.log("Amount received:", amount, "Type:", typeof amount);
+    
+    if (!socket) { 
+        console.error("❌ Socket not connected"); 
+        alert("Socket not connected. Please refresh the page.");
+        return; 
+    }
+    if (!amount) { 
+        console.error("❌ No amount specified"); 
+        alert("Invalid bid amount.");
+        return; 
+    }
+    
+    if (hasPassed) {
+        console.warn("User has passed, blocking bid.");
+        alert("You have passed this round and cannot bid.");
+        return;
+    }
 
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const participant = participants.find(p => p.user_id === user.id);
-    const teamName = participant ? participant.team_name : (user.username || "Team");
-    const budget = participant ? participant.budget : 0;
+    // Loose equality to handle string/number mismatch
+    const participant = participants.find(p => p.user_id == user.id);
+    
+    if (!participant) {
+        console.error("Participant not found for user:", user, participants);
+        alert("System Error: You are not recognized as a participant. Please refresh.");
+        return;
+    }
+
+    const teamName = participant.team_name;
+    const budget = participant.budget;
+
+    console.log("Bid details:", { user_id: user.id, teamName, budget, highestBidder, currentBid: highestBid });
 
     // Consecutive Bid Check
     if (highestBidder === teamName) {
@@ -438,11 +489,13 @@ const Auction = () => {
     setCustomBid("");
   };
   const handlePass = () => {
-    if (!socket) return;
+    if (!socket || hasPassed) return;
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
     const participant = participants.find(p => p.user_id === user.id);
     const teamName = participant ? participant.team_name : (user.username || "Team");
+
+    setHasPassed(true); // Disable buttons immediately
 
     socket.emit("pass_turn", {
       auction_id: auctionId,
@@ -497,6 +550,7 @@ const Auction = () => {
             }
           }
           setAuctionSettings(data);
+          setIsPaused(data.status === 'PAUSED');
         }
       });
 
@@ -582,6 +636,7 @@ const Auction = () => {
          setTimer(biddingTimeRef.current);
          setIsTimerActive(true);
          setIsPaused(false);
+         setHasPassed(false); // Reset pass on start
     });
 
     newSocket.on("auction_status_change", (data) => {
@@ -606,6 +661,7 @@ const Auction = () => {
       setHighestBid(0);
       setHighestBidder("None");
       setCurrentIndex(data.current_index);
+      setHasPassed(false); // Reset pass state for new player
 
       // Store absolute expiry
       if (data.round_expires) {
@@ -638,45 +694,59 @@ const Auction = () => {
     });
 
     newSocket.on("player_finalized", (data) => {
-      console.log("Player Finalized:", data);
-      setAuctionResult(data.result); // Trigger Animation ('sold' / 'unsold')
+      console.log("🎯 Player Finalized:", data);
+      console.log("Stopping timer immediately...");
+      
+      // STOP TIMER IMMEDIATELY
       setIsTimerActive(false);
+      setTimer(0);
+      roundExpiresRef.current = 0; // Clear the expiration timestamp
+      
+      setAuctionResult(data.result); // Trigger Animation ('sold' / 'unsold')
+      setHasPassed(false); // Reset for next interaction
 
       // 1. Optimistic Update (Immediate Feedback)
       if (data.result === 'sold' && data.updated_budget !== undefined) {
-        setParticipants(prev => {
-          return prev.map(p => {
-            // Validate against user_id AND team_name to be sure
-            if ((data.user_id && p.user_id == data.user_id) || (data.bidder && p.team_name === data.bidder)) {
-              return { ...p, budget: data.updated_budget };
-            }
-            return p;
+          setParticipants(prev => {
+              return prev.map(p => {
+                  // Validate against user_id AND team_name to be sure
+                  if ((data.user_id && p.user_id == data.user_id) || (data.bidder && p.team_name === data.bidder)) {
+                      return { ...p, budget: data.updated_budget };
+                  }
+                  return p;
+              });
           });
-        });
-      }
 
-      // 2. Fetch Sync (Ensure Consistency)
-      fetch(`${API_URL}/api/lobby/${auctionId}/participants?_t=${Date.now()}`)
-        .then(res => res.json())
-        .then(pData => {
-          if (Array.isArray(pData)) {
-            setParticipants(pData);
+          // 2. Fetch Sync (Ensure Consistency)
+          fetch(`${API_URL}/api/lobby/${auctionId}/participants?_t=${Date.now()}`)
+              .then(res => res.json())
+              .then(pData => {
+                  if (Array.isArray(pData)) {
+                      setParticipants(pData);
+                  }
+              })
+              .catch(err => console.error("Failed to refresh participants", err));
+
+          // 3. Refresh Live Squad
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          if ((data.user_id && user.id == data.user_id) || (data.bidder && user.username === data.bidder)) {
+              fetch(`${API_URL}/api/auctions/${auctionId}/squad?user_id=${user.id || 0}`)
+                  .then(res => res.json())
+                  .then(allMyPlayers => {
+                      if (Array.isArray(allMyPlayers)) {
+                          handleSquadUpdate(allMyPlayers);
+                      }
+                  })
+                  .catch(err => console.error("Error refreshing live squad:", err));
           }
-        })
-        .catch(err => console.error("Failed to refresh participants", err));
-
-      // 3. Refresh Live Squad
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if ((data.user_id && user.id == data.user_id) || (data.bidder && user.username === data.bidder)) {
-        fetch(`${API_URL}/api/auctions/${auctionId}/squad?user_id=${user.id || 0}`)
-          .then(res => res.json())
-          .then(allMyPlayers => {
-            if (Array.isArray(allMyPlayers)) {
-              handleSquadUpdate(allMyPlayers);
-            }
-          })
-          .catch(err => console.error("Error refreshing live squad:", err));
       }
+    });
+
+    newSocket.on("action_failed", (data) => {
+        alert(data.message || "Action failed");
+        if (data.message && data.message.includes("passed")) {
+            setHasPassed(true); // Resync state if backend says we passed
+        }
     });
 
     newSocket.on("auction_ended", (data) => {
@@ -1222,28 +1292,28 @@ const Auction = () => {
             </div>
             <div className="mt-12 w-full max-w-xl px-12 z-10">
               <div className="grid grid-cols-3 gap-4 mb-4">
-                <button disabled={isPaused} onClick={() => placeBid(Number(highestBid) + auctionSettings.bid_inc_min)} className={`h-16 bg-[#39ff14] text-black font-black text-xl italic rounded hover:scale-105 transition-transform ${isPaused ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : ''}`}>{formatMoney(auctionSettings.bid_inc_min)}</button>
-                <button disabled={isPaused} onClick={() => placeBid(Number(highestBid) + auctionSettings.bid_inc_mid)} className={`h-16 bg-[#39ff14] text-black font-black text-xl italic rounded hover:scale-105 transition-transform ${isPaused ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : ''}`}>{formatMoney(auctionSettings.bid_inc_mid)}</button>
-                <button disabled={isPaused} onClick={() => placeBid(Number(highestBid) + auctionSettings.bid_inc_max)} className={`h-16 bg-[#39ff14] text-black font-black text-xl italic rounded hover:scale-105 transition-transform ${isPaused ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : ''}`}>{formatMoney(auctionSettings.bid_inc_max)}</button>
+                <button disabled={isPaused || hasPassed} onClick={() => handleBidClick(auctionSettings?.bid_inc_min)} className={`h-16 bg-[#39ff14] text-black font-black text-xl italic rounded hover:scale-105 transition-transform ${(isPaused || hasPassed) ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : ''}`}>{formatMoney(auctionSettings?.bid_inc_min || 1000000)}</button>
+                <button disabled={isPaused || hasPassed} onClick={() => handleBidClick(auctionSettings?.bid_inc_mid)} className={`h-16 bg-[#39ff14] text-black font-black text-xl italic rounded hover:scale-105 transition-transform ${(isPaused || hasPassed) ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : ''}`}>{formatMoney(auctionSettings?.bid_inc_mid || 5000000)}</button>
+                <button disabled={isPaused || hasPassed} onClick={() => handleBidClick(auctionSettings?.bid_inc_max)} className={`h-16 bg-[#39ff14] text-black font-black text-xl italic rounded hover:scale-105 transition-transform ${(isPaused || hasPassed) ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : ''}`}>{formatMoney(auctionSettings?.bid_inc_max || 10000000)}</button>
               </div>
               <div className="flex gap-4">
                 <input
                   value={customBid}
                   onChange={(e) => setCustomBid(e.target.value)}
-                  disabled={!auctionSettings.custom_bid_enabled || isPaused}
-                  className={`flex-1 bg-black/50 border border-white/20 rounded px-6 font-bold text-lg text-white ${(!auctionSettings.custom_bid_enabled || isPaused) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  placeholder={isPaused ? "PAUSED" : (auctionSettings.custom_bid_enabled ? "Custom bid..." : "Disabled")}
+                  disabled={!auctionSettings.custom_bid_enabled || isPaused || hasPassed}
+                  className={`flex-1 bg-black/50 border border-white/20 rounded px-6 font-bold text-lg text-white ${(!auctionSettings.custom_bid_enabled || isPaused || hasPassed) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  placeholder={isPaused ? "PAUSED" : (hasPassed ? "PASSED" : (auctionSettings.custom_bid_enabled ? "Custom bid..." : "Disabled"))}
                   type="number"
                 />
                 <button
-                  onClick={() => placeBid(Number(highestBid) + (parseFloat(customBid) * 1000000))}
-                  disabled={!auctionSettings.custom_bid_enabled || isPaused}
-                  className={`h-14 w-24 bg-[#39ff14] text-black font-black text-xl italic rounded hover:scale-105 shadow-[0_0_20px_rgba(57,255,20,0.4)] ${(!auctionSettings.custom_bid_enabled || isPaused) ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+                  onClick={() => placeBid(Number(highestBid || 0) + ((parseFloat(customBid) || 0) * 1000000))}
+                  disabled={!auctionSettings.custom_bid_enabled || isPaused || hasPassed}
+                  className={`h-14 w-24 bg-[#39ff14] text-black font-black text-xl italic rounded hover:scale-105 shadow-[0_0_20px_rgba(57,255,20,0.4)] ${(!auctionSettings.custom_bid_enabled || isPaused || hasPassed) ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                 >
                   BID
                 </button>
-                <button disabled={isPaused} onClick={handlePass} className={`h-14 px-8 bg-white/10 border border-white/10 rounded font-bold uppercase text-white/60 hover:text-white hover:bg-white/20 transition-all ${isPaused ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}>
-                  Pass
+                <button disabled={isPaused || hasPassed} onClick={handlePass} className={`h-14 px-8 bg-white/10 border border-white/10 rounded font-bold uppercase text-white/60 hover:text-white hover:bg-white/20 transition-all ${(isPaused || hasPassed) ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}>
+                  {hasPassed ? "Passed" : "Pass"}
                 </button>
               </div>
             </div>
@@ -1373,6 +1443,14 @@ const Auction = () => {
         />
       )}
       {auctionResult && <GavelModal />}
+      
+      {/* DEBUG OVERLAY */}
+      <div className="fixed bottom-0 left-0 bg-black/80 text-[#39ff14] p-2 text-xs font-mono z-[9999]">
+          Socket: {socket?.connected ? 'OK' : 'DISCONNECTED'} | 
+          Paused: {isPaused ? 'YES' : 'NO'} | 
+          Passed: {hasPassed ? 'YES' : 'NO'} | 
+          Parts: {participants.length}
+      </div>
 
     </div>
   );

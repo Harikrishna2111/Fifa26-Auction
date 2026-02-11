@@ -67,6 +67,12 @@ class MockRedis:
              return len(self.store[name])
          return 0
     
+    def sismember(self, name, value):
+        """Check if value is a member of the set stored at key name"""
+        if name in self.store and isinstance(self.store[name], set):
+            return value in self.store[name]
+        return False
+    
     def rpush(self, name, *values):
         if name not in self.store:
              self.store[name] = []
@@ -1213,8 +1219,16 @@ def handle_place_bid(data):
     bidder = data.get("bidder") # team_name
     user_id = data.get("user_id") # New: Track user ID for reliable updates
     
+    print(f"Received bid request: {amount} from {bidder} (ID: {user_id})")
+
     room = f"lobby_{auction_id}"
     
+    # Check if user has already passed
+    if r.sismember(f"auction:{auction_id}:passes", user_id):
+        print(f"User {user_id} CANNOT BID: Already passed.")
+        emit("action_failed", {"message": "You have already passed this round."}, room=request.sid)
+        return
+
     # Store in Redis
     redis_key = f"auction:{auction_id}:current_bid"
     r.hset(redis_key, mapping={
@@ -1239,8 +1253,8 @@ def handle_place_bid(data):
         "timestamp": time.time()
     }))
 
-    # Clear any pass votes since a new bid restarts the clock/logic
-    r.delete(f"auction:{auction_id}:passes")
+    # DO NOT Clear pass votes. Passes are permanent for the round.
+    # r.delete(f"auction:{auction_id}:passes")
     
     print(f"Bid stored in Redis for {room}: {amount} by {bidder}")
     
@@ -1251,6 +1265,33 @@ def handle_place_bid(data):
         "timestamp": time.time(),
         "round_expires": new_expires 
     }, room=room)
+
+    # CHECK FOR IMMEDIATE WIN (If everyone else already passed)
+    # We need to check passes again because if A, B, C are players. A & B pass. C bids.
+    # C should win immediately.
+    pass_key = f"auction:{auction_id}:passes"
+    pass_count = r.scard(pass_key)
+    
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) as count FROM auction_participants WHERE auction_id = %s", (auction_id,))
+    result = cur.fetchone()
+    total_participants = result['count'] if result else 0
+    cur.close()
+    conn.close() # Good practice
+    
+    if total_participants == 0:
+        print(f"No participants found for auction {auction_id}")
+        return
+
+    if pass_count >= total_participants - 1:
+         emit("player_finalized", {
+             "result": "sold",
+             "bidder": bidder,
+             "amount": amount,
+             "user_id": user_id,
+             "player_id": None 
+         }, room=room)
 
 
 @socketio.on("finalize_player")
@@ -1321,10 +1362,11 @@ def handle_finalize_player(data):
                             cur.execute("UPDATE auction_participants SET team_id = %s WHERE id = %s", (team_id, participant_id))
 
                     if team_id:
-                         # Insert into team_players table
+                         # Insert into team_players table (prevent duplicates)
                          cur.execute("""
                             INSERT INTO team_players (team_id, player_id, acquired_price)
                             VALUES (%s, %s, %s)
+                            ON CONFLICT (team_id, player_id) DO NOTHING
                          """, (team_id, player_id, amount))
 
                          # Recalculate Budget Dynamically for response
@@ -1381,27 +1423,81 @@ def handle_pass_turn(data):
     # Using DB is safer for "Registered Participants"
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT COUNT(*) FROM auction_participants WHERE auction_id = %s", (auction_id,))
-    total_participants = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) as count FROM auction_participants WHERE auction_id = %s", (auction_id,))
+    result = cur.fetchone()
+    total_participants = result['count'] if result else 0
     cur.close()
+    
+    if total_participants == 0:
+        print(f"⚠️ No participants found for auction {auction_id}")
+        emit("pass_update", {"count": 0, "total": 0}, room=room)
+        return
     
     print(f"Pass vote: {pass_count}/{total_participants} in {room}")
     
     # If all participants passed
-    if pass_count >= total_participants:
-        # Check if there is an active bid
-        current_bid = r.hgetall(f"auction:{auction_id}:current_bid")
-        if not current_bid:
-             # No bid + All Passed = Unsold immediately
+    # If enough participants passed
+    # Condition 1: Active Bid Exists
+    current_bid = r.hgetall(f"auction:{auction_id}:current_bid")
+    
+    if current_bid:
+        bidder_user_id = current_bid.get("user_id")
+        bidder_has_passed = r.sismember(pass_key, bidder_user_id) if bidder_user_id else False
+        
+        # Two scenarios for finalization:
+        # 1. Bidder hasn't passed, but everyone else has (bidder is last one standing)
+        # 2. Everyone including the bidder has passed (bidder accepts their bid)
+        
+        if bidder_has_passed:
+            # Bidder passed - only finalize if EVERYONE has passed
+            if pass_count >= total_participants:
+                print(f"🎯 IMMEDIATE FINALIZATION: All passed (including bidder). SOLD to {current_bid.get('bidder')}")
+                r.delete(f"auction:{auction_id}:current_bid")
+                r.delete(pass_key)
+                
+                emit("player_finalized", {
+                    "result": "sold",
+                    "bidder": current_bid.get("bidder"),
+                    "amount": int(current_bid.get("amount", 0)),
+                    "user_id": current_bid.get("user_id"),
+                    "player_id": None
+                }, room=room)
+                return
+        else:
+            # Bidder hasn't passed - finalize if everyone EXCEPT bidder has passed
+            if pass_count >= total_participants - 1:
+                print(f"🎯 IMMEDIATE FINALIZATION: All except bidder passed. SOLD to {current_bid.get('bidder')}")
+                r.delete(f"auction:{auction_id}:current_bid")
+                r.delete(pass_key)
+                
+                emit("player_finalized", {
+                    "result": "sold",
+                    "bidder": current_bid.get("bidder"),
+                    "amount": int(current_bid.get("amount", 0)),
+                    "user_id": current_bid.get("user_id"),
+                    "player_id": None
+                }, room=room)
+                return
+             
+    else:
+        # Condition 2: No Bid
+        # If ALL participants passed
+        if pass_count >= total_participants:
+             print(f" IMMEDIATE FINALIZATION: All passed with no bids. UNSOLD")
+             # Unsold immediately
+             # Clean up Redis state
+             r.delete(pass_key)
+             
              emit("player_finalized", {
                  "result": "unsold",
                  "bidder": "None",
                  "amount": 0
              }, room=room)
-             r.delete(pass_key)
-    else:
-        # Just notify (optional, maybe update UI with X/Y passed)
-        emit("pass_update", {"count": pass_count, "total": total_participants}, room=room)
+             return  # Exit early, finalization complete
+    
+    # Notify count update (only if not finalized)
+    emit("pass_update", {"count": pass_count, "total": total_participants}, room=room)
+
 
 @app.route("/api/auctions/<int:auction_id>/stats", methods=["GET"])
 def get_auction_stats(auction_id):
