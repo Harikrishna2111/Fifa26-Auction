@@ -401,6 +401,7 @@ const Auction = () => {
   const [highestBidder, setHighestBidder] = useState("None");
   const [socket, setSocket] = useState(null);
   const biddingTimeRef = useRef(30);
+  const roundExpiresRef = useRef(0); // Store absolute expiration time (ms)
   const [customBid, setCustomBid] = useState("");
 
   const placeBid = (amount) => {
@@ -490,7 +491,10 @@ const Auction = () => {
 
           if (data.bidding_time) {
             setBiddingTime(data.bidding_time);
-            setTimer(data.bidding_time);
+            // FIX: Only set timer if in LOBBY. If LIVE/PAUSED, rely on socket sync to avoid race condition overwrite.
+            if (data.status === 'LOBBY') {
+               setTimer(data.bidding_time);
+            }
           }
           setAuctionSettings(data);
         }
@@ -554,14 +558,30 @@ const Auction = () => {
       if (data.status === 'PAUSED') {
         setIsPaused(true);
         setIsTimerActive(false);
+        if (data.round_expires) {
+             roundExpiresRef.current = data.round_expires * 1000;
+        }
       } else {
         setIsPaused(false);
         if (data.round_expires) {
+          roundExpiresRef.current = data.round_expires * 1000;
           const remaining = Math.max(0, Math.ceil(data.round_expires - (Date.now() / 1000)));
           setTimer(remaining);
           setIsTimerActive(remaining > 0);
         }
       }
+    });
+
+    // Add Missing auction_started Handler
+    newSocket.on("auction_started", (data) => {
+         console.log("Auction Started!", data);
+         // Default start: NOW + biddingTime
+         const expires = Date.now() + (biddingTimeRef.current * 1000);
+         roundExpiresRef.current = expires;
+         
+         setTimer(biddingTimeRef.current);
+         setIsTimerActive(true);
+         setIsPaused(false);
     });
 
     newSocket.on("auction_status_change", (data) => {
@@ -572,6 +592,7 @@ const Auction = () => {
       } else if (data.status === 'LIVE') {
         setIsPaused(false);
         if (data.round_expires) {
+          roundExpiresRef.current = data.round_expires * 1000;
           const remaining = Math.max(0, Math.ceil(data.round_expires - (Date.now() / 1000)));
           setTimer(remaining);
           setIsTimerActive(remaining > 0);
@@ -586,6 +607,11 @@ const Auction = () => {
       setHighestBidder("None");
       setCurrentIndex(data.current_index);
 
+      // Store absolute expiry
+      if (data.round_expires) {
+          roundExpiresRef.current = data.round_expires * 1000;
+      }
+      
       // Calculate remaining from expires
       const remaining = Math.max(0, Math.ceil(data.round_expires - (Date.now() / 1000)));
       setTimer(remaining);
@@ -599,10 +625,13 @@ const Auction = () => {
 
       // Sync Timer using server timestamp
       if (data.round_expires) {
+        roundExpiresRef.current = data.round_expires * 1000;
         const remaining = Math.max(0, Math.ceil(data.round_expires - (Date.now() / 1000)));
         setTimer(remaining);
       } else {
         // Fallback
+        const expires = Date.now() + (biddingTimeRef.current * 1000);
+        roundExpiresRef.current = expires;
         setTimer(biddingTimeRef.current);
       }
       setIsTimerActive(true);
@@ -675,37 +704,57 @@ const Auction = () => {
   useEffect(() => {
     if (!isTimerActive) return;
 
-    if (timer === 0) {
-      setIsTimerActive(false);
-      // Time Up Logic: Check if sold or unsold
-      // Only HOST should ideally triggering this to DB, but for UI sync we emit from here.
-      // Actually, let's keep it simple: Host client finalizes.
-      // For now, allow any client to trigger "End of Round" locally, then wait for server confirm?
-      // Better: Host triggers 'finalize_player'
+    // Use absolute timestamp for precision (Prevents drift/offsets)
+    const updateTimer = () => {
+      if (!roundExpiresRef.current) return;
+      
+      const now = Date.now();
+      const remainingMs = roundExpiresRef.current - now;
+      const remainingSec = Math.ceil(remainingMs / 1000);
+      
+      if (remainingSec <= 0) {
+          setTimer(0);
+          // Let the next tick or effect handle the '0' state finalization logic
+      } else {
+          setTimer(remainingSec);
+      }
+    };
 
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      // Simple check: if I am the host (or just do it - backend handles race conditions mostly)
-      // Let's assume the user is valid.
-
-      const result = highestBid > 0 ? 'sold' : 'unsold';
-
-      socket.emit("finalize_player", {
-        auction_id: auctionId,
-        player_id: currentPlayer?.id,
-        result: result,
-        amount: highestBid,
-        bidder: highestBidder
-      });
-
-      return;
-    }
+    // Run immediately to correct any offset
+    updateTimer();
 
     const interval = setInterval(() => {
-      setTimer((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
+        updateTimer();
+        
+        // Check if time is up to trigger finalization logic
+        // We do this check inside interval or effect?
+        // The original logic checked `if (timer === 0)` in effect dependency.
+        // We can keep `timer` dependency below or just check here.
+        // Let's rely on setTimer(0) triggering the effect re-run if we keep [timer] dependency.
+    }, 200); // Check more frequently (5Hz) to catch the second flip accurately
 
     return () => clearInterval(interval);
-  }, [timer, isTimerActive, highestBid, highestBidder, currentPlayer]);
+  }, [isTimerActive]); // Removed `timer` dependency to avoid loop, we rely on interval updates
+
+  // Separate Effect for Time Up Logic
+  useEffect(() => {
+     if (timer === 0 && isTimerActive) {
+        setIsTimerActive(false);
+        // Time Up Logic
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const result = highestBid > 0 ? 'sold' : 'unsold';
+
+        if (socket) {
+            socket.emit("finalize_player", {
+                auction_id: auctionId,
+                player_id: currentPlayer?.id,
+                result: result,
+                amount: highestBid,
+                bidder: highestBidder
+            });
+        }
+     }
+  }, [timer, isTimerActive, highestBid, highestBidder, currentPlayer, socket, auctionId]);
 
   // --- STATE ---
   const [showBoughtPlayersModal, setShowBoughtPlayersModal] = useState(false);

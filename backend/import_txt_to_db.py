@@ -83,7 +83,8 @@ def create_all_tables(cursor):
             custom_bid_enabled boolean DEFAULT FALSE,
             start_time timestamp without time zone,
             end_time timestamp without time zone,
-            total_bids integer DEFAULT 0
+            total_bids integer DEFAULT 0,
+            current_index integer DEFAULT 0
         );
     """)
 
@@ -111,7 +112,8 @@ def create_all_tables(cursor):
             team_id integer,
             joined_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
             team_name character varying,
-            budget integer DEFAULT 0
+            budget integer DEFAULT 0,
+            CONSTRAINT auction_participants_auction_id_user_id_key UNIQUE (auction_id, user_id)
         );
     """)
 

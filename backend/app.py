@@ -1002,7 +1002,7 @@ def get_lobby_participants(auction_id):
         JOIN users u ON u.id = ap.user_id
         JOIN auctions a ON a.id = ap.auction_id
         WHERE ap.auction_id = %s
-        ORDER BY ap.joined_at
+        ORDER BY (ap.user_id = a.host_id) DESC, ap.joined_at ASC
     """, (auction_id,))
 
     participants = cur.fetchall()
@@ -1039,7 +1039,7 @@ def get_auction_players(auction_id):
     cur.execute("""
         SELECT * FROM players 
         WHERE overall > %s
-        ORDER BY overall DESC
+        ORDER BY overall DESC, id ASC
     """, (min_rating,))
     
     all_players = cur.fetchall()
@@ -1144,6 +1144,36 @@ def join_lobby_socket(data):
     # Only applicable if Auction is LIVE or PAUSED
     auction_id_str = str(data['auction_id'])
     status = r.get(f"auction:{auction_id_str}:status")
+
+    # Recovery: If Redis is empty but DB says LIVE/PAUSED (Server Restart)
+    if not status:
+        try:
+            conn = get_db()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute("SELECT status, current_index, bidding_time FROM auctions WHERE id = %s", (data['auction_id'],))
+            row = cur.fetchone()
+            cur.close()
+            
+            if row and row['status'] in ('LIVE', 'PAUSED'):
+                status = row['status']
+                index = row['current_index'] or 0
+                bidding_time = row['bidding_time'] or 30
+                
+                print(f"Recovering Auction State from DB: Status={status}, Index={index}")
+                
+                # Restore Redis
+                r.set(f"auction:{auction_id_str}:status", status)
+                r.set(f"auction:{auction_id_str}:index", index)
+                r.set(f"auction:{auction_id_str}:config_time", bidding_time)
+                
+                # For timer, if we just recovered, maybe restart round? 
+                # Or just give full time if we lost the exact second?
+                # Safer to give full time or just set to NOW if paused.
+                if status == 'LIVE':
+                    new_expires = time.time() + bidding_time
+                    r.set(f"auction:{auction_id_str}:round_expires", new_expires)
+        except Exception as e:
+            print(f"Error recovering state: {e}")
 
     if status == "LIVE" or status == "PAUSED":
         index = r.get(f"auction:{auction_id_str}:index") or 0
@@ -1535,6 +1565,16 @@ def handle_next_player(data):
     # Increment Index
     new_index = r.incr(f"auction:{auction_id}:index")
     
+    # Persist Index to DB
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("UPDATE auctions SET current_index = %s WHERE id = %s", (new_index, int(auction_id)))
+        conn.commit()
+        cur.close()
+    except Exception as e:
+        print(f"Error persisting index: {e}")
+
     # Reset State for new round
     r.delete(f"auction:{auction_id}:current_bid")
     r.delete(f"auction:{auction_id}:passes")
