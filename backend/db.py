@@ -6,7 +6,7 @@ DB_CONFIG = {
     "dbname": "fifa_auction",
     "user": "postgres",
     "password": "fifa",
-    "host": "10.133.206.100",
+    "host": "localhost",
     "port": 5432,
 }
 

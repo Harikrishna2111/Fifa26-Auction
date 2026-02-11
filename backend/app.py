@@ -1373,6 +1373,98 @@ def handle_pass_turn(data):
         # Just notify (optional, maybe update UI with X/Y passed)
         emit("pass_update", {"count": pass_count, "total": total_participants}, room=room)
 
+@app.route("/api/auctions/<int:auction_id>/stats", methods=["GET"])
+def get_auction_stats(auction_id):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    
+    try:
+        # 1. Global Stats
+        # Duration
+        cur.execute("""
+            SELECT 
+                start_date, end_date, 
+                EXTRACT(EPOCH FROM (end_date - start_date)) as duration_seconds
+            FROM auctions
+            WHERE id = %s
+        """, (auction_id,))
+        auction_times = cur.fetchone()
+        
+        # Most Expensive Player
+        cur.execute("""
+            SELECT p.name, tp.acquired_price
+            FROM team_players tp
+            JOIN players p ON p.id = tp.player_id
+            WHERE tp.team_id IN (
+                SELECT team_id FROM auction_participants WHERE auction_id = %s
+            )
+            ORDER BY tp.acquired_price DESC
+            LIMIT 1
+        """, (auction_id,))
+        most_expensive = cur.fetchone()
+
+        # Total Spent & Sold Count
+        cur.execute("""
+            SELECT COUNT(tp.id) as sold_count, COALESCE(SUM(tp.acquired_price), 0) as total_spent
+            FROM team_players tp
+            WHERE tp.team_id IN (
+                SELECT team_id FROM auction_participants WHERE auction_id = %s
+            )
+        """, (auction_id,))
+        totals = cur.fetchone()
+
+        # 2. Team Standings & Details
+        cur.execute("""
+            SELECT 
+                t.id as team_id,
+                t.name as team_name,
+                u.username as manager,
+                COALESCE(SUM(tp.acquired_price), 0) as spent,
+                COUNT(tp.player_id) as players_count,
+                ap.budget as remaining_budget
+            FROM auction_participants ap
+            JOIN teams t ON t.id = ap.team_id
+            JOIN users u ON u.id = ap.user_id
+            LEFT JOIN team_players tp ON tp.team_id = t.id
+            WHERE ap.auction_id = %s
+            GROUP BY t.id, u.username, ap.budget
+            ORDER BY spent DESC
+        """, (auction_id,))
+        standings = cur.fetchall()
+        
+        # Fetch players for each team
+        teams_detailed = []
+        for team in standings:
+             cur.execute("""
+                SELECT p.id, p.name, p.position_group, p.overall, p.image_url, tp.acquired_price
+                FROM team_players tp
+                JOIN players p ON p.id = tp.player_id
+                WHERE tp.team_id = %s
+                ORDER BY tp.acquired_price DESC
+             """, (team['team_id'],))
+             players = cur.fetchall()
+             
+             teams_detailed.append({
+                 **team,
+                 "players": [dict(p) for p in players]
+             })
+
+        return jsonify({
+            "global": {
+                "duration": auction_times['duration_seconds'] if auction_times and auction_times['duration_seconds'] else 0,
+                "total_spent": totals['total_spent'] if totals else 0,
+                "total_sold": totals['sold_count'] if totals else 0,
+                "most_expensive": most_expensive
+            },
+            "teams": teams_detailed
+        })
+    except Exception as e:
+        print(f"Error fetching stats: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+
+
 @socketio.on("start_auction")
 def start_auction(data):
     try:
@@ -1511,6 +1603,41 @@ def handle_toggle_pause(data):
         print(f"Auction {auction_id} RESUMED. New expires: {new_expires}")
 
     cur.close()
+
+
+@socketio.on("end_auction")
+def handle_end_auction(data):
+    auction_id = str(data.get("auction_id"))
+    room = f"lobby_{auction_id}"
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        # Update Auction Status to COMPLETED
+        cur.execute("""
+            UPDATE auctions 
+            SET status = 'COMPLETED', end_date = NOW() 
+            WHERE id = %s
+        """, (data['auction_id'],))
+        conn.commit()
+
+        # Clear Redis State
+        r.delete(f"auction:{auction_id}:status")
+        r.delete(f"auction:{auction_id}:current_bid")
+        r.delete(f"auction:{auction_id}:passes")
+        r.delete(f"auction:{auction_id}:round_expires")
+
+        print(f"Auction {auction_id} ENDED by host.")
+
+        # Notify all clients to redirect
+        emit("auction_ended", {"auction_id": data['auction_id']}, room=room)
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error ending auction: {e}")
+    finally:
+        cur.close()
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Environment, Float, ContactShadows } from '@react-three/drei';
@@ -322,10 +322,10 @@ const CompareModal = ({
             </div>
 
             {/* BENCH */}
-            <div className="h-36 border-t border-white/10 bg-black/40 grid grid-cols-2 divide-x divide-white/10 text-white">
+            <div className="h-48 border-t border-white/10 bg-black/40 grid grid-cols-2 divide-x divide-white/10 text-white">
               <div className="p-2 flex flex-col">
                 <div className="text-[10px] text-[#39ff14]/70 uppercase font-bold mb-1 flex justify-between"><span>Substitutes</span><span className="text-[9px] bg-white/5 px-1 rounded">7 Max</span></div>
-                <div className="grid grid-cols-4 gap-2 overflow-y-auto custom-scroll">
+                <div className="grid grid-cols-4 gap-2 overflow-y-auto custom-scroll pr-1">
                   {subPlayers.map((player, index) => (
                     <div key={`sub-${index}`} className="h-24 w-full">
                       <PlayerCard
@@ -376,6 +376,7 @@ const CompareModal = ({
 };
 
 const Auction = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const auctionId = searchParams.get('auction_id');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -447,6 +448,13 @@ const Auction = () => {
       user_id: user.id,
       team_name: teamName
     });
+  };
+
+  const handleEndAuction = () => {
+    if (!socket) return;
+    if (window.confirm("Are you sure you want to END the auction for everyone? This cannot be undone.")) {
+      socket.emit("end_auction", { auction_id: auctionId });
+    }
   };
 
   const handleTogglePause = () => {
@@ -640,6 +648,12 @@ const Auction = () => {
           })
           .catch(err => console.error("Error refreshing live squad:", err));
       }
+    });
+
+    newSocket.on("auction_ended", (data) => {
+      console.log("Auction Ended:", data);
+      alert("The auction has ended!");
+      navigate('/post_auction_statistics', { state: { auctionId: data.auction_id } });
     });
 
     setSocket(newSocket);
@@ -1115,26 +1129,23 @@ const Auction = () => {
               <div className="flex items-center gap-3">
                 {/* PAUSE BUTTON (HOST ONLY) */}
                 {(parseInt(user?.id) === parseInt(auctionSettings.host_id)) && (
-                  <button
-                    onClick={handleTogglePause}
-                    className={`size-9 rounded-full border flex items-center justify-center hover:scale-110 transition-all ${isPaused ? 'bg-[#39ff14]/10 border-[#39ff14]/30 text-[#39ff14] hover:bg-[#39ff14]/20' : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/20'}`}
-                    title={isPaused ? "Resume Auction" : "Pause Auction"}
-                  >
-                    <span className="material-symbols-outlined text-lg">{isPaused ? 'play_arrow' : 'pause'}</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={handleTogglePause}
+                      className={`size-9 rounded-full border flex items-center justify-center hover:scale-110 transition-all ${isPaused ? 'bg-[#39ff14]/10 border-[#39ff14]/30 text-[#39ff14] hover:bg-[#39ff14]/20' : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/20'}`}
+                      title={isPaused ? "Resume Auction" : "Pause Auction"}
+                    >
+                      <span className="material-symbols-outlined text-lg">{isPaused ? 'play_arrow' : 'pause'}</span>
+                    </button>
+                    <button
+                      onClick={handleEndAuction}
+                      className="px-4 py-1.5 bg-red-500/10 border border-red-500/30 text-red-500 rounded-full text-[10px] font-bold uppercase tracking-wider hover:bg-red-500/20 hover:scale-105 transition-all flex items-center gap-2"
+                      title="End Auction & Finalize Results"
+                    >
+                      <span className="material-symbols-outlined text-sm">stop_circle</span> End Auction
+                    </button>
+                  </>
                 )}
-                {/* END AUCTION BUTTON */}
-                <Link to="/post_auction_statistics">
-                  <button className="size-9 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 flex items-center justify-center hover:bg-red-500/20 hover:scale-110 transition-all" title="End Auction">
-                    <span className="material-symbols-outlined text-lg">stop_circle</span>
-                  </button>
-                </Link>
-                {/* EXIT BUTTON */}
-                <Link to="/post_auction_statistics">
-                  <button className="ml-2 px-4 py-1.5 bg-white/5 border border-white/10 text-white/60 rounded-full text-[10px] font-bold uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm">logout</span> Exit
-                  </button>
-                </Link>
               </div>
             </div>
 
