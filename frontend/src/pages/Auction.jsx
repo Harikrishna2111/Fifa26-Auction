@@ -404,6 +404,32 @@ const Auction = () => {
   const biddingTimeRef = useRef(30);
   const roundExpiresRef = useRef(0); // Store absolute expiration time (ms)
   const [customBid, setCustomBid] = useState("");
+  const initialNews = { id: Date.now(), tag: "SYSTEM", text: "Auction is live. Waiting for activity..." };
+  const [newsFeed, setNewsFeed] = useState([initialNews]);
+  const [newsQueue, setNewsQueue] = useState([]);
+  const [activeNews, setActiveNews] = useState(initialNews);
+  const newsDedupeRef = useRef(new Set());
+
+  const addNews = (tag, text, dedupeKey = `${tag}:${text}`) => {
+    if (newsDedupeRef.current.has(dedupeKey)) return;
+    newsDedupeRef.current.add(dedupeKey);
+    setTimeout(() => newsDedupeRef.current.delete(dedupeKey), 1500);
+    const item = { id: Date.now() + Math.random(), tag, text };
+    setNewsFeed(prev => [item, ...prev].slice(0, 40));
+    setActiveNews(current => {
+      if (current) {
+        setNewsQueue(prev => [current, ...prev]);
+      }
+      return item;
+    });
+  };
+
+  useEffect(() => {
+    if (!activeNews && newsQueue.length > 0) {
+      setActiveNews(newsQueue[0]);
+      setNewsQueue(prev => prev.slice(1));
+    }
+  }, [activeNews, newsQueue]);
   
   const handleBidClick = (increment) => {
       console.log("=== BID BUTTON CLICKED ===");
@@ -497,6 +523,7 @@ const Auction = () => {
     const teamName = participant ? participant.team_name : (user.username || "Team");
 
     setHasPassed(true); // Disable buttons immediately
+    addNews("PASS", "You passed this round");
 
     socket.emit("pass_turn", {
       auction_id: auctionId,
@@ -515,6 +542,9 @@ const Auction = () => {
 
   const handleTogglePause = () => {
     if (!socket) return;
+    const nextPaused = !isPaused;
+    setIsPaused(nextPaused); // instant UI response
+    addNews("SYSTEM", nextPaused ? "Auction paused" : "Auction resumed");
     socket.emit("toggle_pause", { auction_id: auctionId });
   };
 
@@ -631,6 +661,7 @@ const Auction = () => {
     // Add Missing auction_started Handler
     newSocket.on("auction_started", (data) => {
          console.log("Auction Started!", data);
+         addNews("SYSTEM", "Auction started");
          // Default start: NOW + biddingTime
          const expires = Date.now() + (biddingTimeRef.current * 1000);
          roundExpiresRef.current = expires;
@@ -643,6 +674,7 @@ const Auction = () => {
 
     newSocket.on("auction_status_change", (data) => {
       console.log("Auction Status Changed:", data);
+      addNews("SYSTEM", data.status === 'PAUSED' ? "Auction paused" : "Auction resumed");
       if (data.status === 'PAUSED') {
         setIsPaused(true);
         setIsTimerActive(false);
@@ -659,6 +691,7 @@ const Auction = () => {
 
     newSocket.on("round_changed", (data) => {
       console.log("Round Changed:", data);
+      addNews("ROUND", "New player on the block");
       setAuctionResult(null);
       setHighestBid(0);
       setHighestBidder("None");
@@ -678,6 +711,7 @@ const Auction = () => {
 
     newSocket.on("bid_placed", (data) => {
       console.log("Bid Placed:", data);
+      addNews("BID", `${data.bidder || "Unknown"} bid $${formatMoney(Number(data.amount) || 0)}`);
       setHighestBid(Number(data.amount));
       setHighestBidder(data.bidder);
 
@@ -698,6 +732,12 @@ const Auction = () => {
     newSocket.on("player_finalized", (data) => {
       console.log("🎯 Player Finalized:", data);
       console.log("Stopping timer immediately...");
+      const playerText = data.player_id ? `Player #${data.player_id}` : "Player";
+      if (data.result === 'sold') {
+        addNews("SOLD", `${playerText} sold to ${data.bidder || "Unknown"} for $${formatMoney(Number(data.amount) || 0)}`);
+      } else {
+        addNews("UNSOLD", `${playerText} went unsold`);
+      }
       
       // STOP TIMER IMMEDIATELY
       setIsTimerActive(false);
@@ -779,9 +819,14 @@ const Auction = () => {
 
     newSocket.on("action_failed", (data) => {
         alert(data.message || "Action failed");
+        addNews("ERROR", data.message || "Action failed");
         if (data.message && data.message.includes("passed")) {
             setHasPassed(true); // Resync state if backend says we passed
         }
+    });
+
+    newSocket.on("pass_update", (data) => {
+      addNews("PASS", `${data.count || 0}/${data.total || 0} managers passed`);
     });
 
     const refreshActiveTrades = () => {
@@ -801,6 +846,11 @@ const Auction = () => {
       if (data.receiver_id !== user.id && data.proposer_id !== user.id) return;
       refreshActiveTrades();
       if (data.receiver_id === user.id) {
+        addNews("TRADE", `Trade proposed by ${data.proposer_team || data.proposer_name || "manager"}`);
+      } else {
+        addNews("TRADE", `Trade proposed to ${data.receiver_team || "manager"}`);
+      }
+      if (data.receiver_id === user.id) {
         alert(`New trade offer from ${data.proposer_team || data.proposer_name || 'another manager'}!`);
       }
     });
@@ -808,6 +858,7 @@ const Auction = () => {
     newSocket.on("trade_sent", (data) => {
       console.log("Trade sent:", data);
       if (data.proposer_id !== user.id && data.receiver_id !== user.id) return;
+      addNews("TRADE", "Trade offer sent");
       alert("Trade offer sent successfully!");
       refreshActiveTrades();
     });
@@ -815,6 +866,7 @@ const Auction = () => {
     newSocket.on("trade_completed", (data) => {
       console.log("Trade completed:", data);
       if (data.proposer_id !== user.id && data.receiver_id !== user.id) return;
+      addNews("TRADE", "Trade accepted and completed");
       alert("Trade completed successfully!");
       
       // Update budgets
@@ -845,6 +897,7 @@ const Auction = () => {
     newSocket.on("trade_rejected", (data) => {
       console.log("Trade rejected:", data);
       if (data.proposer_id !== user.id && data.receiver_id !== user.id) return;
+      addNews("TRADE", "Trade rejected");
       alert("Trade offer was rejected");
       refreshActiveTrades();
     });
@@ -852,19 +905,23 @@ const Auction = () => {
     newSocket.on("trade_cancelled", (data) => {
       console.log("Trade cancelled:", data);
       if (data.proposer_id !== user.id && data.receiver_id !== user.id) return;
+      addNews("TRADE", "Trade cancelled");
       alert("Trade offer was cancelled");
       refreshActiveTrades();
     });
 
     newSocket.on("trade_error", (data) => {
       console.error("Trade error:", data);
+      addNews("ERROR", data.message || "Trade failed");
       alert(data.message || "Trade failed");
     });
 
     newSocket.on("auction_ended", (data) => {
       console.log("Auction Ended:", data);
       alert("The auction has ended!");
-      navigate('/post_auction_statistics', { state: { auctionId: data.auction_id } });
+      const endedAuctionId = data?.auction_id || auctionId;
+      if (endedAuctionId) localStorage.setItem('lastAuctionId', String(endedAuctionId));
+      navigate(`/post_auction_statistics?auction_id=${endedAuctionId}`, { state: { auctionId: endedAuctionId } });
     });
 
     setSocket(newSocket);
@@ -1197,6 +1254,7 @@ const Auction = () => {
 
     console.log("Proposing trade:", tradeData);
     socket.emit("propose_trade", tradeData);
+    addNews("TRADE", "You proposed a trade");
 
     // Clear form
     setYouGivePlayers([]);
@@ -1648,6 +1706,7 @@ const Auction = () => {
                             <React.Fragment>
                               <button 
                                 onClick={() => {
+                                  addNews("TRADE", "Trade accepted and completed");
                                   socket.emit("accept_trade", { trade_id: trade.id, user_id: user.id });
                                 }}
                                 className="flex-1 py-2 bg-[#39ff14] text-black text-[10px] font-bold uppercase rounded hover:scale-[1.02]"
@@ -1656,6 +1715,7 @@ const Auction = () => {
                               </button>
                               <button 
                                 onClick={() => {
+                                  addNews("TRADE", "Trade rejected");
                                   socket.emit("reject_trade", { trade_id: trade.id, user_id: user.id });
                                 }}
                                 className="flex-1 py-2 bg-red-500/20 text-red-400 text-[10px] font-bold uppercase rounded hover:bg-red-500/30"
@@ -1666,6 +1726,7 @@ const Auction = () => {
                           ) : (
                             <button 
                               onClick={() => {
+                                addNews("TRADE", "Trade cancelled");
                                 socket.emit("cancel_trade", { trade_id: trade.id, user_id: user.id });
                               }}
                               className="flex-1 py-2 bg-white/10 text-white/70 text-[10px] font-bold uppercase rounded hover:bg-white/20"
@@ -1691,9 +1752,31 @@ const Auction = () => {
       </main>
 
       <footer className="h-10 w-full border-t border-white/10 bg-black/90 backdrop-blur-xl fixed bottom-0 left-0 flex items-center overflow-hidden z-50">
-        <style>{`@keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } } .animate-marquee { animation: marquee 30s linear infinite; }`}</style>
+        <style>{`
+          @keyframes news-slide-once {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+          }
+          .animate-news-once {
+            animation: news-slide-once 18s linear 1 forwards;
+          }
+        `}</style>
         <div className="px-6 py-3 bg-[#39ff14] text-black font-black text-xs uppercase italic tracking-wider shrink-0 z-50 skew-x-[-10deg] ml-[-10px] pl-8"><span className="skew-x-[10deg] inline-block">News</span></div>
-        <div className="flex-1 overflow-hidden relative"><div className="animate-marquee whitespace-nowrap flex gap-16 items-center text-xs font-medium text-white/80 py-2"><span><strong className="text-white">TRADE:</strong> EliteScout_X traded <strong>Haaland</strong>...</span></div></div>
+        <div className="flex-1 overflow-hidden relative px-4">
+          {activeNews ? (
+            <div
+              key={activeNews.id}
+              onAnimationEnd={() => setActiveNews(null)}
+              className="animate-news-once whitespace-nowrap text-xs font-medium text-white/80 py-2"
+            >
+              <strong className="text-white">{activeNews.tag}:</strong> {activeNews.text}
+            </div>
+          ) : (
+            <div className="text-xs font-medium text-white/50 py-2 truncate">
+              {newsFeed[0] ? (<><strong className="text-white">{newsFeed[0].tag}:</strong> {newsFeed[0].text}</>) : "No updates yet."}
+            </div>
+          )}
+        </div>
       </footer>
 
       {showBoughtPlayersModal && <BoughtPlayersModal />}
@@ -1719,14 +1802,6 @@ const Auction = () => {
       )}
       {auctionResult && <GavelModal />}
       
-      {/* DEBUG OVERLAY */}
-      <div className="fixed bottom-0 left-0 bg-black/80 text-[#39ff14] p-2 text-xs font-mono z-[9999]">
-          Socket: {socket?.connected ? 'OK' : 'DISCONNECTED'} | 
-          Paused: {isPaused ? 'YES' : 'NO'} | 
-          Passed: {hasPassed ? 'YES' : 'NO'} | 
-          Parts: {participants.length}
-      </div>
-
     </div>
   );
 };

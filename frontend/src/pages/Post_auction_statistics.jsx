@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { API_URL } from "../config";
 
@@ -10,9 +10,15 @@ const Post_auction_statistics = () => {
 
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     const location = useLocation();
-    const auctionId = location.state?.auctionId;
+    const [searchParams] = useSearchParams();
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const auctionId =
+        location.state?.auctionId ||
+        searchParams.get('auction_id') ||
+        localStorage.getItem('lastAuctionId');
 
     useEffect(() => {
         if (!auctionId) {
@@ -21,13 +27,23 @@ const Post_auction_statistics = () => {
         }
 
         fetch(`${API_URL}/api/auctions/${auctionId}/stats`)
-            .then(res => res.json())
+            .then(async (res) => {
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data?.error || `Failed to fetch stats (${res.status})`);
+                }
+                return data;
+            })
             .then(data => {
+                if (!data || !Array.isArray(data.teams) || !data.global) {
+                    throw new Error("Invalid stats response from server");
+                }
                 setStats(data);
                 setLoading(false);
             })
             .catch(err => {
                 console.error("Error fetching stats:", err);
+                setError(err.message || "Failed to load statistics");
                 setLoading(false);
             });
     }, [auctionId]);
@@ -72,17 +88,19 @@ const Post_auction_statistics = () => {
             <div className="min-h-screen bg-background-dark text-white flex items-center justify-center">
                 <div className="text-center">
                     <h1 className="text-3xl font-bold mb-4">No Statistics Available</h1>
-                    <p className="text-white/60 mb-6">Auction ID not found or data missing.</p>
+                    <p className="text-white/60 mb-6">{error || "Auction ID not found or data missing."}</p>
                     <Link to="/user_dashboard" className="bg-primary text-black font-bold py-2 px-6 rounded-lg hover:bg-primary/90">Go to Dashboard</Link>
                 </div>
             </div>
         );
     }
 
-    const { global, teams } = stats;
+    const global = stats?.global || {};
+    const teams = Array.isArray(stats?.teams) ? stats.teams : [];
+    const myTeam = teams.find(t => String(t.manager || '').toLowerCase() === String(user.username || '').toLowerCase()) || null;
     // Sort teams by spent to determine champion if not explicit. Server sorts by spent DESC.
     const champion = teams.length > 0 ? teams[0] : null;
-    const others = teams.length > 0 ? teams.slice(1) : [];
+    const others = teams.filter(t => !myTeam || t.team_id !== myTeam.team_id);
 
     return (
         <>
@@ -100,6 +118,56 @@ const Post_auction_statistics = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* YOUR SUMMARY */}
+                        {myTeam && (
+                            <div className="px-4 md:px-20 lg:px-40 flex justify-center mb-10">
+                                <div className="layout-content-container flex flex-col w-full max-w-[1200px] flex-1">
+                                    <div className="rounded-xl border border-primary/40 bg-[#102216]/80 backdrop-blur-md p-6">
+                                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                                            <div>
+                                                <p className="text-primary text-xs font-bold uppercase tracking-widest mb-1">Your Auction Summary</p>
+                                                <h2 className="text-white text-3xl font-black uppercase italic">{myTeam.team_name}</h2>
+                                                <p className="text-white/60 text-sm">Manager: {myTeam.manager}</p>
+                                            </div>
+                                            <button onClick={() => openSquadModal(myTeam)} className="px-4 py-2 rounded-lg bg-primary text-black text-xs font-black uppercase tracking-wider hover:bg-primary/90 transition-colors">
+                                                View Your Full Squad
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+                                            <div className="bg-white/5 rounded-lg p-4">
+                                                <p className="text-white/50 text-xs uppercase tracking-wider">Total Spent</p>
+                                                <p className="text-primary text-2xl font-bold">{formatMoney(myTeam.spent)}</p>
+                                            </div>
+                                            <div className="bg-white/5 rounded-lg p-4">
+                                                <p className="text-white/50 text-xs uppercase tracking-wider">Players Bought</p>
+                                                <p className="text-white text-2xl font-bold">{myTeam.players_count}</p>
+                                            </div>
+                                            <div className="bg-white/5 rounded-lg p-4">
+                                                <p className="text-white/50 text-xs uppercase tracking-wider">Remaining Budget</p>
+                                                <p className="text-white text-2xl font-bold">{formatMoney(myTeam.remaining_budget)}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-5">
+                                            <p className="text-white/50 text-xs uppercase tracking-wider mb-3">Top Purchases</p>
+                                            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                                                {myTeam.players.length > 0 ? myTeam.players.slice(0, 8).map(p => (
+                                                    <div key={p.id} className="min-w-[90px] bg-white/5 rounded-lg p-2 border border-white/10">
+                                                        <div className="h-14 w-full rounded bg-cover bg-center border border-white/10" style={{ backgroundImage: `url('${p.image_url}')` }}></div>
+                                                        <p className="text-[10px] font-bold text-white mt-2 truncate">{p.name}</p>
+                                                        <p className="text-[10px] text-primary">{formatMoney(p.acquired_price)}</p>
+                                                    </div>
+                                                )) : (
+                                                    <p className="text-white/50 text-sm">No players purchased in this auction.</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* CHAMPION CARD */}
                         {champion && (

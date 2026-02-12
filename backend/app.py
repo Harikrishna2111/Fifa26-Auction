@@ -1691,7 +1691,7 @@ def get_auction_stats(auction_id):
 
         # Total Spent & Sold Count
         cur.execute("""
-            SELECT COUNT(tp.id) as sold_count, COALESCE(SUM(tp.acquired_price), 0) as total_spent
+            SELECT COUNT(*) as sold_count, COALESCE(SUM(tp.acquired_price), 0) as total_spent
             FROM team_players tp
             WHERE tp.team_id IN (
                 SELECT team_id FROM auction_participants WHERE auction_id = %s
@@ -1857,6 +1857,19 @@ def handle_toggle_pause(data):
 
     conn = get_db()
     cur = conn.cursor()
+
+    # Fallback: if Redis lost status, recover from DB.
+    if not current_status:
+        cur.execute("SELECT status FROM auctions WHERE id = %s", (data['auction_id'],))
+        row = cur.fetchone()
+        if row:
+            # tuple cursor
+            current_status = row[0]
+            if current_status in ("LIVE", "PAUSED"):
+                r.set(status_key, current_status)
+        # Last resort: assume LIVE so pause action still works.
+        if not current_status:
+            current_status = "LIVE"
 
     if current_status == "LIVE":
         # Pause it

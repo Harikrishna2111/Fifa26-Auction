@@ -33,7 +33,7 @@ const handleLogout = () => {
         <div className="max-w-[1440px] mx-auto px-6 h-20 flex items-center justify-between">
           
           {/* Logo */}
-          <div className="flex items-center gap-3">
+          <button onClick={() => navigate("/user_dashboard")} className="flex items-center gap-3 cursor-pointer">
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <span className="material-symbols-outlined text-background-dark font-bold">
                 sports_soccer
@@ -42,7 +42,7 @@ const handleLogout = () => {
             <h1 className="text-xl font-black tracking-tight uppercase italic">
               Footy<span className="text-primary">Auction</span>
             </h1>
-          </div>
+          </button>
 
           {/* Nav Links - Only show when not logged in */}
           {!isLoggedIn && (
