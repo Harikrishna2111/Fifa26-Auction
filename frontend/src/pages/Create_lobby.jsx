@@ -20,11 +20,23 @@ const Create_lobby = () => {
     bidding_time: 30,
     min_players: 11,
     custom_bid_enabled: true,
-    host_id: 1 // TODO: Get from auth context
+    host_id: null // Will be set from localStorage
   });
   const [loading, setLoading] = useState(false);
   const [pastParticipants, setPastParticipants] = useState([]);
   const [previousSeason, setPreviousSeason] = useState(0);
+
+  // Set host_id from logged-in user
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      setFormData(prev => ({ ...prev, host_id: user.id }));
+    } else {
+      // Redirect to login if no user found
+      navigate('/login');
+    }
+  }, [navigate]);
 
   useEffect(() => {
     // If we are continuing a season, fetch the previous lobby details
@@ -56,6 +68,14 @@ const Create_lobby = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate host_id is set
+    if (!formData.host_id) {
+      alert("User not authenticated. Please log in again.");
+      navigate('/login');
+      return;
+    }
+    
     setLoading(true);
 
     let seasonValue = 0;

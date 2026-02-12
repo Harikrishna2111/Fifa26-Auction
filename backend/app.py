@@ -1218,6 +1218,7 @@ def handle_place_bid(data):
     amount = data.get("amount")
     bidder = data.get("bidder") # team_name
     user_id = data.get("user_id") # New: Track user ID for reliable updates
+    player_id = data.get("player_id")
     
     print(f"Received bid request: {amount} from {bidder} (ID: {user_id})")
 
@@ -1235,8 +1236,11 @@ def handle_place_bid(data):
         "amount": amount,
         "bidder": bidder,
         "user_id": user_id if user_id else "",
+        "player_id": player_id if player_id else "",
         "timestamp": time.time()
     })
+    if player_id:
+        r.set(f"auction:{auction_id}:current_player_id", player_id)
     
     # Update Timer expiration (Reset clock)
     # We need bidding_time. Ideally fetched once or stored in redis config
@@ -1285,13 +1289,15 @@ def handle_place_bid(data):
         return
 
     if pass_count >= total_participants - 1:
-         emit("player_finalized", {
+         # Immediate win path must persist exactly like normal timer finalization.
+         handle_finalize_player({
+             "auction_id": auction_id,
+             "player_id": player_id,
              "result": "sold",
-             "bidder": bidder,
              "amount": amount,
-             "user_id": user_id,
-             "player_id": None 
-         }, room=room)
+             "bidder": bidder
+         })
+         return
 
 
 @socketio.on("finalize_player")
@@ -1452,30 +1458,184 @@ def handle_pass_turn(data):
             # Bidder passed - only finalize if EVERYONE has passed
             if pass_count >= total_participants:
                 print(f"🎯 IMMEDIATE FINALIZATION: All passed (including bidder). SOLD to {current_bid.get('bidder')}")
+                
+                # Resolve current player_id (Redis key -> current bid hash -> client payload fallback)
+                player_id = r.get(f"auction:{auction_id}:current_player_id")
+                if not player_id:
+                    player_id = current_bid.get("player_id")
+                if not player_id:
+                    player_id = data.get("player_id")
+                if player_id and str(player_id).isdigit():
+                    player_id = int(player_id)
+                
+                # DO DATABASE WORK - Insert player into team
+                amount = int(current_bid.get("amount", 0))
+                bidder_team = current_bid.get("bidder")
+                user_id_redis = current_bid.get("user_id")
+                updated_budget = None
+                
+                conn = get_db()
+                cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                try:
+                    # Update budget and get team_id
+                    if user_id_redis and str(user_id_redis).isdigit() and int(user_id_redis) > 0:
+                        cur.execute("""
+                            UPDATE auction_participants 
+                            SET budget = budget - %s 
+                            WHERE auction_id = %s AND user_id = %s
+                            RETURNING id, user_id, budget, team_name, team_id
+                        """, (amount, auction_id, int(user_id_redis)))
+                    else:
+                        cur.execute("""
+                            UPDATE auction_participants 
+                            SET budget = budget - %s 
+                            WHERE auction_id = %s AND team_name = %s
+                            RETURNING id, user_id, budget, team_name, team_id
+                        """, (amount, auction_id, bidder_team))
+                    
+                    participant = cur.fetchone()
+                    
+                    if participant and player_id:
+                        participant_id = participant['id']
+                        user_id_final = participant['user_id']
+                        updated_budget = participant['budget']
+                        team_name = participant['team_name']
+                        team_id = participant.get('team_id')
+                        
+                        # Create team if needed
+                        if not team_id:
+                            cur.execute("""
+                                INSERT INTO teams (name, manager_id, rating, value, status, created_at)
+                                VALUES (%s, %s, 0, 0, 'ACTIVE', NOW())
+                                RETURNING id
+                            """, (team_name, user_id_final))
+                            res = cur.fetchone()
+                            if res:
+                                team_id = res['id']
+                            
+                            if team_id:
+                                cur.execute("UPDATE auction_participants SET team_id = %s WHERE id = %s", (team_id, participant_id))
+                        
+                        # Insert player into team_players
+                        if team_id:
+                            cur.execute("""
+                                INSERT INTO team_players (team_id, player_id, acquired_price)
+                                VALUES (%s, %s, %s)
+                                ON CONFLICT (team_id, player_id) DO NOTHING
+                            """, (team_id, player_id, amount))
+                            print(f"✅ Player {player_id} assigned to team {team_id}")
+                    
+                    conn.commit()
+                except Exception as e:
+                    print(f"❌ Error in pass finalization: {e}")
+                    conn.rollback()
+                finally:
+                    cur.close()
+                    conn.close()
+                
+                # Clean up Redis
                 r.delete(f"auction:{auction_id}:current_bid")
                 r.delete(pass_key)
                 
                 emit("player_finalized", {
                     "result": "sold",
                     "bidder": current_bid.get("bidder"),
-                    "amount": int(current_bid.get("amount", 0)),
+                    "amount": amount,
                     "user_id": current_bid.get("user_id"),
-                    "player_id": None
+                    "player_id": player_id,
+                    "updated_budget": updated_budget
                 }, room=room)
                 return
         else:
             # Bidder hasn't passed - finalize if everyone EXCEPT bidder has passed
             if pass_count >= total_participants - 1:
                 print(f"🎯 IMMEDIATE FINALIZATION: All except bidder passed. SOLD to {current_bid.get('bidder')}")
+                
+                # Resolve current player_id (Redis key -> current bid hash -> client payload fallback)
+                player_id = r.get(f"auction:{auction_id}:current_player_id")
+                if not player_id:
+                    player_id = current_bid.get("player_id")
+                if not player_id:
+                    player_id = data.get("player_id")
+                if player_id and str(player_id).isdigit():
+                    player_id = int(player_id)
+                
+                # DO DATABASE WORK - Insert player into team
+                amount = int(current_bid.get("amount", 0))
+                bidder_team = current_bid.get("bidder")
+                user_id_redis = current_bid.get("user_id")
+                updated_budget = None
+                
+                conn = get_db()
+                cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                try:
+                    # Update budget and get team_id
+                    if user_id_redis and str(user_id_redis).isdigit() and int(user_id_redis) > 0:
+                        cur.execute("""
+                            UPDATE auction_participants 
+                            SET budget = budget - %s 
+                            WHERE auction_id = %s AND user_id = %s
+                            RETURNING id, user_id, budget, team_name, team_id
+                        """, (amount, auction_id, int(user_id_redis)))
+                    else:
+                        cur.execute("""
+                            UPDATE auction_participants 
+                            SET budget = budget - %s 
+                            WHERE auction_id = %s AND team_name = %s
+                            RETURNING id, user_id, budget, team_name, team_id
+                        """, (amount, auction_id, bidder_team))
+                    
+                    participant = cur.fetchone()
+                    
+                    if participant and player_id:
+                        participant_id = participant['id']
+                        user_id_final = participant['user_id']
+                        updated_budget = participant['budget']
+                        team_name = participant['team_name']
+                        team_id = participant.get('team_id')
+                        
+                        # Create team if needed
+                        if not team_id:
+                            cur.execute("""
+                                INSERT INTO teams (name, manager_id, rating, value, status, created_at)
+                                VALUES (%s, %s, 0, 0, 'ACTIVE', NOW())
+                                RETURNING id
+                            """, (team_name, user_id_final))
+                            res = cur.fetchone()
+                            if res:
+                                team_id = res['id']
+                            
+                            if team_id:
+                                cur.execute("UPDATE auction_participants SET team_id = %s WHERE id = %s", (team_id, participant_id))
+                        
+                        # Insert player into team_players
+                        if team_id:
+                            cur.execute("""
+                                INSERT INTO team_players (team_id, player_id, acquired_price)
+                                VALUES (%s, %s, %s)
+                                ON CONFLICT (team_id, player_id) DO NOTHING
+                            """, (team_id, player_id, amount))
+                            print(f"✅ Player {player_id} assigned to team {team_id}")
+                    
+                    conn.commit()
+                except Exception as e:
+                    print(f"❌ Error in pass finalization: {e}")
+                    conn.rollback()
+                finally:
+                    cur.close()
+                    conn.close()
+                
+                # Clean up Redis
                 r.delete(f"auction:{auction_id}:current_bid")
                 r.delete(pass_key)
                 
                 emit("player_finalized", {
                     "result": "sold",
                     "bidder": current_bid.get("bidder"),
-                    "amount": int(current_bid.get("amount", 0)),
+                    "amount": amount,
                     "user_id": current_bid.get("user_id"),
-                    "player_id": None
+                    "player_id": player_id,
+                    "updated_budget": updated_budget
                 }, room=room)
                 return
              
@@ -1775,7 +1935,520 @@ def handle_end_auction(data):
     finally:
         cur.close()
 
+# ============================================
+# TRADE REST API ENDPOINTS
+# ============================================
+
+@app.route("/api/auctions/<int:auction_id>/trades", methods=["GET"])
+def get_auction_trades(auction_id):
+    user_id = request.args.get('user_id', type=int)
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cur.execute("""
+            SELECT
+                t.*,
+                u1.username AS proposer_name,
+                u2.username AS receiver_name,
+                ap1.team_name AS proposer_team,
+                ap2.team_name AS receiver_team
+            FROM trades t
+            JOIN users u1 ON t.proposer_id = u1.id
+            JOIN users u2 ON t.receiver_id = u2.id
+            JOIN auction_participants ap1 ON t.proposer_id = ap1.user_id AND t.auction_id = ap1.auction_id
+            JOIN auction_participants ap2 ON t.receiver_id = ap2.user_id AND t.auction_id = ap2.auction_id
+            WHERE t.auction_id = %s
+              AND (t.proposer_id = %s OR t.receiver_id = %s)
+              AND t.status = 'pending'
+            ORDER BY t.created_at DESC
+        """, (auction_id, user_id, user_id))
+
+        trades = cur.fetchall()
+
+        for trade in trades:
+            if trade['proposer_players']:
+                cur.execute("SELECT id, name FROM players WHERE id = ANY(%s)", (trade['proposer_players'],))
+                trade['proposer_players_details'] = cur.fetchall()
+            else:
+                trade['proposer_players_details'] = []
+
+            if trade['receiver_players']:
+                cur.execute("SELECT id, name FROM players WHERE id = ANY(%s)", (trade['receiver_players'],))
+                trade['receiver_players_details'] = cur.fetchall()
+            else:
+                trade['receiver_players_details'] = []
+
+        cur.close()
+        return jsonify(trades), 200
+    except Exception as e:
+        print(f"Error fetching trades: {e}")
+        return jsonify({"error": "Failed to fetch trades"}), 500
+
+
+@app.route("/api/auctions/<int:auction_id>/trade_history", methods=["GET"])
+def get_trade_history(auction_id):
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cur.execute("""
+            SELECT
+                t.*,
+                u1.username AS proposer_name,
+                u2.username AS receiver_name,
+                ap1.team_name AS proposer_team,
+                ap2.team_name AS receiver_team
+            FROM trades t
+            JOIN users u1 ON t.proposer_id = u1.id
+            JOIN users u2 ON t.receiver_id = u2.id
+            JOIN auction_participants ap1 ON t.proposer_id = ap1.user_id AND t.auction_id = ap1.auction_id
+            JOIN auction_participants ap2 ON t.receiver_id = ap2.user_id AND t.auction_id = ap2.auction_id
+            WHERE t.auction_id = %s
+              AND t.status IN ('accepted', 'rejected', 'cancelled')
+            ORDER BY t.updated_at DESC
+            LIMIT 50
+        """, (auction_id,))
+
+        trades = cur.fetchall()
+        cur.close()
+        return jsonify(trades), 200
+    except Exception as e:
+        print(f"Error fetching trade history: {e}")
+        return jsonify({"error": "Failed to fetch trade history"}), 500
+# ============================================
+# TRADE SOCKET HANDLERS
+# ============================================
+
+@socketio.on("propose_trade")
+def handle_propose_trade(data):
+    """
+    Propose a trade to another participant
+    Data: {
+        auction_id, proposer_id, receiver_id,
+        proposer_players: [player_ids], proposer_cash,
+        receiver_players: [player_ids], receiver_cash
+    }
+    """
+    auction_id = str(data.get("auction_id"))
+    proposer_id = data.get("proposer_id")
+    receiver_id = data.get("receiver_id")
+    proposer_players = data.get("proposer_players", [])
+    proposer_cash = data.get("proposer_cash", 0)
+    receiver_players = data.get("receiver_players", [])
+    receiver_cash = data.get("receiver_cash", 0)
+    
+    room = f"lobby_{auction_id}"
+    
+    print(f"Trade proposed: User {proposer_id} -> User {receiver_id}")
+    
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        
+        # Get team IDs and names for both users
+        cur.execute("""
+            SELECT user_id, team_id, team_name
+            FROM auction_participants 
+            WHERE auction_id = %s AND user_id IN (%s, %s)
+        """, (auction_id, proposer_id, receiver_id))
+        
+        participants = cur.fetchall()
+        proposer_team_id = None
+        receiver_team_id = None
+        proposer_team_name = None
+        receiver_team_name = None
+        
+        for p in participants:
+            if p['user_id'] == proposer_id:
+                proposer_team_id = p['team_id']
+                proposer_team_name = p['team_name']
+            if p['user_id'] == receiver_id:
+                receiver_team_id = p['team_id']
+                receiver_team_name = p['team_name']
+
+        if proposer_team_name is None or receiver_team_name is None:
+            emit("trade_error", {"message": "Invalid participants"}, room=request.sid)
+            cur.close()
+            conn.close()
+            return
+
+        # Ensure both participants have team rows linked for this auction.
+        if not proposer_team_id:
+            cur.execute("""
+                INSERT INTO teams (name, manager_id, rating, value, status, created_at)
+                VALUES (%s, %s, 0, 0, 'ACTIVE', NOW())
+                RETURNING id
+            """, (proposer_team_name, proposer_id))
+            proposer_team_id = cur.fetchone()['id']
+            cur.execute("""
+                UPDATE auction_participants
+                SET team_id = %s
+                WHERE auction_id = %s AND user_id = %s
+            """, (proposer_team_id, auction_id, proposer_id))
+
+        if not receiver_team_id:
+            cur.execute("""
+                INSERT INTO teams (name, manager_id, rating, value, status, created_at)
+                VALUES (%s, %s, 0, 0, 'ACTIVE', NOW())
+                RETURNING id
+            """, (receiver_team_name, receiver_id))
+            receiver_team_id = cur.fetchone()['id']
+            cur.execute("""
+                UPDATE auction_participants
+                SET team_id = %s
+                WHERE auction_id = %s AND user_id = %s
+            """, (receiver_team_id, auction_id, receiver_id))
+        
+        # Validate proposer owns the players they're offering
+        if proposer_players:
+            cur.execute("""
+                SELECT COUNT(*) as count
+                FROM team_players
+                WHERE team_id = %s AND player_id = ANY(%s)
+            """, (proposer_team_id, proposer_players))
+            
+            owned_count = cur.fetchone()['count']
+            if owned_count != len(proposer_players):
+                emit("trade_error", {"message": "You don't own all the players you're offering"}, room=request.sid)
+                cur.close()
+                conn.close()
+                return
+
+        # Validate receiver owns any players that proposer is requesting
+        if receiver_players:
+            cur.execute("""
+                SELECT COUNT(*) as count
+                FROM team_players
+                WHERE team_id = %s AND player_id = ANY(%s)
+            """, (receiver_team_id, receiver_players))
+            owned_count = cur.fetchone()['count']
+            if owned_count != len(receiver_players):
+                emit("trade_error", {"message": "Requested players are no longer available"}, room=request.sid)
+                cur.close()
+                conn.close()
+                return
+        
+        # Validate proposer has enough cash
+        if proposer_cash > 0:
+            cur.execute("""
+                SELECT budget FROM auction_participants
+                WHERE auction_id = %s AND user_id = %s
+            """, (auction_id, proposer_id))
+            
+            budget = cur.fetchone()['budget']
+            if budget < proposer_cash:
+                emit("trade_error", {"message": "Insufficient budget"}, room=request.sid)
+                cur.close()
+                conn.close()
+                return
+        
+        # Insert trade offer
+        cur.execute("""
+            INSERT INTO trades (
+                auction_id, proposer_id, receiver_id,
+                proposer_team_id, receiver_team_id,
+                proposer_players, proposer_cash,
+                receiver_players, receiver_cash,
+                status
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
+            RETURNING id
+        """, (
+            auction_id, proposer_id, receiver_id,
+            proposer_team_id, receiver_team_id,
+            proposer_players, proposer_cash,
+            receiver_players, receiver_cash
+        ))
+        
+        trade_id = cur.fetchone()['id']
+        conn.commit()
+        
+        # Get player names for notification
+        player_names_proposer = []
+        player_names_receiver = []
+        
+        if proposer_players:
+            cur.execute("SELECT name FROM players WHERE id = ANY(%s)", (proposer_players,))
+            player_names_proposer = [row['name'] for row in cur.fetchall()]
+        
+        if receiver_players:
+            cur.execute("SELECT name FROM players WHERE id = ANY(%s)", (receiver_players,))
+            player_names_receiver = [row['name'] for row in cur.fetchall()]
+        
+        cur.close()
+        conn.close()
+        
+        # Emit to receiver
+        emit("trade_proposed", {
+            "trade_id": trade_id,
+            "proposer_id": proposer_id,
+            "receiver_id": receiver_id,
+            "proposer_team": proposer_team_name,
+            "receiver_team": receiver_team_name,
+            "proposer_players": player_names_proposer,
+            "proposer_cash": proposer_cash,
+            "receiver_players": player_names_receiver,
+            "receiver_cash": receiver_cash
+        }, room=room, include_self=False)
+        
+        # Confirm to proposer
+        emit("trade_sent", {
+            "trade_id": trade_id,
+            "proposer_id": proposer_id,
+            "receiver_id": receiver_id,
+            "message": "Trade offer sent successfully"
+        }, room=request.sid)
+        
+        print(f"Trade {trade_id} created successfully")
+        
+    except Exception as e:
+        print(f"Error proposing trade: {e}")
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        emit("trade_error", {"message": "Failed to propose trade"}, room=request.sid)
+
+
+@socketio.on("accept_trade")
+def handle_accept_trade(data):
+    """Accept a trade offer"""
+    trade_id = data.get("trade_id")
+    user_id = data.get("user_id")
+    
+    print(f"User {user_id} accepting trade {trade_id}")
+    
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        
+        # Get trade details
+        cur.execute("""
+            SELECT * FROM trades
+            WHERE id = %s AND receiver_id = %s AND status = 'pending'
+        """, (trade_id, user_id))
+        
+        trade = cur.fetchone()
+        
+        if not trade:
+            emit("trade_error", {"message": "Trade not found or already processed"}, room=request.sid)
+            cur.close()
+            conn.close()
+            return
+        
+        auction_id = trade['auction_id']
+        room = f"lobby_{auction_id}"
+        
+        # Re-validate receiver owns the players
+        if trade['receiver_players']:
+            cur.execute("""
+                SELECT COUNT(*) as count
+                FROM team_players
+                WHERE team_id = %s AND player_id = ANY(%s)
+            """, (trade['receiver_team_id'], trade['receiver_players']))
+            
+            owned_count = cur.fetchone()['count']
+            if owned_count != len(trade['receiver_players']):
+                emit("trade_error", {"message": "You no longer own all the requested players"}, room=request.sid)
+                cur.close()
+                conn.close()
+                return
+        
+        # Re-validate receiver has enough cash
+        if trade['receiver_cash'] > 0:
+            cur.execute("""
+                SELECT budget FROM auction_participants
+                WHERE auction_id = %s AND user_id = %s
+            """, (auction_id, user_id))
+            
+            budget = cur.fetchone()['budget']
+            if budget < trade['receiver_cash']:
+                emit("trade_error", {"message": "Insufficient budget"}, room=request.sid)
+                cur.close()
+                conn.close()
+                return
+        
+        # EXECUTE TRADE
+        # 1. Transfer proposer's players to receiver
+        if trade['proposer_players']:
+            for player_id in trade['proposer_players']:
+                cur.execute("""
+                    UPDATE team_players
+                    SET team_id = %s
+                    WHERE team_id = %s AND player_id = %s
+                """, (trade['receiver_team_id'], trade['proposer_team_id'], player_id))
+        
+        # 2. Transfer receiver's players to proposer
+        if trade['receiver_players']:
+            for player_id in trade['receiver_players']:
+                cur.execute("""
+                    UPDATE team_players
+                    SET team_id = %s
+                    WHERE team_id = %s AND player_id = %s
+                """, (trade['proposer_team_id'], trade['receiver_team_id'], player_id))
+        
+        # 3. Update budgets
+        if trade['proposer_cash'] > 0:
+            # Proposer gives cash to receiver
+            cur.execute("""
+                UPDATE auction_participants
+                SET budget = budget - %s
+                WHERE auction_id = %s AND user_id = %s
+            """, (trade['proposer_cash'], auction_id, trade['proposer_id']))
+            
+            cur.execute("""
+                UPDATE auction_participants
+                SET budget = budget + %s
+                WHERE auction_id = %s AND user_id = %s
+            """, (trade['proposer_cash'], auction_id, trade['receiver_id']))
+        
+        if trade['receiver_cash'] > 0:
+            # Receiver gives cash to proposer
+            cur.execute("""
+                UPDATE auction_participants
+                SET budget = budget - %s
+                WHERE auction_id = %s AND user_id = %s
+            """, (trade['receiver_cash'], auction_id, trade['receiver_id']))
+            
+            cur.execute("""
+                UPDATE auction_participants
+                SET budget = budget + %s
+                WHERE auction_id = %s AND user_id = %s
+            """, (trade['receiver_cash'], auction_id, trade['proposer_id']))
+        
+        # 4. Update trade status
+        cur.execute("""
+            UPDATE trades
+            SET status = 'accepted', updated_at = NOW()
+            WHERE id = %s
+        """, (trade_id,))
+        
+        conn.commit()
+        
+        # Get updated budgets
+        cur.execute("""
+            SELECT user_id, budget FROM auction_participants
+            WHERE auction_id = %s AND user_id IN (%s, %s)
+        """, (auction_id, trade['proposer_id'], trade['receiver_id']))
+        
+        budgets = {row['user_id']: row['budget'] for row in cur.fetchall()}
+        
+        cur.close()
+        conn.close()
+        
+        # Notify both parties
+        emit("trade_completed", {
+            "trade_id": trade_id,
+            "proposer_id": trade['proposer_id'],
+            "receiver_id": trade['receiver_id'],
+            "budgets": budgets
+        }, room=room)
+        
+        print(f"Trade {trade_id} completed successfully")
+        
+    except Exception as e:
+        print(f"Error accepting trade: {e}")
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        emit("trade_error", {"message": "Failed to complete trade"}, room=request.sid)
+
+
+@socketio.on("reject_trade")
+def handle_reject_trade(data):
+    """Reject a trade offer"""
+    trade_id = data.get("trade_id")
+    user_id = data.get("user_id")
+    
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        
+        # Update trade status
+        cur.execute("""
+            UPDATE trades
+            SET status = 'rejected', updated_at = NOW()
+            WHERE id = %s AND receiver_id = %s AND status = 'pending'
+            RETURNING auction_id, proposer_id
+        """, (trade_id, user_id))
+        
+        result = cur.fetchone()
+        
+        if not result:
+            emit("trade_error", {"message": "Trade not found"}, room=request.sid)
+            cur.close()
+            conn.close()
+            return
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        room = f"lobby_{result['auction_id']}"
+        
+        # Notify proposer
+        emit("trade_rejected", {
+            "trade_id": trade_id,
+            "receiver_id": user_id,
+            "proposer_id": result['proposer_id']
+        }, room=room)
+        
+        print(f"Trade {trade_id} rejected by user {user_id}")
+        
+    except Exception as e:
+        print(f"Error rejecting trade: {e}")
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        emit("trade_error", {"message": "Failed to reject trade"}, room=request.sid)
+
+
+@socketio.on("cancel_trade")
+def handle_cancel_trade(data):
+    """Cancel own trade offer"""
+    trade_id = data.get("trade_id")
+    user_id = data.get("user_id")
+    
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        
+        # Update trade status
+        cur.execute("""
+            UPDATE trades
+            SET status = 'cancelled', updated_at = NOW()
+            WHERE id = %s AND proposer_id = %s AND status = 'pending'
+            RETURNING auction_id, receiver_id
+        """, (trade_id, user_id))
+        
+        result = cur.fetchone()
+        
+        if not result:
+            emit("trade_error", {"message": "Trade not found"}, room=request.sid)
+            cur.close()
+            conn.close()
+            return
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        room = f"lobby_{result['auction_id']}"
+        
+        # Notify receiver
+        emit("trade_cancelled", {
+            "trade_id": trade_id,
+            "proposer_id": user_id,
+            "receiver_id": result['receiver_id']
+        }, room=room)
+        
+        print(f"Trade {trade_id} cancelled by user {user_id}")
+        
+    except Exception as e:
+        print(f"Error cancelling trade: {e}")
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        emit("trade_error", {"message": "Failed to cancel trade"}, room=request.sid)
+
 
 if __name__ == '__main__':
-    # Run with SocketIO support
     socketio.run(app, host='0.0.0.0', debug=True, port=5000, allow_unsafe_werkzeug=True)

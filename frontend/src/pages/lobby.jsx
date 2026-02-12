@@ -162,26 +162,29 @@ const Lobby = () => {
             </div>
             {/* Image Grid (Managers) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 w-full p-4 bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm">
-              {participants.map((participant, idx) => (
-                <div key={participant.user_id} className="flex flex-col items-center gap-3">
-                  <div className="relative group">
-                    {idx === 0 && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
-                        <span className="material-symbols-outlined text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]">workspace_premium</span>
+              {participants.map((participant, idx) => {
+                const isHost = participant.user_id === lobbyData?.host_id;
+                return (
+                  <div key={participant.user_id} className="flex flex-col items-center gap-3">
+                    <div className="relative group">
+                      {isHost && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
+                          <span className="material-symbols-outlined text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]">workspace_premium</span>
+                        </div>
+                      )}
+                      <div className={`size-24 rounded-full ${isHost ? 'border-4 border-primary' : 'border-2 border-white/20'} p-1 relative overflow-hidden bg-background-dark hover:border-white/40 transition-all`} style={isHost ? { boxShadow: '0 0 15px rgba(13, 242, 89, 0.4)' } : {}}>
+                        <div className="w-full h-full rounded-full bg-gradient-to-br from-primary/20 to-background-dark flex items-center justify-center">
+                          <span className="text-white text-2xl font-black">{participant.team_name?.charAt(0) || 'U'}</span>
+                        </div>
                       </div>
-                    )}
-                    <div className={`size-24 rounded-full ${idx === 0 ? 'border-4 border-primary' : 'border-2 border-white/20'} p-1 relative overflow-hidden bg-background-dark hover:border-white/40 transition-all`} style={idx === 0 ? { boxShadow: '0 0 15px rgba(13, 242, 89, 0.4)' } : {}}>
-                      <div className="w-full h-full rounded-full bg-gradient-to-br from-primary/20 to-background-dark flex items-center justify-center">
-                        <span className="text-white text-2xl font-black">{participant.team_name?.charAt(0) || 'U'}</span>
-                      </div>
+                      {isHost && (
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#FFD700] text-black text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Admin</div>
+                      )}
                     </div>
-                    {idx === 0 && (
-                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#FFD700] text-black text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">Admin</div>
-                    )}
+                    <p className={`${isHost ? 'text-primary' : 'text-white/80'} text-sm font-bold truncate max-w-[120px]`}>{participant.team_name}</p>
                   </div>
-                  <p className={`${idx === 0 ? 'text-primary' : 'text-white/80'} text-sm font-bold truncate max-w-[120px]`}>{participant.team_name}</p>
-                </div>
-              ))}
+                );
+              })}
               {/* Empty slots */}
               {Array.from({ length: Math.max(0, 20 - participants.length) }).map((_, idx) => (
                 <div key={`empty-${idx}`} className="flex flex-col items-center gap-3 opacity-30">

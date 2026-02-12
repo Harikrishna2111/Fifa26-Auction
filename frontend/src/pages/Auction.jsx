@@ -484,7 +484,8 @@ const Auction = () => {
       auction_id: auctionId,
       amount: parseInt(amount),
       bidder: teamName,
-      user_id: user.id
+      user_id: user.id,
+      player_id: currentPlayer?.id
     });
     setCustomBid("");
   };
@@ -500,7 +501,8 @@ const Auction = () => {
     socket.emit("pass_turn", {
       auction_id: auctionId,
       user_id: user.id,
-      team_name: teamName
+      team_name: teamName,
+      player_id: currentPlayer?.id
     });
   };
 
@@ -705,17 +707,20 @@ const Auction = () => {
       setAuctionResult(data.result); // Trigger Animation ('sold' / 'unsold')
       setHasPassed(false); // Reset for next interaction
 
-      // 1. Optimistic Update (Immediate Feedback)
-      if (data.result === 'sold' && data.updated_budget !== undefined) {
-          setParticipants(prev => {
-              return prev.map(p => {
-                  // Validate against user_id AND team_name to be sure
-                  if ((data.user_id && p.user_id == data.user_id) || (data.bidder && p.team_name === data.bidder)) {
-                      return { ...p, budget: data.updated_budget };
-                  }
-                  return p;
+      // Handle sold players
+      if (data.result === 'sold') {
+          // 1. Update budget if provided
+          if (data.updated_budget !== undefined) {
+              setParticipants(prev => {
+                  return prev.map(p => {
+                      // Validate against user_id AND team_name to be sure
+                      if ((data.user_id && p.user_id == data.user_id) || (data.bidder && p.team_name === data.bidder)) {
+                          return { ...p, budget: data.updated_budget };
+                      }
+                      return p;
+                  });
               });
-          });
+          }
 
           // 2. Fetch Sync (Ensure Consistency)
           fetch(`${API_URL}/api/lobby/${auctionId}/participants?_t=${Date.now()}`)
@@ -727,18 +732,48 @@ const Auction = () => {
               })
               .catch(err => console.error("Failed to refresh participants", err));
 
-          // 3. Refresh Live Squad
+          // 3. Refresh Live Squad (for the winner)
           const user = JSON.parse(localStorage.getItem('user') || '{}');
-          if ((data.user_id && user.id == data.user_id) || (data.bidder && user.username === data.bidder)) {
+          {
+              console.log("🔄 Refreshing squad after player finalized (sold)...");
               fetch(`${API_URL}/api/auctions/${auctionId}/squad?user_id=${user.id || 0}`)
                   .then(res => res.json())
                   .then(allMyPlayers => {
                       if (Array.isArray(allMyPlayers)) {
-                          handleSquadUpdate(allMyPlayers);
+                          // Update squad display
+                          setPitchPlayers(allMyPlayers.slice(0, 11));
+                          setSubPlayers(allMyPlayers.slice(11, 18));
+                          setResPlayers(allMyPlayers.slice(18));
+                          
+                          // Update mySquad for trades
+                          setMySquad(allMyPlayers);
+                          
+                          console.log("✅ Squad updated after player finalized (sold):", allMyPlayers.length, "players");
                       }
                   })
                   .catch(err => console.error("Error refreshing live squad:", err));
           }
+      } else if (data.result === 'unsold') {
+          // Handle unsold/passed players - refresh squad for current user
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          console.log("🔄 Refreshing squad after player passed...");
+          
+          fetch(`${API_URL}/api/auctions/${auctionId}/squad?user_id=${user.id || 0}`)
+              .then(res => res.json())
+              .then(allMyPlayers => {
+                  if (Array.isArray(allMyPlayers)) {
+                      // Update squad display
+                      setPitchPlayers(allMyPlayers.slice(0, 11));
+                      setSubPlayers(allMyPlayers.slice(11, 18));
+                      setResPlayers(allMyPlayers.slice(18));
+                      
+                      // Update mySquad for trades
+                      setMySquad(allMyPlayers);
+                      
+                      console.log("✅ Squad updated after player passed:", allMyPlayers.length, "players");
+                  }
+              })
+              .catch(err => console.error("Error refreshing squad after pass:", err));
       }
     });
 
@@ -747,6 +782,83 @@ const Auction = () => {
         if (data.message && data.message.includes("passed")) {
             setHasPassed(true); // Resync state if backend says we passed
         }
+    });
+
+    const refreshActiveTrades = () => {
+      fetch(`${API_URL}/api/auctions/${auctionId}/trades?user_id=${user.id}`)
+        .then(res => res.json())
+        .then(trades => {
+          if (Array.isArray(trades)) {
+            setActiveTrades(trades);
+          }
+        })
+        .catch(err => console.error("Error refreshing trades:", err));
+    };
+
+    // Trade event listeners
+    newSocket.on("trade_proposed", (data) => {
+      console.log("Trade proposed:", data);
+      if (data.receiver_id !== user.id && data.proposer_id !== user.id) return;
+      refreshActiveTrades();
+      if (data.receiver_id === user.id) {
+        alert(`New trade offer from ${data.proposer_team || data.proposer_name || 'another manager'}!`);
+      }
+    });
+
+    newSocket.on("trade_sent", (data) => {
+      console.log("Trade sent:", data);
+      if (data.proposer_id !== user.id && data.receiver_id !== user.id) return;
+      alert("Trade offer sent successfully!");
+      refreshActiveTrades();
+    });
+
+    newSocket.on("trade_completed", (data) => {
+      console.log("Trade completed:", data);
+      if (data.proposer_id !== user.id && data.receiver_id !== user.id) return;
+      alert("Trade completed successfully!");
+      
+      // Update budgets
+      setParticipants(prev => prev.map(p => {
+        if (data.budgets[p.user_id] !== undefined) {
+          return { ...p, budget: data.budgets[p.user_id] };
+        }
+        return p;
+      }));
+      
+      // Refresh squads
+      fetch(`${API_URL}/api/auctions/${auctionId}/squad?user_id=${user.id}`)
+        .then(res => res.json())
+        .then(squad => {
+          if (Array.isArray(squad)) {
+            setMySquad(squad);
+            // Update squad display
+            setPitchPlayers(squad.slice(0, 11));
+            setSubPlayers(squad.slice(11, 18));
+            setResPlayers(squad.slice(18));
+            console.log("✅ Squad updated after trade:", squad.length, "players");
+          }
+        });
+      
+      refreshActiveTrades();
+    });
+
+    newSocket.on("trade_rejected", (data) => {
+      console.log("Trade rejected:", data);
+      if (data.proposer_id !== user.id && data.receiver_id !== user.id) return;
+      alert("Trade offer was rejected");
+      refreshActiveTrades();
+    });
+
+    newSocket.on("trade_cancelled", (data) => {
+      console.log("Trade cancelled:", data);
+      if (data.proposer_id !== user.id && data.receiver_id !== user.id) return;
+      alert("Trade offer was cancelled");
+      refreshActiveTrades();
+    });
+
+    newSocket.on("trade_error", (data) => {
+      console.error("Trade error:", data);
+      alert(data.message || "Trade failed");
     });
 
     newSocket.on("auction_ended", (data) => {
@@ -914,6 +1026,9 @@ const Auction = () => {
   const [theyCash, setTheyCash] = useState('');
   const [showPlayerSelector, setShowPlayerSelector] = useState(false);
   const [selectorSide, setSelectorSide] = useState('you');
+  const [mySquad, setMySquad] = useState([]);
+  const [partnerSquad, setPartnerSquad] = useState([]);
+  const [activeTrades, setActiveTrades] = useState([]);
 
   // Compare Modal State
   const [liveFormation, setLiveFormation] = useState('4-3-3');
@@ -997,18 +1112,98 @@ const Auction = () => {
     setShowPlayerSelector(true);
   };
 
+  // Fetch squads when trade partner is selected
+  useEffect(() => {
+    if (tradePartner && auctionId) {
+      // Fetch my squad
+      fetch(`${API_URL}/api/auctions/${auctionId}/squad?user_id=${user.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setMySquad(data);
+          }
+        })
+        .catch(err => console.error("Error fetching my squad:", err));
+      
+      // Fetch partner's squad
+      fetch(`${API_URL}/api/auctions/${auctionId}/squad?user_id=${tradePartner}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setPartnerSquad(data);
+          }
+        })
+        .catch(err => console.error("Error fetching partner squad:", err));
+    }
+  }, [tradePartner, auctionId, user.id]);
+
+  // Fetch active trades
+  useEffect(() => {
+    if (auctionId && user.id) {
+      fetch(`${API_URL}/api/auctions/${auctionId}/trades?user_id=${user.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setActiveTrades(data);
+          }
+        })
+        .catch(err => console.error("Error fetching trades:", err));
+    }
+  }, [auctionId, user.id]);
+
   const addPlayerToTrade = (player) => {
     if (selectorSide === 'you') {
-      if (!youGivePlayers.includes(player)) setYouGivePlayers([...youGivePlayers, player]);
+      if (!youGivePlayers.find(p => p.id === player.id)) {
+        setYouGivePlayers([...youGivePlayers, player]);
+      }
     } else {
-      if (!theyGivePlayers.includes(player)) setTheyGivePlayers([...theyGivePlayers, player]);
+      if (!theyGivePlayers.find(p => p.id === player.id)) {
+        setTheyGivePlayers([...theyGivePlayers, player]);
+      }
     }
     setShowPlayerSelector(false);
   };
 
-  const removePlayerFromTrade = (side, player) => {
-    if (side === 'you') setYouGivePlayers(youGivePlayers.filter(p => p !== player));
-    else setTheyGivePlayers(theyGivePlayers.filter(p => p !== player));
+  const removePlayerFromTrade = (side, playerId) => {
+    if (side === 'you') setYouGivePlayers(youGivePlayers.filter(p => p.id !== playerId));
+    else setTheyGivePlayers(theyGivePlayers.filter(p => p.id !== playerId));
+  };
+
+  const proposeTrade = () => {
+    if (!socket) {
+      alert("Connection lost. Please refresh.");
+      return;
+    }
+
+    if (!tradePartner) {
+      alert("Please select a trade partner");
+      return;
+    }
+
+    if (youGivePlayers.length === 0 && !youCash && theyGivePlayers.length === 0 && !theyCash) {
+      alert("Please add players or cash to the trade");
+      return;
+    }
+
+    const tradeData = {
+      auction_id: auctionId,
+      proposer_id: user.id,
+      receiver_id: parseInt(tradePartner),
+      proposer_players: youGivePlayers.map(p => p.id),
+      proposer_cash: youCash ? parseInt(youCash) * 1000000 : 0, // Convert M to actual value
+      receiver_players: theyGivePlayers.map(p => p.id),
+      receiver_cash: theyCash ? parseInt(theyCash) * 1000000 : 0
+    };
+
+    console.log("Proposing trade:", tradeData);
+    socket.emit("propose_trade", tradeData);
+
+    // Clear form
+    setYouGivePlayers([]);
+    setTheyGivePlayers([]);
+    setYouCash('');
+    setTheyCash('');
+    setTradePartner('');
   };
 
 
@@ -1361,8 +1556,12 @@ const Auction = () => {
               <div className="p-4 flex flex-col gap-3 h-full overflow-y-auto custom-scroll relative">
                 <select value={tradePartner} onChange={(e) => setTradePartner(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-xs text-white outline-none mb-2">
                   <option value="">Select Partner...</option>
-                  <option value="GalacticManager_7">GalacticManager_7</option>
-                  <option value="StarkUnited">StarkUnited</option>
+                  {participants
+                    .filter(p => p.user_id != user.id)
+                    .map(p => (
+                      <option key={p.user_id} value={p.user_id}>{p.team_name}</option>
+                    ))
+                  }
                 </select>
 
                 <div className="bg-black/30 border border-white/5 rounded p-2">
@@ -1372,7 +1571,7 @@ const Auction = () => {
                   </div>
                   <div className="flex flex-wrap gap-2 mb-2 min-h-[24px]">
                     {youGivePlayers.map(p => (
-                      <div key={p} className="bg-white/10 border border-white/10 rounded px-2 py-1 text-[9px] text-white font-bold flex items-center gap-1">{p} <span onClick={() => removePlayerFromTrade('you', p)} className="cursor-pointer hover:text-red-400">×</span></div>
+                      <div key={p.id} className="bg-white/10 border border-white/10 rounded px-2 py-1 text-[9px] text-white font-bold flex items-center gap-1">{p.name} <span onClick={() => removePlayerFromTrade('you', p.id)} className="cursor-pointer hover:text-red-400">×</span></div>
                     ))}
                   </div>
                   <div className="flex items-center gap-2 border-t border-white/5 pt-2"><span className="text-[10px] text-white/40">$</span><input type="number" placeholder="Cash Offer (M)" value={youCash} onChange={(e) => setYouCash(e.target.value)} className="bg-transparent text-xs w-full outline-none text-white font-bold" /></div>
@@ -1387,23 +1586,99 @@ const Auction = () => {
                   </div>
                   <div className="flex flex-wrap gap-2 mb-2 min-h-[24px]">
                     {theyGivePlayers.map(p => (
-                      <div key={p} className="bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] text-white/70 font-bold flex items-center gap-1">{p} <span onClick={() => removePlayerFromTrade('them', p)} className="cursor-pointer hover:text-red-400">×</span></div>
+                      <div key={p.id} className="bg-white/5 border border-white/10 rounded px-2 py-1 text-[9px] text-white/70 font-bold flex items-center gap-1">{p.name} <span onClick={() => removePlayerFromTrade('them', p.id)} className="cursor-pointer hover:text-red-400">×</span></div>
                     ))}
                   </div>
                   <div className="flex items-center gap-2 border-t border-white/5 pt-2"><span className="text-[10px] text-white/40">$</span><input type="number" placeholder="Request Cash (M)" value={theyCash} onChange={(e) => setTheyCash(e.target.value)} className="bg-transparent text-xs w-full outline-none text-white font-bold" /></div>
                 </div>
 
-                <button className="w-full py-3 bg-[#39ff14] text-black text-xs font-black uppercase rounded hover:scale-[1.02] mt-auto shadow-[0_0_15px_rgba(13,242,89,0.3)]">Propose Trade</button>
+                <button onClick={proposeTrade} className="w-full py-3 bg-[#39ff14] text-black text-xs font-black uppercase rounded hover:scale-[1.02] mt-auto shadow-[0_0_15px_rgba(13,242,89,0.3)]">Propose Trade</button>
 
                 {showPlayerSelector && (
                   <div className="absolute inset-0 bg-[#121816] z-50 flex flex-col animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-3 border-b border-white/10 flex justify-between items-center bg-black/40"><span className="text-xs font-bold text-white uppercase">Select Player</span><button onClick={() => setShowPlayerSelector(false)} className="text-white/50 hover:text-white"><span className="material-symbols-outlined text-sm">close</span></button></div>
-                    <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1 custom-scroll">{tradePool[selectorSide].map(p => (<div key={p} onClick={() => addPlayerToTrade(p)} className="p-2 bg-white/5 hover:bg-white/10 rounded cursor-pointer text-xs font-bold text-white flex justify-between border border-white/5">{p} <span className="material-symbols-outlined text-sm text-[#39ff14]">add_circle</span></div>))}</div>
+                    <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1 custom-scroll">{(selectorSide === 'you' ? mySquad : partnerSquad).map(p => (<div key={p.id} onClick={() => addPlayerToTrade(p)} className="p-2 bg-white/5 hover:bg-white/10 rounded cursor-pointer text-xs font-bold text-white flex justify-between border border-white/5">{p.name} <span className="material-symbols-outlined text-sm text-[#39ff14]">add_circle</span></div>))}</div>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="p-4 flex flex-col gap-3 h-full overflow-y-auto"><p class="text-[10px] text-center text-white/30 mt-4">No active offers.</p></div>
+              <div className="p-4 flex flex-col gap-2 h-full overflow-y-auto custom-scroll">
+                {activeTrades.length === 0 ? (
+                  <p className="text-[10px] text-center text-white/30 mt-4">No active offers.</p>
+                ) : (
+                  activeTrades.map(trade => {
+                    const isIncoming = trade.receiver_id === user.id;
+                    const isOutgoing = trade.proposer_id === user.id;
+                    
+                    return (
+                      <div key={trade.id} className="bg-black/30 border border-white/10 rounded p-3 flex flex-col gap-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-bold text-white uppercase">
+                            {isIncoming ? `From: ${trade.proposer_team}` : `To: ${trade.receiver_team}`}
+                          </span>
+                          <span className={`text-[8px] px-2 py-0.5 rounded ${isIncoming ? 'bg-[#39ff14]/20 text-[#39ff14]' : 'bg-white/10 text-white/50'}`}>
+                            {isIncoming ? 'INCOMING' : 'OUTGOING'}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 text-[9px]">
+                          <div className="bg-white/5 rounded p-2">
+                            <div className="text-white/50 mb-1">They Give:</div>
+                            {trade.proposer_players_details?.map(p => (
+                              <div key={p.id} className="text-white">{p.name}</div>
+                            ))}
+                            {trade.proposer_cash > 0 && (
+                              <div className="text-[#ffd700]">${formatMoney(trade.proposer_cash)}</div>
+                            )}
+                          </div>
+                          
+                          <div className="bg-white/5 rounded p-2">
+                            <div className="text-white/50 mb-1">You Give:</div>
+                            {trade.receiver_players_details?.map(p => (
+                              <div key={p.id} className="text-white">{p.name}</div>
+                            ))}
+                            {trade.receiver_cash > 0 && (
+                              <div className="text-[#ffd700]">${formatMoney(trade.receiver_cash)}</div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-2 mt-1">
+                          {isIncoming ? (
+                            <React.Fragment>
+                              <button 
+                                onClick={() => {
+                                  socket.emit("accept_trade", { trade_id: trade.id, user_id: user.id });
+                                }}
+                                className="flex-1 py-2 bg-[#39ff14] text-black text-[10px] font-bold uppercase rounded hover:scale-[1.02]"
+                              >
+                                Accept
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  socket.emit("reject_trade", { trade_id: trade.id, user_id: user.id });
+                                }}
+                                className="flex-1 py-2 bg-red-500/20 text-red-400 text-[10px] font-bold uppercase rounded hover:bg-red-500/30"
+                              >
+                                Reject
+                              </button>
+                            </React.Fragment>
+                          ) : (
+                            <button 
+                              onClick={() => {
+                                socket.emit("cancel_trade", { trade_id: trade.id, user_id: user.id });
+                              }}
+                              className="flex-1 py-2 bg-white/10 text-white/70 text-[10px] font-bold uppercase rounded hover:bg-white/20"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             )}
 
             <div className="p-4 bg-black/40 border-t border-white/10">
@@ -1457,3 +1732,5 @@ const Auction = () => {
 };
 
 export default Auction;
+
+
