@@ -847,6 +847,10 @@ def create_lobby():
     join_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     
     custom_bid = data.get("custom_bid_enabled", True)
+    retention_limit = data.get("retention_limit", 10)
+
+    # Lightweight schema guard for older DBs.
+    cur.execute("ALTER TABLE auctions ADD COLUMN IF NOT EXISTS retention_limit INTEGER DEFAULT 10;")
 
     cur.execute("""
         INSERT INTO auctions (
@@ -854,9 +858,9 @@ def create_lobby():
             join_code, host_id,
             purse_per_team,
             bid_inc_min, bid_inc_mid, bid_inc_max,
-            min_players, bidding_time, custom_bid_enabled
+            min_players, bidding_time, custom_bid_enabled, retention_limit
         )
-        VALUES (%s, %s, 'LOBBY', %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, 'LOBBY', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
     """, (
         data["auction_name"],
@@ -869,7 +873,8 @@ def create_lobby():
         data["inc_max"],
         data["min_players"],
         data["bidding_time"],
-        custom_bid
+        custom_bid,
+        retention_limit
     ))
 
     result = cur.fetchone()
@@ -960,6 +965,9 @@ def get_lobby(auction_id):
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+    # Lightweight schema guard for older DBs.
+    cur.execute("ALTER TABLE auctions ADD COLUMN IF NOT EXISTS retention_limit INTEGER DEFAULT 10;")
+
     cur.execute("""
         SELECT
             a.id,
@@ -974,6 +982,7 @@ def get_lobby(auction_id):
             a.bid_inc_max,
             a.min_players,
             a.bidding_time,
+            a.retention_limit,
             COUNT(p.user_id) AS player_count
         FROM auctions a
         LEFT JOIN auction_participants p ON p.auction_id = a.id
@@ -1020,10 +1029,313 @@ def get_lobby_participants(auction_id):
 def get_lobby_details(auction_id):
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    # Lightweight schema guard for older DBs.
+    cur.execute("ALTER TABLE auctions ADD COLUMN IF NOT EXISTS retention_limit INTEGER DEFAULT 10;")
     cur.execute("SELECT * FROM auctions WHERE id = %s", (auction_id,))
     lobby = cur.fetchone()
     cur.close()
     return jsonify(lobby)
+
+
+@app.route("/api/auctions/<int:auction_id>/preauction", methods=["GET"])
+def get_preauction_data(auction_id):
+    user_id = request.args.get("user_id", type=int)
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        # Ensure retention columns exist in older DBs.
+        cur.execute("ALTER TABLE auctions ADD COLUMN IF NOT EXISTS retention_limit INTEGER DEFAULT 10;")
+        cur.execute("ALTER TABLE auction_participants ADD COLUMN IF NOT EXISTS retention_confirmed BOOLEAN DEFAULT FALSE;")
+
+        # Current auction details.
+        cur.execute("""
+            SELECT id, name, season, host_id, purse_per_team, COALESCE(retention_limit, 10) AS retention_limit
+            FROM auctions
+            WHERE id = %s
+        """, (auction_id,))
+        current_auction = cur.fetchone()
+        if not current_auction:
+            return jsonify({"error": "Auction not found"}), 404
+
+        # Previous season in same auction series (same host + name, lower season).
+        raw_season = current_auction.get("season")
+        try:
+            current_season = int(raw_season) if raw_season is not None else 0
+        except (TypeError, ValueError):
+            current_season = 0
+
+        prev_auction_id = None
+        if current_season >= 2:
+            # NOTE: season can be stored as TEXT in some DBs, so avoid SQL numeric comparison.
+            cur.execute("""
+                SELECT id, season
+                FROM auctions
+                WHERE host_id = %s
+                  AND name = %s
+                  AND id <> %s
+                ORDER BY id DESC
+            """, (current_auction["host_id"], current_auction["name"], auction_id))
+            candidates = cur.fetchall()
+
+            best = None
+            for row in candidates:
+                raw = row.get("season")
+                try:
+                    s = int(raw) if raw is not None else 0
+                except (TypeError, ValueError):
+                    s = 0
+                if s < current_season:
+                    if not best or s > best["season_int"] or (s == best["season_int"] and row["id"] > best["id"]):
+                        best = {"id": row["id"], "season_int": s}
+
+            prev_auction_id = best["id"] if best else None
+
+        # Current participants (for team names + budgets in this season).
+        cur.execute("""
+            SELECT user_id, team_name, budget, team_id, COALESCE(retention_confirmed, FALSE) AS retention_confirmed
+            FROM auction_participants
+            WHERE auction_id = %s
+            ORDER BY user_id
+        """, (auction_id,))
+        current_participants = cur.fetchall()
+
+        previous_players_by_user = {}
+        if prev_auction_id:
+            # Fetch all previous-season players mapped by previous participant user.
+            cur.execute("""
+                SELECT
+                    ap.user_id,
+                    p.id,
+                    p.name,
+                    p.position_group,
+                    p.overall,
+                    p.club,
+                    p.nation,
+                    p.image_url,
+                    tp.acquired_price
+                FROM auction_participants ap
+                JOIN team_players tp ON tp.team_id = ap.team_id
+                JOIN players p ON p.id = tp.player_id
+                WHERE ap.auction_id = %s
+                ORDER BY ap.user_id, tp.acquired_price DESC
+            """, (prev_auction_id,))
+            prev_rows = cur.fetchall()
+
+            for row in prev_rows:
+                uid = row["user_id"]
+                previous_players_by_user.setdefault(uid, []).append(dict(row))
+
+        participants_detailed = []
+        market_players = []
+        my_team = None
+        my_players = previous_players_by_user.get(user_id, [])
+        my_retained_ids = []
+
+        for part in current_participants:
+            part_players = previous_players_by_user.get(part["user_id"], [])
+            entry = {
+                "user_id": part["user_id"],
+                "team_name": part["team_name"],
+                "budget": part["budget"],
+                "team_id": part.get("team_id"),
+                "retention_confirmed": bool(part.get("retention_confirmed")),
+                "players_count_prev": len(part_players),
+                "players_prev": part_players
+            }
+            participants_detailed.append(entry)
+            if part["user_id"] == user_id:
+                my_team = entry
+                if part.get("team_id"):
+                    cur.execute("""
+                        SELECT player_id
+                        FROM team_players
+                        WHERE team_id = %s
+                    """, (part["team_id"],))
+                    my_retained_ids = [r["player_id"] for r in cur.fetchall()]
+            else:
+                market_players.extend(part_players)
+
+        # Keep market manageable and premium-first.
+        market_players = sorted(market_players, key=lambda x: x.get("acquired_price") or 0, reverse=True)[:120]
+
+        all_confirmed = len(participants_detailed) > 0 and all(p.get("retention_confirmed") for p in participants_detailed)
+
+        return jsonify({
+            "auction": dict(current_auction),
+            "previous_auction_id": prev_auction_id,
+            "participants": participants_detailed,
+            "my_team": my_team,
+            "my_players_prev": my_players,
+            "my_retained_ids": my_retained_ids,
+            "market_players_prev": market_players,
+            "all_confirmed": all_confirmed
+        }), 200
+    except Exception as e:
+        print(f"Error fetching preauction data: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+
+
+@app.route("/api/auctions/<int:auction_id>/retentions", methods=["POST"])
+def confirm_retentions(auction_id):
+    data = request.json or {}
+    user_id = data.get("user_id")
+    selected_player_ids = data.get("player_ids", [])
+
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+    if not isinstance(selected_player_ids, list):
+        return jsonify({"error": "player_ids must be a list"}), 400
+
+    # Normalize player IDs to ints and unique.
+    normalized_ids = []
+    for pid in selected_player_ids:
+        try:
+            i = int(pid)
+            if i not in normalized_ids:
+                normalized_ids.append(i)
+        except Exception:
+            continue
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("ALTER TABLE auctions ADD COLUMN IF NOT EXISTS retention_limit INTEGER DEFAULT 10;")
+        cur.execute("ALTER TABLE auction_participants ADD COLUMN IF NOT EXISTS retention_confirmed BOOLEAN DEFAULT FALSE;")
+
+        # Current auction details.
+        cur.execute("""
+            SELECT id, name, host_id, purse_per_team, COALESCE(retention_limit, 10) AS retention_limit, season
+            FROM auctions
+            WHERE id = %s
+        """, (auction_id,))
+        auction = cur.fetchone()
+        if not auction:
+            return jsonify({"error": "Auction not found"}), 404
+
+        try:
+            current_season = int(auction.get("season") or 0)
+        except (TypeError, ValueError):
+            current_season = 0
+
+        # Find previous auction (same host + name, nearest lower season).
+        prev_auction_id = None
+        if current_season >= 2:
+            cur.execute("""
+                SELECT id, season
+                FROM auctions
+                WHERE host_id = %s
+                  AND name = %s
+                  AND id <> %s
+                ORDER BY id DESC
+            """, (auction["host_id"], auction["name"], auction_id))
+            candidates = cur.fetchall()
+            best = None
+            for row in candidates:
+                try:
+                    s = int(row.get("season") or 0)
+                except (TypeError, ValueError):
+                    s = 0
+                if s < current_season:
+                    if not best or s > best["season_int"] or (s == best["season_int"] and row["id"] > best["id"]):
+                        best = {"id": row["id"], "season_int": s}
+            prev_auction_id = best["id"] if best else None
+
+        if not prev_auction_id:
+            return jsonify({"error": "No previous season found for retention"}), 400
+
+        # Enforce retention limit.
+        retention_limit = int(auction.get("retention_limit") or 0)
+        if len(normalized_ids) > retention_limit:
+            return jsonify({"error": f"Retention limit exceeded ({retention_limit})"}), 400
+
+        # Current participant row.
+        cur.execute("""
+            SELECT id, team_id, team_name
+            FROM auction_participants
+            WHERE auction_id = %s AND user_id = %s
+        """, (auction_id, user_id))
+        participant = cur.fetchone()
+        if not participant:
+            return jsonify({"error": "Participant not found in current auction"}), 404
+
+        team_id = participant.get("team_id")
+        if not team_id:
+            # Create team for current auction if needed.
+            cur.execute("""
+                INSERT INTO teams (name, manager_id, rating, value, status, created_at)
+                VALUES (%s, %s, 0, 0, 'ACTIVE', NOW())
+                RETURNING id
+            """, (participant["team_name"], user_id))
+            team_id = cur.fetchone()["id"]
+            cur.execute("""
+                UPDATE auction_participants
+                SET team_id = %s
+                WHERE id = %s
+            """, (team_id, participant["id"]))
+
+        # Previous-season eligible players with original acquired price.
+        cur.execute("""
+            SELECT tp.player_id, tp.acquired_price
+            FROM auction_participants ap
+            JOIN team_players tp ON tp.team_id = ap.team_id
+            WHERE ap.auction_id = %s
+              AND ap.user_id = %s
+        """, (prev_auction_id, user_id))
+        prev_rows = cur.fetchall()
+        prev_price_map = {int(r["player_id"]): int(r["acquired_price"] or 0) for r in prev_rows}
+        eligible_prev_ids = list(prev_price_map.keys())
+
+        # Validate all selected belong to user from previous season.
+        invalid_ids = [pid for pid in normalized_ids if pid not in prev_price_map]
+        if invalid_ids:
+            return jsonify({"error": "Some selected players are not eligible for retention", "invalid_player_ids": invalid_ids}), 400
+
+        # Replace retentions (only touching eligible previous players for this user).
+        if eligible_prev_ids:
+            cur.execute("""
+                DELETE FROM team_players
+                WHERE team_id = %s
+                  AND player_id = ANY(%s)
+            """, (team_id, eligible_prev_ids))
+
+        for pid in normalized_ids:
+            cur.execute("""
+                INSERT INTO team_players (team_id, player_id, acquired_price)
+                VALUES (%s, %s, %s)
+            """, (team_id, pid, prev_price_map[pid]))
+
+        retained_total = sum(prev_price_map[pid] for pid in normalized_ids)
+        remaining_budget = int(auction["purse_per_team"] or 0) - retained_total
+        if remaining_budget < 0:
+            remaining_budget = 0
+
+        cur.execute("""
+            UPDATE auction_participants
+            SET budget = %s, retention_confirmed = TRUE
+            WHERE id = %s
+        """, (remaining_budget, participant["id"]))
+
+        conn.commit()
+        socketio.emit("retentions_updated", {"auction_id": auction_id}, room=f"lobby_{auction_id}")
+        return jsonify({
+            "message": "Retentions confirmed",
+            "retained_player_ids": normalized_ids,
+            "retained_cost": retained_total,
+            "remaining_budget": remaining_budget
+        }), 200
+    except Exception as e:
+        conn.rollback()
+        print(f"Error confirming retentions: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
 
 @app.route("/api/lobby/<int:auction_id>/available_players")
 def get_auction_players(auction_id):
@@ -1043,10 +1355,18 @@ def get_auction_players(auction_id):
     # 2. Get eligible players
     # User Request: "rating greater than min players value"
     cur.execute("""
-        SELECT * FROM players 
-        WHERE overall > %s
-        ORDER BY overall DESC, id ASC
-    """, (min_rating,))
+        SELECT p.*
+        FROM players p
+        WHERE p.overall > %s
+          AND NOT EXISTS (
+              SELECT 1
+              FROM auction_participants ap
+              JOIN team_players tp ON tp.team_id = ap.team_id
+              WHERE ap.auction_id = %s
+                AND tp.player_id = p.id
+          )
+        ORDER BY p.overall DESC, p.id ASC
+    """, (min_rating, auction_id))
     
     all_players = cur.fetchall()
     cur.close()
@@ -1086,7 +1406,7 @@ def get_auction_players(auction_id):
             elif 'Goalkeeper' in str(pos): gks.append(p)
             else: mids.append(p) # Default to Mid
 
-    # 4. Cycle Logic (12 of each)
+    # 4. Cycle Logic (10 of each)
     ordered_players = []
     
     # Pointers for each list
@@ -1094,26 +1414,26 @@ def get_auction_players(auction_id):
     f_len, m_len, d_len, g_len = len(fwds), len(mids), len(defs), len(gks)
     
     while f_idx < f_len or m_idx < m_len or d_idx < d_len or g_idx < g_len:
-        # 12 Forwards
-        for _ in range(12):
+        # 10 Forwards
+        for _ in range(10):
             if f_idx < f_len:
                 ordered_players.append(fwds[f_idx])
                 f_idx += 1
         
-        # 12 Midfielders
-        for _ in range(12):
+        # 10 Midfielders
+        for _ in range(10):
             if m_idx < m_len:
                 ordered_players.append(mids[m_idx])
                 m_idx += 1
                 
-        # 12 Defenders
-        for _ in range(12):
+        # 10 Defenders
+        for _ in range(10):
             if d_idx < d_len:
                 ordered_players.append(defs[d_idx])
                 d_idx += 1
                 
-        # 12 Goalkeepers
-        for _ in range(12):
+        # 10 Goalkeepers
+        for _ in range(10):
             if g_idx < g_len:
                 ordered_players.append(gks[g_idx])
                 g_idx += 1
@@ -1811,6 +2131,53 @@ def start_auction(data):
         print(f"Critical Error in start_auction: {e}")
         # Try to emit error back to sender
         emit("error", {"message": "Failed to start auction"}, room=request.sid)
+
+
+@socketio.on("advance_to_auction")
+def advance_to_auction(data):
+    try:
+        auction_id_str = str(data["auction_id"])
+        auction_id_int = int(data["auction_id"])
+        user_id = int(data["user_id"])
+        room = f"lobby_{auction_id_str}"
+
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cur.execute("ALTER TABLE auction_participants ADD COLUMN IF NOT EXISTS retention_confirmed BOOLEAN DEFAULT FALSE;")
+
+        cur.execute("SELECT host_id FROM auctions WHERE id = %s", (auction_id_int,))
+        auction = cur.fetchone()
+        if not auction:
+            emit("error", {"message": "Auction not found"}, room=request.sid)
+            cur.close()
+            return
+
+        if int(auction["host_id"]) != user_id:
+            emit("error", {"message": "Only admin can advance to auction"}, room=request.sid)
+            cur.close()
+            return
+
+        cur.execute("""
+            SELECT COUNT(*) AS total,
+                   SUM(CASE WHEN COALESCE(retention_confirmed, FALSE) THEN 1 ELSE 0 END) AS confirmed
+            FROM auction_participants
+            WHERE auction_id = %s
+        """, (auction_id_int,))
+        counts = cur.fetchone() or {"total": 0, "confirmed": 0}
+        total = int(counts.get("total") or 0)
+        confirmed = int(counts.get("confirmed") or 0)
+
+        cur.close()
+
+        if total == 0 or confirmed < total:
+            emit("error", {"message": "All participants must confirm retentions before advancing"}, room=request.sid)
+            return
+
+        emit("preauction_advanced", {"auction_id": auction_id_int}, room=room)
+    except Exception as e:
+        print(f"Error advancing to auction: {e}")
+        emit("error", {"message": "Failed to advance to auction"}, room=request.sid)
 
 
 @socketio.on("next_player")
