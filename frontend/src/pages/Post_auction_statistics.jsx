@@ -130,9 +130,10 @@ const Post_auction_statistics = () => {
                                                 <h2 className="text-white text-3xl font-black uppercase italic">{myTeam.team_name}</h2>
                                                 <p className="text-white/60 text-sm">Manager: {myTeam.manager}</p>
                                             </div>
-                                            <button onClick={() => openSquadModal(myTeam)} className="px-4 py-2 rounded-lg bg-primary text-black text-xs font-black uppercase tracking-wider hover:bg-primary/90 transition-colors">
-                                                View Your Full Squad
-                                            </button>
+                                            <Link to={`/formation_settings?team_id=${myTeam.team_id}`} className="px-4 py-2 rounded-lg bg-primary text-black text-xs font-black uppercase tracking-wider hover:bg-primary/90 transition-colors flex items-center gap-2">
+                                                <span className="material-symbols-outlined">sports_soccer</span>
+                                                Set Formation
+                                            </Link>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
@@ -210,10 +211,10 @@ const Post_auction_statistics = () => {
                                                         ))}
                                                     </div>
                                                 </div>
-                                                <button onClick={() => openSquadModal(champion)} className="flex w-full cursor-pointer items-center justify-center rounded-lg h-12 bg-primary text-background-dark font-bold hover:bg-primary/90 transition-colors">
-                                                    <span className="material-symbols-outlined mr-2">visibility</span>
-                                                    VIEW FULL SQUAD
-                                                </button>
+                                                <Link to={`/formation_settings?team_id=${champion.team_id}`} className="flex w-full cursor-pointer items-center justify-center rounded-lg h-12 bg-primary text-background-dark font-bold hover:bg-primary/90 transition-colors">
+                                                    <span className="material-symbols-outlined mr-2">sports_soccer</span>
+                                                    SET FORMATION
+                                                </Link>
                                             </div>
                                         </div>
                                     </div>
@@ -263,7 +264,10 @@ const Post_auction_statistics = () => {
                                                     )}
                                                 </div>
                                             </div>
-                                            <button onClick={() => openSquadModal(team)} className="w-full mt-2 py-2 rounded-lg bg-white/5 text-primary text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-colors border border-white/5">View Squad</button>
+                                            <Link to={`/formation_settings?team_id=${team.team_id}`} className="w-full mt-2 py-2 rounded-lg bg-white/5 text-primary text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-colors border border-white/5 flex items-center justify-center gap-2">
+                                                <span className="material-symbols-outlined text-sm">sports_soccer</span>
+                                                Set Formation
+                                            </Link>
                                         </div>
                                     ))}
                                 </div>

@@ -57,25 +57,35 @@ const User_dashboard = () => {
             {dashboard.past_auctions.map(auction => (
               <div
                 key={auction.id}
-                className="min-w-[300px] bg-card-dark border border-white/5 rounded-2xl p-6 snap-start card-hover transition-all"
+                className="min-w-[300px] bg-card-dark border border-white/10 rounded-2xl overflow-hidden snap-start card-hover transition-all"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <span className="text-[10px] font-bold bg-white/10 px-2 py-1 rounded uppercase">
-                    {auction.status}
-                  </span>
-                  <span className="text-xs text-slate-500">
-                    {auction.end_date}
-                  </span>
-                </div>
+                <div className={`h-2 ${
+                  auction.status === "COMPLETED" ? "bg-purple-500" : 
+                  auction.status === "PAUSED" ? "bg-yellow-500" : 
+                  "bg-blue-500"
+                }`}></div>
 
-                <h3 className="text-lg font-bold mb-1">{auction.name}</h3>
-                <p className="text-sm text-slate-400 mb-4">{auction.season}</p>
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-bold mb-1">{auction.name}</h3>
+                      <p className="text-sm text-slate-400">{auction.season}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded font-bold ${
+                      auction.status === "COMPLETED" ? "bg-purple-500/20 text-purple-400" :
+                      auction.status === "PAUSED" ? "bg-yellow-500/20 text-yellow-400" :
+                      "bg-blue-500/20 text-blue-400"
+                    }`}>
+                      {auction.status}
+                    </span>
+                  </div>
 
-                <div className="pt-4 border-t border-white/5">
-                  <p className="text-[10px] text-slate-500 uppercase font-black mb-2">
-                    Acquired Team
-                  </p>
-                  <span className="font-bold">{auction.acquired_team}</span>
+                  <div className="pt-4 border-t border-white/5">
+                    <p className="text-[10px] text-slate-500 uppercase font-black mb-2">
+                      Acquired Team
+                    </p>
+                    <span className="font-bold text-white">{auction.acquired_team || "N/A"}</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -92,18 +102,26 @@ const User_dashboard = () => {
             <Link to="/manage_teams"><button className="text-sm font-bold text-primary hover:underline">Manage All</button></Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-hide snap-x">
             {dashboard.teams.map(team => (
               <div
                 key={team.id}
-                className="bg-card-dark border border-white/10 rounded-2xl overflow-hidden hover:border-primary/30 transition-all"
+                className="min-w-[300px] bg-card-dark border border-white/10 rounded-2xl overflow-hidden snap-start card-hover transition-all"
               >
-                <div className={`h-2 ${team.status === "ACTIVE" ? "bg-primary" : "bg-blue-500"}`}></div>
+                <div className={`h-2 ${
+                  team.status === "ACTIVE" ? "bg-green-500" : 
+                  team.status === "COMPLETED" ? "bg-purple-500" : 
+                  "bg-blue-500"
+                }`}></div>
 
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-black uppercase italic">{team.name}</h3>
-                    <span className="text-xs px-2 py-1 rounded font-bold bg-white/10">
+                    <span className={`text-xs px-2 py-1 rounded font-bold ${
+                      team.status === "ACTIVE" ? "bg-green-500/20 text-green-400" :
+                      team.status === "COMPLETED" ? "bg-purple-500/20 text-purple-400" :
+                      "bg-blue-500/20 text-blue-400"
+                    }`}>
                       {team.status}
                     </span>
                   </div>
@@ -132,7 +150,6 @@ const User_dashboard = () => {
               </div>
             ))}
           </div>
-
 
         </section>
 

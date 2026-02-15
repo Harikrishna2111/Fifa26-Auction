@@ -79,6 +79,8 @@ const Formation_settings = () => {
   // Stats
   const [squadRating, setSquadRating] = useState(88);
   const [squadChemistry, setSquadChemistry] = useState('33/33');
+  const [saveMessage, setSaveMessage] = useState('');
+  const [teamId, setTeamId] = useState(null);
 
   // Initial Data
   // default placeholder players (used briefly before team load)
@@ -114,9 +116,10 @@ const Formation_settings = () => {
 
     // If a team_id is provided in the URL, fetch that team's players
     const qs = new URLSearchParams(location.search);
-    const teamId = qs.get('team_id');
-    if (teamId) {
-      fetchTeamPlayers(teamId);
+    const teamIdParam = qs.get('team_id');
+    if (teamIdParam) {
+      setTeamId(teamIdParam);
+      fetchTeamPlayers(teamIdParam);
     } else {
       // fallback to sample data if no team specified
       setPitchPlayers(allPlayers.slice(0, 11));
@@ -127,16 +130,77 @@ const Formation_settings = () => {
 
   const fetchTeamPlayers = async (teamId) => {
     try {
-      const res = await fetch(`${API_URL}/api/teams/${teamId}/players`);
-      if (!res.ok) throw new Error('Failed to load team players');
-      const data = await res.json();
+      console.log('Fetching players for team:', teamId);
+      
+      // Fetch players
+      const playersRes = await fetch(`${API_URL}/api/teams/${teamId}/players`);
+      if (!playersRes.ok) throw new Error('Failed to load team players');
+      const playersData = await playersRes.json();
+      
+      console.log('Players data received:', playersData);
 
-      // Distribute players: first 11 to pitch, next 4 to subs, rest to reserves
-      setPitchPlayers(data.slice(0, 11).map(p => ({ id: p.id, name: p.name, pos: p.pos, rating: p.rating, img: p.img, stat: `VAL ${p.price || ''}` })));
-      setSubPlayers(data.slice(11, 15).map(p => ({ id: p.id, name: p.name, pos: p.pos, rating: p.rating, img: p.img, stat: `VAL ${p.price || ''}` })));
-      setResPlayers(data.slice(15).map(p => ({ id: p.id, name: p.name, pos: p.pos, rating: p.rating, img: p.img, stat: `VAL ${p.price || ''}` })));
+      // Fetch saved formation
+      const formationRes = await fetch(`${API_URL}/api/teams/${teamId}/formation`);
+      const formationData = formationRes.ok ? await formationRes.json() : { formation_type: null, players: [] };
+      
+      console.log('Formation data received:', formationData);
+
+      // If formation is saved, use it
+      if (formationData.formation_type) {
+        setCurrentFormation(formationData.formation_type);
+        
+        // Create a map of player positions
+        const positionMap = {};
+        formationData.players.forEach(p => {
+          positionMap[p.player_id] = { type: p.position_type, index: p.position_index };
+        });
+
+        // Organize players by position
+        const pitch = Array(11).fill(null);
+        const subs = Array(7).fill(null);
+        const reserves = [];
+
+        playersData.forEach(p => {
+          const player = { id: p.id, name: p.name, pos: p.pos, rating: p.rating, img: p.img, stat: `VAL ${p.price || ''}` };
+          const position = positionMap[p.id];
+          
+          if (position) {
+            if (position.type === 'pitch' && position.index < 11) {
+              pitch[position.index] = player;
+            } else if (position.type === 'sub' && position.index < 7) {
+              subs[position.index] = player;
+            } else {
+              reserves.push(player);
+            }
+          } else {
+            reserves.push(player);
+          }
+        });
+
+        console.log('Setting pitch players:', pitch);
+        console.log('Setting sub players:', subs);
+        console.log('Setting reserve players:', reserves);
+
+        setPitchPlayers(pitch);
+        setSubPlayers(subs);
+        setResPlayers(reserves);
+      } else {
+        // No saved formation, use default distribution
+        const pitchData = playersData.slice(0, 11).map(p => ({ id: p.id, name: p.name, pos: p.pos, rating: p.rating, img: p.img, stat: `VAL ${p.price || ''}` }));
+        const subData = playersData.slice(11, 18).map(p => ({ id: p.id, name: p.name, pos: p.pos, rating: p.rating, img: p.img, stat: `VAL ${p.price || ''}` }));
+        const resData = playersData.slice(18).map(p => ({ id: p.id, name: p.name, pos: p.pos, rating: p.rating, img: p.img, stat: `VAL ${p.price || ''}` }));
+        
+        console.log('No saved formation, using default distribution');
+        console.log('Setting pitch players:', pitchData);
+        console.log('Setting sub players:', subData);
+        console.log('Setting reserve players:', resData);
+        
+        setPitchPlayers(pitchData);
+        setSubPlayers(subData);
+        setResPlayers(resData);
+      }
     } catch (err) {
-      console.error('Error fetching team players', err);
+      console.error('Error fetching team players:', err);
     }
   };
 
@@ -223,17 +287,83 @@ const Formation_settings = () => {
     }
   };
 
-  const handleSaveSquad = () => {
-    const allSelectedPlayers = [...pitchPlayers, ...subPlayers, ...resPlayers].filter(p => p);
-    const playersToReturn = allSelectedPlayers.map(p => ({
-      id: p.id,
-      name: p.name,
-      position_group: p.pos,
-      overall: p.rating,
-      image_url: p.img,
-      price: p.stat?.replace('VAL ', '') || ''
-    }));
-    navigate('/create_team', { state: { selectedPlayers: playersToReturn } });
+  const handleSaveSquad = async () => {
+    if (!teamId) {
+      // If no teamId, use old behavior (navigate back to create_team)
+      const allSelectedPlayers = [...pitchPlayers, ...subPlayers, ...resPlayers].filter(p => p);
+      const playersToReturn = allSelectedPlayers.map(p => ({
+        id: p.id,
+        name: p.name,
+        position_group: p.pos,
+        overall: p.rating,
+        image_url: p.img,
+        price: p.stat?.replace('VAL ', '') || ''
+      }));
+      navigate('/create_team', { state: { selectedPlayers: playersToReturn } });
+      return;
+    }
+
+    try {
+      // Prepare formation data
+      const players = [];
+      
+      // Add pitch players
+      pitchPlayers.forEach((player, index) => {
+        if (player) {
+          players.push({
+            player_id: player.id,
+            position_type: 'pitch',
+            position_index: index
+          });
+        }
+      });
+
+      // Add sub players
+      subPlayers.forEach((player, index) => {
+        if (player) {
+          players.push({
+            player_id: player.id,
+            position_type: 'sub',
+            position_index: index
+          });
+        }
+      });
+
+      // Add reserve players
+      resPlayers.forEach((player, index) => {
+        if (player) {
+          players.push({
+            player_id: player.id,
+            position_type: 'reserve',
+            position_index: index
+          });
+        }
+      });
+
+      // Save to API
+      const response = await fetch(`${API_URL}/api/teams/${teamId}/formation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          formation_type: currentFormation,
+          players: players
+        })
+      });
+
+      if (response.ok) {
+        setSaveMessage('Formation saved successfully!');
+        setTimeout(() => setSaveMessage(''), 3000);
+      } else {
+        setSaveMessage('Failed to save formation');
+        setTimeout(() => setSaveMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error saving formation:', error);
+      setSaveMessage('Error saving formation');
+      setTimeout(() => setSaveMessage(''), 3000);
+    }
   };
 
   return (
@@ -366,6 +496,11 @@ const Formation_settings = () => {
               </div>
 
               <div className="p-4 border-t border-white/10 bg-black/40 backdrop-blur-md">
+                {saveMessage && (
+                  <div className={`mb-3 px-4 py-2 rounded-lg text-center text-sm font-bold ${saveMessage.includes('success') ? 'bg-[#39ff14]/20 text-[#39ff14] border border-[#39ff14]/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                    {saveMessage}
+                  </div>
+                )}
                 <button onClick={handleSaveSquad} className="w-full bg-[#39ff14] hover:bg-[#2bff00] text-black py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(57,255,20,0.3)] flex items-center justify-center gap-2">
                   <span className="material-symbols-outlined">save</span> Save Squad
                 </button>

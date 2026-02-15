@@ -204,6 +204,10 @@ const View_all_auctions = () => {
                     <button className="w-full h-10 bg-yellow-500 text-black rounded-lg text-xs font-black uppercase tracking-wider hover:bg-yellow-400 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(251,191,36,0.3)]">
                       <span className="material-symbols-outlined text-base">resume</span> Resume
                     </button>
+                  ) : auction.status === 'COMPLETED' ? (
+                    <Link to={`/post_auction_statistics?auction_id=${auction.auctionId}`} className="w-full h-10 rounded-lg bg-purple-500 hover:bg-purple-600 text-white flex items-center justify-center gap-2 transition-all text-xs font-bold uppercase tracking-wider">
+                      <span className="material-symbols-outlined">bar_chart</span> View Statistics
+                    </Link>
                   ) : auction.type === 'SEASONAL' ? (
                     <>
                       <Link to={`/create_lobby?continue_season=${auction.auctionId}`} className="flex-1 h-10 bg-white/5 border border-white/10 hover:bg-primary hover:text-black hover:border-primary rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2">

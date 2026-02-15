@@ -55,6 +55,13 @@ const Manage_teams = () => {
                 </span>
             );
         }
+        if (status === "COMPLETED") {
+            return (
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold">
+                    COMPLETED
+                </span>
+            );
+        }
         return (
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-[10px] font-bold">
                 IDLE
@@ -135,7 +142,11 @@ const Manage_teams = () => {
                             </div>
                         ) : (
                             filteredTeams.map((team) => (
-                                <div key={team.id} className={`flex flex-col bg-surface-dark border-t-4 rounded-xl overflow-hidden transition-all duration-300 ${team.status === 'ACTIVE' ? 'border-green-500 card-glow-green' : 'border-blue-500 card-glow-blue opacity-90 hover:opacity-100'}`}>
+                                <div key={team.id} className={`flex flex-col bg-surface-dark border-t-4 rounded-xl overflow-hidden transition-all duration-300 ${
+                                    team.status === 'ACTIVE' ? 'border-green-500 card-glow-green' : 
+                                    team.status === 'COMPLETED' ? 'border-purple-500 card-glow-purple opacity-95 hover:opacity-100' :
+                                    'border-blue-500 card-glow-blue opacity-90 hover:opacity-100'
+                                }`}>
                                     <div className="p-6 flex flex-col h-full">
                                         <div className="flex justify-between items-start mb-6">
                                             <div className="flex flex-col">

@@ -61,6 +61,16 @@ class MockRedis:
                 self.store[name].add(v)
                 count += 1
         return count
+
+    def srem(self, name, *values):
+        if name not in self.store or not isinstance(self.store[name], set):
+            return 0
+        count = 0
+        for v in values:
+            if v in self.store[name]:
+                self.store[name].remove(v)
+                count += 1
+        return count
         
     def scard(self, name):
          if name in self.store and isinstance(self.store[name], set):
@@ -88,14 +98,17 @@ class MockRedis:
         return val
 
 try:
-    r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+    r = redis.Redis(host='10.26.79.230', port=6379, decode_responses=True)
     r.ping() # Test connection
     print("✓ Redis connected successfully")
 except redis.exceptions.ConnectionError:
-    print("⚠ Redis connection failed. Using in-memory fallback (MockRedis).")
+    print("WARNING: Redis connection failed. Using in-memory fallback (MockRedis).")
     r = MockRedis()
 
 app.teardown_appcontext(close_db)
+
+# Tracks socket session -> auction/user context for disconnect handling.
+sid_context = {}
 
 @app.route("/api/auth/register", methods=["POST", "OPTIONS"])
 def register():
@@ -267,18 +280,22 @@ def manager_dashboard(user_id):
         SELECT 
             a.id,
             a.name,
-            a.season,
+            CASE 
+                WHEN a.season = '0' OR a.season IS NULL OR a.season = '' THEN 'One-off'
+                ELSE CONCAT('Season ', a.season)
+            END AS season,
             a.status,
             a.end_date,
             t.name AS acquired_team
         FROM auctions a
-        LEFT JOIN auction_players ap ON ap.auction_id = a.id
-        LEFT JOIN teams t ON ap.winning_team_id = t.id
+        JOIN auction_participants part ON part.auction_id = a.id
+        LEFT JOIN teams t ON part.team_id = t.id
         WHERE a.status IN ('COMPLETED', 'PAUSED')
+          AND part.user_id = %s
         GROUP BY a.id, t.name
         ORDER BY a.end_date DESC
         LIMIT 3
-    """)
+    """, (user_id,))
     past_auctions = cur.fetchall()
 
     auctions_data = [
@@ -293,18 +310,36 @@ def manager_dashboard(user_id):
         for row in past_auctions
     ]
 
-    # My Teams
+    # My Teams - Show all teams (including from completed auctions)
+    # Calculate rating and value from actual players
     cur.execute("""
         SELECT
-            id,
-            name,
-            rating,
-            value,
-            stars,
-            status
-        FROM teams
-        WHERE manager_id = %s AND status = 'IDLE'
-        ORDER BY created_at DESC
+            t.id,
+            t.name,
+            t.stars,
+            t.status,
+            COALESCE(ROUND(AVG(p.overall)), 0) AS rating,
+            COALESCE(SUM(p.value), 0) AS value,
+            CASE
+                WHEN a.status IN ('LIVE', 'PAUSED') THEN 'ACTIVE'
+                WHEN a.status = 'COMPLETED' THEN 'COMPLETED'
+                ELSE 'IDLE'
+            END AS display_status
+        FROM teams t
+        LEFT JOIN auction_participants ap ON ap.team_id = t.id
+        LEFT JOIN auctions a ON a.id = ap.auction_id
+        LEFT JOIN team_players tp ON tp.team_id = t.id
+        LEFT JOIN players p ON p.id = tp.player_id
+        WHERE t.manager_id = %s
+        GROUP BY t.id, a.status
+        ORDER BY 
+            CASE 
+                WHEN a.status IN ('LIVE', 'PAUSED') THEN 1
+                WHEN a.status = 'COMPLETED' THEN 2
+                ELSE 3
+            END,
+            t.created_at DESC
+        LIMIT 3
     """, (user_id,))
     teams = cur.fetchall()
 
@@ -326,7 +361,7 @@ def manager_dashboard(user_id):
             "rating": team["rating"],
             "value": team["value"],
             "stars": team["stars"],
-            "status": team["status"],
+            "status": team.get("display_status") or team["status"],
             "players": [
                 {
                     "id": p["id"],
@@ -565,30 +600,40 @@ def manage_teams():
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+    # Modified query to include teams from completed auctions
+    # We join with auction_participants to find all teams associated with the user's auctions
+    # Calculate rating and value from actual players
     cur.execute("""
         SELECT
             t.id AS team_id,
             t.name AS team_name,
-            t.rating AS team_ovr,
+            COALESCE(ROUND(AVG(p.overall)), 0) AS team_ovr,
             t.status,
             COALESCE(SUM(p.value), 0) AS market_value,
             COUNT(tp.player_id) AS player_count,
 
             CASE
                 WHEN a.status IN ('LIVE', 'PAUSED') THEN 'ACTIVE'
+                WHEN a.status = 'COMPLETED' THEN 'COMPLETED'
                 ELSE 'IDLE'
             END AS auction_state
 
         FROM teams t
         LEFT JOIN team_players tp ON tp.team_id = t.id
         LEFT JOIN players p ON p.id = tp.player_id
-        LEFT JOIN auction_results ar ON ar.team_id = t.id
-        LEFT JOIN auctions a ON a.id = ar.auction_id
+        LEFT JOIN auction_participants ap ON ap.team_id = t.id
+        LEFT JOIN auctions a ON a.id = ap.auction_id
 
-        WHERE t.manager_id = %s AND t.status = 'IDLE'
+        WHERE t.manager_id = %s
 
         GROUP BY t.id, a.status
-        ORDER BY auction_state DESC, t.name
+        ORDER BY 
+            CASE 
+                WHEN a.status IN ('LIVE', 'PAUSED') THEN 1
+                WHEN a.status = 'COMPLETED' THEN 2
+                ELSE 3
+            END,
+            t.name
     """, (user_id,))
 
     teams = cur.fetchall()
@@ -626,24 +671,60 @@ def team_players(team_id):
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    cur.execute(
-        """
-        SELECT
-            p.id,
-            p.name,
-            p.overall AS rating,
-            p.position_group AS pos,
-            p.image_url AS img,
-            tp.acquired_price AS price
-        FROM team_players tp
-        JOIN players p ON tp.player_id = p.id
-        WHERE tp.team_id = %s
-        ORDER BY tp.acquired_price DESC NULLS LAST, p.overall DESC
-        """,
-        (team_id,)
-    )
+    try:
+        # Try to fetch with formation positions (if tables exist)
+        cur.execute(
+            """
+            SELECT
+                p.id,
+                p.name,
+                p.overall AS rating,
+                p.position_group AS pos,
+                p.image_url AS img,
+                tp.acquired_price AS price,
+                COALESCE(tfp.position_type, 'reserve') AS position_type,
+                COALESCE(tfp.position_index, 999) AS position_index
+            FROM team_players tp
+            JOIN players p ON tp.player_id = p.id
+            LEFT JOIN team_formation_positions tfp ON tfp.team_id = tp.team_id AND tfp.player_id = p.id
+            WHERE tp.team_id = %s
+            ORDER BY 
+                CASE 
+                    WHEN tfp.position_type = 'pitch' THEN 1
+                    WHEN tfp.position_type = 'sub' THEN 2
+                    ELSE 3
+                END,
+                tfp.position_index ASC NULLS LAST,
+                tp.acquired_price DESC NULLS LAST,
+                p.overall DESC
+            """,
+            (team_id,)
+        )
+        rows = cur.fetchall()
+    except Exception as e:
+        # If formation tables don't exist, fall back to simple query
+        print(f"Formation tables not found, using fallback query: {e}")
+        conn.rollback()  # Rollback the failed transaction
+        cur.close()  # Close the old cursor
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # Create new cursor
+        cur.execute(
+            """
+            SELECT
+                p.id,
+                p.name,
+                p.overall AS rating,
+                p.position_group AS pos,
+                p.image_url AS img,
+                tp.acquired_price AS price
+            FROM team_players tp
+            JOIN players p ON tp.player_id = p.id
+            WHERE tp.team_id = %s
+            ORDER BY tp.acquired_price DESC NULLS LAST, p.overall DESC
+            """,
+            (team_id,)
+        )
+        rows = cur.fetchall()
 
-    rows = cur.fetchall()
     cur.close()
 
     players = [
@@ -659,6 +740,117 @@ def team_players(team_id):
     ]
 
     return jsonify(players), 200
+
+
+@app.route('/api/teams/<int:team_id>/formation', methods=['GET'])
+def get_team_formation(team_id):
+    """Get saved formation for a team"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    
+    try:
+        # Get formation type
+        cur.execute(
+            "SELECT formation_type FROM team_formations WHERE team_id = %s",
+            (team_id,)
+        )
+        formation_row = cur.fetchone()
+        
+        if not formation_row:
+            cur.close()
+            return jsonify({"formation_type": None, "players": []}), 200
+        
+        # Get player positions
+        cur.execute(
+            """
+            SELECT player_id, position_type, position_index
+            FROM team_formation_positions
+            WHERE team_id = %s
+            ORDER BY 
+                CASE 
+                    WHEN position_type = 'pitch' THEN 1
+                    WHEN position_type = 'sub' THEN 2
+                    ELSE 3
+                END,
+                position_index ASC
+            """,
+            (team_id,)
+        )
+        positions = cur.fetchall()
+        cur.close()
+        
+        return jsonify({
+            "formation_type": formation_row["formation_type"],
+            "players": [
+                {
+                    "player_id": p["player_id"],
+                    "position_type": p["position_type"],
+                    "position_index": p["position_index"]
+                }
+                for p in positions
+            ]
+        }), 200
+    except Exception as e:
+        # Tables don't exist yet, return empty formation
+        print(f"Formation tables not found: {e}")
+        cur.close()
+        return jsonify({"formation_type": None, "players": []}), 200
+
+
+@app.route('/api/teams/<int:team_id>/formation', methods=['POST'])
+def save_team_formation(team_id):
+    """Save formation for a team"""
+    data = request.get_json()
+    formation_type = data.get('formation_type')
+    players = data.get('players', [])
+    
+    if not formation_type:
+        return jsonify({"error": "formation_type is required"}), 400
+    
+    conn = get_db()
+    cur = conn.cursor()
+    
+    try:
+        # Insert or update formation type
+        cur.execute(
+            """
+            INSERT INTO team_formations (team_id, formation_type, updated_at)
+            VALUES (%s, %s, CURRENT_TIMESTAMP)
+            ON CONFLICT (team_id) 
+            DO UPDATE SET formation_type = EXCLUDED.formation_type, updated_at = CURRENT_TIMESTAMP
+            """,
+            (team_id, formation_type)
+        )
+        
+        # Delete existing positions
+        cur.execute(
+            "DELETE FROM team_formation_positions WHERE team_id = %s",
+            (team_id,)
+        )
+        
+        # Insert new positions
+        for player in players:
+            cur.execute(
+                """
+                INSERT INTO team_formation_positions (team_id, player_id, position_type, position_index)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (team_id, player_id)
+                DO UPDATE SET position_type = EXCLUDED.position_type, position_index = EXCLUDED.position_index
+                """,
+                (team_id, player['player_id'], player['position_type'], player['position_index'])
+            )
+        
+        conn.commit()
+        cur.close()
+        
+        return jsonify({"message": "Formation saved successfully"}), 200
+        
+    except Exception as e:
+        conn.rollback()
+        cur.close()
+        print(f"Error saving formation: {e}")
+        return jsonify({"error": "Failed to save formation"}), 500
+
 
 @app.route("/api/players/market")
 def get_market_players():
@@ -840,6 +1032,12 @@ def migrate_schema():
 @app.route("/api/lobby/create", methods=["POST"])
 def create_lobby():
     data = request.json
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+        
+    auction_name = data.get("auction_name") or data.get("name")
+    if not auction_name:
+        return jsonify({"error": "Auction name is required"}), 400
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -863,7 +1061,7 @@ def create_lobby():
         VALUES (%s, %s, 'LOBBY', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
     """, (
-        data["auction_name"],
+        auction_name,
         data.get("season"),
         join_code,
         data["host_id"],
@@ -913,7 +1111,7 @@ def verify_lobby():
 
     cur.execute("""
         SELECT id FROM auctions
-        WHERE join_code = %s AND status = 'LOBBY'
+        WHERE join_code = %s AND status IN ('LOBBY', 'LIVE', 'PAUSED')
     """, (data["join_code"],))
     auction = cur.fetchone()
     cur.close()
@@ -931,9 +1129,18 @@ def join_lobby():
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # Fetch initial budget from auction settings
-    cur.execute("SELECT purse_per_team FROM auctions WHERE id = %s", (data["auction_id"],))
+    cur.execute("SELECT purse_per_team, status FROM auctions WHERE id = %s", (data["auction_id"],))
     auction = cur.fetchone()
-    initial_budget = auction["purse_per_team"] if auction else 0
+    
+    if not auction:
+        cur.close()
+        return jsonify({"error": "Auction not found"}), 404
+
+    if auction["status"] == "COMPLETED":
+        cur.close()
+        return jsonify({"error": "This auction has ended"}), 403
+
+    initial_budget = auction["purse_per_team"]
 
     # Add participant with team name and budget
     cur.execute("""
@@ -992,6 +1199,12 @@ def get_lobby(auction_id):
 
     lobby = cur.fetchone()
     cur.close()
+
+    if not lobby:
+        return jsonify({"error": "Lobby not found"}), 404
+        
+    if lobby["status"] == "COMPLETED":
+        return jsonify({"error": "This auction has ended"}), 403
 
     return jsonify(lobby)
 
@@ -1102,6 +1315,25 @@ def get_preauction_data(auction_id):
             ORDER BY user_id
         """, (auction_id,))
         current_participants = cur.fetchall()
+
+        # Enforce all previous season participants must be present
+        if prev_auction_id:
+            cur.execute("SELECT user_id, team_name FROM auction_participants WHERE auction_id = %s", (prev_auction_id,))
+            prev_participants = cur.fetchall()
+            
+            curr_user_ids = {row['user_id'] for row in current_participants}
+            
+            missing_teams = []
+            for p in prev_participants:
+                if p['user_id'] not in curr_user_ids:
+                    missing_teams.append(p['team_name'])
+            
+            if missing_teams:
+                # Optionally allow Host to bypass? For now, strict enforcement as requested.
+                return jsonify({
+                    "error": "Waiting for all previous season participants to join.",
+                    "missing_teams": missing_teams
+                }), 403
 
         previous_players_by_user = {}
         if prev_auction_id:
@@ -1442,33 +1674,66 @@ def get_auction_players(auction_id):
 
 @socketio.on("join_lobby")
 def join_lobby_socket(data):
-    room = f"lobby_{str(data['auction_id'])}"
+    auction_id = int(data['auction_id'])
+    user_id = int(data['user_id'])
+    team_name = data.get('team_name', 'Team')
+    room = f"lobby_{str(auction_id)}"
+    
+    # Check if auction is completed before joining
+    status_key = f"auction:{auction_id}:status"
+    current_status = r.get(status_key)
+    
+    # If not in Redis, check DB (fallback)
+    if not current_status:
+        try:
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute("SELECT status FROM auctions WHERE id = %s", (auction_id,))
+            row = cur.fetchone()
+            cur.close()
+            if row:
+                # row is a RealDictRow because of get_db() default factory
+                current_status = row.get('status')
+        except Exception as e:
+            print(f"Error checking status for socket join: {e}")
+
+    if current_status == "COMPLETED":
+        emit("error", {"message": "This auction has ended"}, room=request.sid)
+        return
+
     join_room(room)
-    print(f"User {data['user_id']} joined room: {room}")
+    print(f"User {user_id} joined room: {room}")
+    sid_context[request.sid] = {"auction_id": auction_id, "user_id": user_id}
+    r.sadd(f"auction:{auction_id}:connected_users", user_id)
 
     # Ensure user is in DB (Wrap in try block to prevent FK errors from blocking sync)
     try:
-        if int(data['user_id']) > 0:
+        if user_id > 0:
             conn = get_db()
             cur = conn.cursor()
+            cur.execute("SELECT purse_per_team FROM auctions WHERE id = %s", (auction_id,))
+            auction = cur.fetchone()
+            initial_budget = auction[0] if auction else 0
             cur.execute("""
-                INSERT INTO auction_participants (auction_id, user_id, team_name)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (auction_id, user_id) DO NOTHING
-            """, (data['auction_id'], data['user_id'], data['team_name']))
+                INSERT INTO auction_participants (auction_id, user_id, team_name, budget)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (auction_id, user_id) DO UPDATE
+                SET team_name = EXCLUDED.team_name,
+                    budget = COALESCE(auction_participants.budget, EXCLUDED.budget)
+            """, (auction_id, user_id, team_name, initial_budget))
             conn.commit()
             cur.close()
     except Exception as e:
-        print(f"Error adding participant {data['user_id']}: {e}")
+        print(f"Error adding participant {user_id}: {e}")
 
     emit("user_joined", {
-        "user_id": data["user_id"],
-        "team_name": data["team_name"]
+        "user_id": user_id,
+        "team_name": team_name
     }, room=room)
     
     # Send Current Sync State
     # Only applicable if Auction is LIVE or PAUSED
-    auction_id_str = str(data['auction_id'])
+    auction_id_str = str(auction_id)
     status = r.get(f"auction:{auction_id_str}:status")
 
     # Recovery: If Redis is empty but DB says LIVE/PAUSED (Server Restart)
@@ -1476,7 +1741,7 @@ def join_lobby_socket(data):
         try:
             conn = get_db()
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute("SELECT status, current_index, bidding_time FROM auctions WHERE id = %s", (data['auction_id'],))
+            cur.execute("SELECT status, current_index, bidding_time FROM auctions WHERE id = %s", (auction_id,))
             row = cur.fetchone()
             cur.close()
             
@@ -1516,21 +1781,92 @@ def join_lobby_socket(data):
 
 @socketio.on("leave_lobby")
 def leave_lobby_socket(data):
-    auction_id = data['auction_id']
-    user_id = data['user_id']
+    auction_id = int(data['auction_id'])
+    user_id = int(data['user_id'])
     room = f"lobby_{str(auction_id)}"
-    
+
+    sid_context.pop(request.sid, None)
+    r.srem(f"auction:{auction_id}:connected_users", user_id)
+
     conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        "DELETE FROM auction_participants WHERE auction_id = %s AND user_id = %s",
-        (auction_id, user_id)
-    )
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT status FROM auctions WHERE id = %s", (auction_id,))
+    row = cur.fetchone()
+    auction_status = row["status"] if row else None
+
+    # Preserve participant state during/after auction to keep team, players and purse.
+    # Only allow removal while still in lobby phase.
+    if auction_status == "LOBBY":
+        cur.execute(
+            "DELETE FROM auction_participants WHERE auction_id = %s AND user_id = %s",
+            (auction_id, user_id)
+        )
+
+    # Auto-pause if someone leaves a live auction.
+    if auction_status == "LIVE":
+        status_key = f"auction:{auction_id}:status"
+        r.set(status_key, "PAUSED")
+
+        expires_key = f"auction:{auction_id}:round_expires"
+        expires = r.get(expires_key)
+        remaining = 0
+        if expires:
+            remaining = float(expires) - time.time()
+            if remaining < 0:
+                remaining = 0
+        r.set(f"auction:{auction_id}:paused_remaining", remaining)
+
+        cur.execute("UPDATE auctions SET status = 'PAUSED' WHERE id = %s", (auction_id,))
+
+        emit("auction_status_change", {"status": "PAUSED"}, room=room)
+
     conn.commit()
     cur.close()
-    
+
     leave_room(room)
     emit("user_left", {"user_id": user_id}, room=room)
+
+
+@socketio.on("disconnect")
+def handle_disconnect():
+    ctx = sid_context.pop(request.sid, None)
+    if not ctx:
+        return
+
+    auction_id = int(ctx["auction_id"])
+    user_id = int(ctx["user_id"])
+    room = f"lobby_{auction_id}"
+
+    r.srem(f"auction:{auction_id}:connected_users", user_id)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        cur.execute("SELECT status FROM auctions WHERE id = %s", (auction_id,))
+        row = cur.fetchone()
+        auction_status = row["status"] if row else None
+
+        if auction_status == "LIVE":
+            r.set(f"auction:{auction_id}:status", "PAUSED")
+
+            expires = r.get(f"auction:{auction_id}:round_expires")
+            remaining = 0
+            if expires:
+                remaining = float(expires) - time.time()
+                if remaining < 0:
+                    remaining = 0
+            r.set(f"auction:{auction_id}:paused_remaining", remaining)
+
+            cur.execute("UPDATE auctions SET status = 'PAUSED' WHERE id = %s", (auction_id,))
+            conn.commit()
+
+            emit("auction_status_change", {"status": "PAUSED"}, room=room)
+            print(f"Auction {auction_id} auto-paused because user {user_id} disconnected")
+    except Exception as e:
+        conn.rollback()
+        print(f"Error handling disconnect for auction {auction_id}: {e}")
+    finally:
+        cur.close()
 
 @socketio.on("place_bid")
 def handle_place_bid(data):
