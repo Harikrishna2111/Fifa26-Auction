@@ -403,12 +403,22 @@ const Auction = () => {
   const [hasPassed, setHasPassed] = useState(false); // Track if user passed for this round
   const biddingTimeRef = useRef(30);
   const roundExpiresRef = useRef(0); // Store absolute expiration time (ms)
+  const serverTimeOffsetRef = useRef(0); // Store client-server time offset (ms)
   const [customBid, setCustomBid] = useState("");
   const initialNews = { id: Date.now(), tag: "SYSTEM", text: "Auction is live. Waiting for activity..." };
   const [newsFeed, setNewsFeed] = useState([initialNews]);
   const [newsQueue, setNewsQueue] = useState([]);
   const [activeNews, setActiveNews] = useState(initialNews);
   const newsDedupeRef = useRef(new Set());
+
+  // Helper function to calculate and update server time offset
+  const calculateOffset = (serverTime) => {
+    if (serverTime) {
+      const offset = Date.now() - (serverTime * 1000);
+      serverTimeOffsetRef.current = offset;
+      console.log('Server time offset updated:', offset, 'ms');
+    }
+  };
 
   const addNews = (tag, text, dedupeKey = `${tag}:${text}`) => {
     if (newsDedupeRef.current.has(dedupeKey)) return;
@@ -516,7 +526,15 @@ const Auction = () => {
     setCustomBid("");
   };
   const handlePass = () => {
-    if (!socket || hasPassed) return;
+    console.log("=== PASS BUTTON CLICKED ===");
+    console.log("Socket connected:", socket?.connected);
+    console.log("Has passed:", hasPassed);
+    
+    if (!socket || hasPassed) {
+      console.log("Pass blocked - socket:", !!socket, "hasPassed:", hasPassed);
+      return;
+    }
+    
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
     const participant = participants.find(p => p.user_id === user.id);
@@ -524,6 +542,13 @@ const Auction = () => {
 
     setHasPassed(true); // Disable buttons immediately
     addNews("PASS", "You passed this round");
+
+    console.log("Emitting pass_turn:", {
+      auction_id: auctionId,
+      user_id: user.id,
+      team_name: teamName,
+      player_id: currentPlayer?.id
+    });
 
     socket.emit("pass_turn", {
       auction_id: auctionId,
@@ -598,7 +623,7 @@ const Auction = () => {
       });
 
     // 4. Socket Setup
-    const newSocket = io(API_URL, { transports: ['websocket', 'polling'] });
+    const newSocket = io(API_URL, { transports: ['polling', 'websocket'] });
 
     // USER INFO for join
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -626,6 +651,9 @@ const Auction = () => {
     newSocket.on("sync_auction", (data) => {
       console.log("Syncing Auction State:", data);
 
+      // Calculate server time offset
+      calculateOffset(data.server_time);
+
       // 1. Sync Index/Player
       if (data.current_index !== undefined) {
         setCurrentIndex(data.current_index);
@@ -651,7 +679,8 @@ const Auction = () => {
         setIsPaused(false);
         if (data.round_expires) {
           roundExpiresRef.current = data.round_expires * 1000;
-          const remaining = Math.max(0, Math.ceil(data.round_expires - (Date.now() / 1000)));
+          const now = (Date.now() - serverTimeOffsetRef.current) / 1000;
+          const remaining = Math.max(0, Math.ceil(data.round_expires - now));
           setTimer(remaining);
           setIsTimerActive(remaining > 0);
         }
@@ -662,8 +691,13 @@ const Auction = () => {
     newSocket.on("auction_started", (data) => {
          console.log("Auction Started!", data);
          addNews("SYSTEM", "Auction started");
+         
+         // Calculate server time offset
+         calculateOffset(data.server_time);
+         
          // Default start: NOW + biddingTime
-         const expires = Date.now() + (biddingTimeRef.current * 1000);
+         const now = Date.now() - serverTimeOffsetRef.current;
+         const expires = now + (biddingTimeRef.current * 1000);
          roundExpiresRef.current = expires;
          
          setTimer(biddingTimeRef.current);
@@ -675,6 +709,10 @@ const Auction = () => {
     newSocket.on("auction_status_change", (data) => {
       console.log("Auction Status Changed:", data);
       addNews("SYSTEM", data.status === 'PAUSED' ? "Auction paused" : "Auction resumed");
+      
+      // Calculate server time offset
+      calculateOffset(data.server_time);
+      
       if (data.status === 'PAUSED') {
         setIsPaused(true);
         setIsTimerActive(false);
@@ -682,7 +720,8 @@ const Auction = () => {
         setIsPaused(false);
         if (data.round_expires) {
           roundExpiresRef.current = data.round_expires * 1000;
-          const remaining = Math.max(0, Math.ceil(data.round_expires - (Date.now() / 1000)));
+          const now = (Date.now() - serverTimeOffsetRef.current) / 1000;
+          const remaining = Math.max(0, Math.ceil(data.round_expires - now));
           setTimer(remaining);
           setIsTimerActive(remaining > 0);
         }
@@ -698,13 +737,17 @@ const Auction = () => {
       setCurrentIndex(data.current_index);
       setHasPassed(false); // Reset pass state for new player
 
+      // Calculate server time offset
+      calculateOffset(data.server_time);
+
       // Store absolute expiry
       if (data.round_expires) {
           roundExpiresRef.current = data.round_expires * 1000;
       }
       
-      // Calculate remaining from expires
-      const remaining = Math.max(0, Math.ceil(data.round_expires - (Date.now() / 1000)));
+      // Calculate remaining from expires using offset
+      const now = (Date.now() - serverTimeOffsetRef.current) / 1000;
+      const remaining = Math.max(0, Math.ceil(data.round_expires - now));
       setTimer(remaining);
       setIsTimerActive(true);
     });
@@ -715,14 +758,19 @@ const Auction = () => {
       setHighestBid(Number(data.amount));
       setHighestBidder(data.bidder);
 
+      // Calculate server time offset
+      calculateOffset(data.server_time);
+
       // Sync Timer using server timestamp
       if (data.round_expires) {
         roundExpiresRef.current = data.round_expires * 1000;
-        const remaining = Math.max(0, Math.ceil(data.round_expires - (Date.now() / 1000)));
+        const now = (Date.now() - serverTimeOffsetRef.current) / 1000;
+        const remaining = Math.max(0, Math.ceil(data.round_expires - now));
         setTimer(remaining);
       } else {
         // Fallback
-        const expires = Date.now() + (biddingTimeRef.current * 1000);
+        const now = Date.now() - serverTimeOffsetRef.current;
+        const expires = now + (biddingTimeRef.current * 1000);
         roundExpiresRef.current = expires;
         setTimer(biddingTimeRef.current);
       }
@@ -947,7 +995,8 @@ const Auction = () => {
     const updateTimer = () => {
       if (!roundExpiresRef.current) return;
       
-      const now = Date.now();
+      // Use server-synchronized time
+      const now = Date.now() - serverTimeOffsetRef.current;
       const remainingMs = roundExpiresRef.current - now;
       const remainingSec = Math.ceil(remainingMs / 1000);
       

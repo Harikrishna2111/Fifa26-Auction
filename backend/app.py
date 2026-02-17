@@ -16,7 +16,15 @@ app.config['SECRET_KEY'] = 'secret!'
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Initialize SocketIO (Async Mode for Timers)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+socketio = SocketIO(
+    app, 
+    cors_allowed_origins="*", 
+    async_mode='threading',
+    logger=True,
+    engineio_logger=True,
+    ping_timeout=60,
+    ping_interval=25
+)
 
 # Initialize Redis (For Live Auction State)
 class MockRedis:
@@ -1672,6 +1680,12 @@ def get_auction_players(auction_id):
     
     return jsonify(ordered_players)
 
+@socketio.on("connect")
+def handle_connect():
+    """Handle new WebSocket connections"""
+    print(f"Client connected: {request.sid}")
+    return True
+
 @socketio.on("join_lobby")
 def join_lobby_socket(data):
     auction_id = int(data['auction_id'])
@@ -1776,7 +1790,8 @@ def join_lobby_socket(data):
             "highest_bid": int(current_bid.get("amount", 0)),
             "highest_bidder": current_bid.get("bidder", "None"),
             "round_expires": float(expires) if expires else None,
-            "status": status
+            "status": status,
+            "server_time": time.time()
         }, room=request.sid) # Only to this user
 
 @socketio.on("leave_lobby")
@@ -1923,7 +1938,8 @@ def handle_place_bid(data):
         "amount": amount,
         "bidder": bidder,
         "timestamp": time.time(),
-        "round_expires": new_expires 
+        "round_expires": new_expires,
+        "server_time": time.time()
     }, room=room)
 
     # CHECK FOR IMMEDIATE WIN (If everyone else already passed)
@@ -2069,6 +2085,7 @@ def handle_finalize_player(data):
 
 @socketio.on("pass_turn")
 def handle_pass_turn(data):
+    print(f"🔔 PASS_TURN EVENT RECEIVED: {data}")
     auction_id = str(data.get("auction_id"))
     user_id = data.get("user_id")
     
@@ -2078,6 +2095,8 @@ def handle_pass_turn(data):
     # Add user to set of passes
     r.sadd(pass_key, user_id)
     pass_count = r.scard(pass_key)
+    
+    print(f"✅ User {user_id} added to passes. Total: {pass_count}")
     
     # Get total active participants
     # Note: socket only tracks connections, but we want DB participants count ideally
@@ -2299,19 +2318,28 @@ def handle_pass_turn(data):
         # Condition 2: No Bid
         # If ALL participants passed
         if pass_count >= total_participants:
-             print(f" IMMEDIATE FINALIZATION: All passed with no bids. UNSOLD")
-             # Unsold immediately
+             print(f"🎯 IMMEDIATE FINALIZATION: All passed with no bids. UNSOLD")
+             
+             # Resolve current player_id
+             player_id = r.get(f"auction:{auction_id}:current_player_id")
+             if not player_id:
+                 player_id = data.get("player_id")
+             if player_id and str(player_id).isdigit():
+                 player_id = int(player_id)
+             
              # Clean up Redis state
              r.delete(pass_key)
              
              emit("player_finalized", {
                  "result": "unsold",
                  "bidder": "None",
-                 "amount": 0
+                 "amount": 0,
+                 "player_id": player_id
              }, room=room)
              return  # Exit early, finalization complete
     
     # Notify count update (only if not finalized)
+    print(f"📊 Pass update: {pass_count}/{total_participants} - not enough to finalize yet")
     emit("pass_update", {"count": pass_count, "total": total_participants}, room=room)
 
 
@@ -2461,7 +2489,7 @@ def start_auction(data):
 
         print(f"Emitting auction_started to {room} with season {season}")
         # Emit to everyone in the room (including sender)
-        emit("auction_started", {"season": season}, room=room)
+        emit("auction_started", {"season": season, "server_time": time.time()}, room=room)
         
     except Exception as e:
         print(f"Critical Error in start_auction: {e}")
@@ -2545,7 +2573,8 @@ def handle_next_player(data):
 
     emit("round_changed", {
         "current_index": new_index,
-        "round_expires": expires
+        "round_expires": expires,
+        "server_time": time.time()
     }, room=room)
 
 
@@ -2610,7 +2639,8 @@ def handle_toggle_pause(data):
 
         emit("auction_status_change", {
             "status": "LIVE",
-            "round_expires": new_expires
+            "round_expires": new_expires,
+            "server_time": time.time()
         }, room=room)
         print(f"Auction {auction_id} RESUMED. New expires: {new_expires}")
 
