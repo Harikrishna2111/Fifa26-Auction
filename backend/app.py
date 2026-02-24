@@ -106,7 +106,7 @@ class MockRedis:
         return val
 
 try:
-    r = redis.Redis(host='10.26.79.230', port=6379, decode_responses=True)
+    r = redis.Redis(host='10.130.81.230', port=6379, decode_responses=True)
     r.ping() # Test connection
     print("✓ Redis connected successfully")
 except redis.exceptions.ConnectionError:
@@ -1053,10 +1053,6 @@ def create_lobby():
     join_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     
     custom_bid = data.get("custom_bid_enabled", True)
-    retention_limit = data.get("retention_limit", 10)
-
-    # Lightweight schema guard for older DBs.
-    cur.execute("ALTER TABLE auctions ADD COLUMN IF NOT EXISTS retention_limit INTEGER DEFAULT 10;")
 
     cur.execute("""
         INSERT INTO auctions (
@@ -1064,9 +1060,9 @@ def create_lobby():
             join_code, host_id,
             purse_per_team,
             bid_inc_min, bid_inc_mid, bid_inc_max,
-            min_players, bidding_time, custom_bid_enabled, retention_limit
+            min_players, bidding_time, custom_bid_enabled
         )
-        VALUES (%s, %s, 'LOBBY', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, 'LOBBY', %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
     """, (
         auction_name,
@@ -1079,8 +1075,7 @@ def create_lobby():
         data["inc_max"],
         data["min_players"],
         data["bidding_time"],
-        custom_bid,
-        retention_limit
+        custom_bid
     ))
 
     result = cur.fetchone()
@@ -1180,9 +1175,6 @@ def get_lobby(auction_id):
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Lightweight schema guard for older DBs.
-    cur.execute("ALTER TABLE auctions ADD COLUMN IF NOT EXISTS retention_limit INTEGER DEFAULT 10;")
-
     cur.execute("""
         SELECT
             a.id,
@@ -1197,7 +1189,6 @@ def get_lobby(auction_id):
             a.bid_inc_max,
             a.min_players,
             a.bidding_time,
-            a.retention_limit,
             COUNT(p.user_id) AS player_count
         FROM auctions a
         LEFT JOIN auction_participants p ON p.auction_id = a.id
@@ -1250,8 +1241,6 @@ def get_lobby_participants(auction_id):
 def get_lobby_details(auction_id):
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    # Lightweight schema guard for older DBs.
-    cur.execute("ALTER TABLE auctions ADD COLUMN IF NOT EXISTS retention_limit INTEGER DEFAULT 10;")
     cur.execute("SELECT * FROM auctions WHERE id = %s", (auction_id,))
     lobby = cur.fetchone()
     cur.close()
@@ -1323,25 +1312,6 @@ def get_preauction_data(auction_id):
             ORDER BY user_id
         """, (auction_id,))
         current_participants = cur.fetchall()
-
-        # Enforce all previous season participants must be present
-        if prev_auction_id:
-            cur.execute("SELECT user_id, team_name FROM auction_participants WHERE auction_id = %s", (prev_auction_id,))
-            prev_participants = cur.fetchall()
-            
-            curr_user_ids = {row['user_id'] for row in current_participants}
-            
-            missing_teams = []
-            for p in prev_participants:
-                if p['user_id'] not in curr_user_ids:
-                    missing_teams.append(p['team_name'])
-            
-            if missing_teams:
-                # Optionally allow Host to bypass? For now, strict enforcement as requested.
-                return jsonify({
-                    "error": "Waiting for all previous season participants to join.",
-                    "missing_teams": missing_teams
-                }), 403
 
         previous_players_by_user = {}
         if prev_auction_id:
@@ -1595,18 +1565,10 @@ def get_auction_players(auction_id):
     # 2. Get eligible players
     # User Request: "rating greater than min players value"
     cur.execute("""
-        SELECT p.*
-        FROM players p
-        WHERE p.overall > %s
-          AND NOT EXISTS (
-              SELECT 1
-              FROM auction_participants ap
-              JOIN team_players tp ON tp.team_id = ap.team_id
-              WHERE ap.auction_id = %s
-                AND tp.player_id = p.id
-          )
-        ORDER BY p.overall DESC, p.id ASC
-    """, (min_rating, auction_id))
+        SELECT * FROM players 
+        WHERE overall > %s
+        ORDER BY overall DESC, id ASC
+    """, (min_rating,))
     
     all_players = cur.fetchall()
     cur.close()
@@ -1646,7 +1608,7 @@ def get_auction_players(auction_id):
             elif 'Goalkeeper' in str(pos): gks.append(p)
             else: mids.append(p) # Default to Mid
 
-    # 4. Cycle Logic (10 of each)
+    # 4. Cycle Logic (12 of each)
     ordered_players = []
     
     # Pointers for each list
@@ -1654,26 +1616,26 @@ def get_auction_players(auction_id):
     f_len, m_len, d_len, g_len = len(fwds), len(mids), len(defs), len(gks)
     
     while f_idx < f_len or m_idx < m_len or d_idx < d_len or g_idx < g_len:
-        # 10 Forwards
-        for _ in range(10):
+        # 12 Forwards
+        for _ in range(12):
             if f_idx < f_len:
                 ordered_players.append(fwds[f_idx])
                 f_idx += 1
         
-        # 10 Midfielders
-        for _ in range(10):
+        # 12 Midfielders
+        for _ in range(12):
             if m_idx < m_len:
                 ordered_players.append(mids[m_idx])
                 m_idx += 1
                 
-        # 10 Defenders
-        for _ in range(10):
+        # 12 Defenders
+        for _ in range(12):
             if d_idx < d_len:
                 ordered_players.append(defs[d_idx])
                 d_idx += 1
                 
-        # 10 Goalkeepers
-        for _ in range(10):
+        # 12 Goalkeepers
+        for _ in range(12):
             if g_idx < g_len:
                 ordered_players.append(gks[g_idx])
                 g_idx += 1
@@ -1727,7 +1689,7 @@ def join_lobby_socket(data):
             cur = conn.cursor()
             cur.execute("SELECT purse_per_team FROM auctions WHERE id = %s", (auction_id,))
             auction = cur.fetchone()
-            initial_budget = auction[0] if auction else 0
+            initial_budget = auction["purse_per_team"] if auction else 0
             cur.execute("""
                 INSERT INTO auction_participants (auction_id, user_id, team_name, budget)
                 VALUES (%s, %s, %s, %s)
@@ -2497,53 +2459,6 @@ def start_auction(data):
         emit("error", {"message": "Failed to start auction"}, room=request.sid)
 
 
-@socketio.on("advance_to_auction")
-def advance_to_auction(data):
-    try:
-        auction_id_str = str(data["auction_id"])
-        auction_id_int = int(data["auction_id"])
-        user_id = int(data["user_id"])
-        room = f"lobby_{auction_id_str}"
-
-        conn = get_db()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-        cur.execute("ALTER TABLE auction_participants ADD COLUMN IF NOT EXISTS retention_confirmed BOOLEAN DEFAULT FALSE;")
-
-        cur.execute("SELECT host_id FROM auctions WHERE id = %s", (auction_id_int,))
-        auction = cur.fetchone()
-        if not auction:
-            emit("error", {"message": "Auction not found"}, room=request.sid)
-            cur.close()
-            return
-
-        if int(auction["host_id"]) != user_id:
-            emit("error", {"message": "Only admin can advance to auction"}, room=request.sid)
-            cur.close()
-            return
-
-        cur.execute("""
-            SELECT COUNT(*) AS total,
-                   SUM(CASE WHEN COALESCE(retention_confirmed, FALSE) THEN 1 ELSE 0 END) AS confirmed
-            FROM auction_participants
-            WHERE auction_id = %s
-        """, (auction_id_int,))
-        counts = cur.fetchone() or {"total": 0, "confirmed": 0}
-        total = int(counts.get("total") or 0)
-        confirmed = int(counts.get("confirmed") or 0)
-
-        cur.close()
-
-        if total == 0 or confirmed < total:
-            emit("error", {"message": "All participants must confirm retentions before advancing"}, room=request.sid)
-            return
-
-        emit("preauction_advanced", {"auction_id": auction_id_int}, room=room)
-    except Exception as e:
-        print(f"Error advancing to auction: {e}")
-        emit("error", {"message": "Failed to advance to auction"}, room=request.sid)
-
-
 @socketio.on("next_player")
 def handle_next_player(data):
     auction_id = str(data.get("auction_id"))
@@ -3197,4 +3112,11 @@ def handle_cancel_trade(data):
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', debug=True, port=5000, allow_unsafe_werkzeug=True)
+    socketio.run(
+        app,
+        host='0.0.0.0',
+        debug=True,
+        use_reloader=False,
+        port=5000,
+        allow_unsafe_werkzeug=True,
+    )

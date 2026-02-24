@@ -19,7 +19,6 @@ const Create_lobby = () => {
     inc_max: 10,
     bidding_time: 30,
     min_players: 11,
-    retention_limit: 10,
     custom_bid_enabled: true,
     host_id: null // Will be set from localStorage
   });
@@ -55,8 +54,7 @@ const Create_lobby = () => {
             inc_mid: data.bid_inc_mid,
             inc_max: data.bid_inc_max,
             bidding_time: data.bidding_time,
-            min_players: data.min_players,
-            retention_limit: data.retention_limit ?? 10
+            min_players: data.min_players
           }));
 
           // Fetch participants for the locked ID
@@ -373,22 +371,20 @@ const Create_lobby = () => {
                   </div>
                 </div>
 
-                {/* Retention Limit */}
+                {/* Retention Strength */}
                 <div className="space-y-2">
                   <label className="text-xs uppercase font-bold text-slate-400 flex justify-between">
-                    Retention Limit
+                    Retention Strength
                     <span className="text-[10px] text-slate-600 normal-case">
-                      (max players to keep)
+                      (0-100)
                     </span>
                   </label>
                   <input
                     type="number"
                     min="0"
-                    max="25"
-                    value={formData.retention_limit}
-                    onChange={(e) => setFormData({ ...formData, retention_limit: parseInt(e.target.value || '0') })}
+                    max="100"
                     className="w-full bg-black/40 border border-white/10 rounded-lg py-3 px-4 text-white focus:border-primary focus:outline-none transition-all"
-                    placeholder="10"
+                    placeholder="50"
                   />
                 </div>
               </div>

@@ -633,10 +633,7 @@ const Auction = () => {
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          // Auto-fill pitch (11), sub (7), res (rest)
-          setPitchPlayers(data.slice(0, 11));
-          setSubPlayers(data.slice(11, 18));
-          setResPlayers(data.slice(18));
+          handleSquadUpdate(data);
         }
       })
       .catch(err => console.error("Error fetching live squad:", err));
@@ -828,10 +825,7 @@ const Auction = () => {
                   .then(res => res.json())
                   .then(allMyPlayers => {
                       if (Array.isArray(allMyPlayers)) {
-                          // Update squad display
-                          setPitchPlayers(allMyPlayers.slice(0, 11));
-                          setSubPlayers(allMyPlayers.slice(11, 18));
-                          setResPlayers(allMyPlayers.slice(18));
+                          handleSquadUpdate(allMyPlayers);
                           
                           // Update mySquad for trades
                           setMySquad(allMyPlayers);
@@ -850,10 +844,7 @@ const Auction = () => {
               .then(res => res.json())
               .then(allMyPlayers => {
                   if (Array.isArray(allMyPlayers)) {
-                      // Update squad display
-                      setPitchPlayers(allMyPlayers.slice(0, 11));
-                      setSubPlayers(allMyPlayers.slice(11, 18));
-                      setResPlayers(allMyPlayers.slice(18));
+                      handleSquadUpdate(allMyPlayers);
                       
                       // Update mySquad for trades
                       setMySquad(allMyPlayers);
@@ -932,9 +923,7 @@ const Auction = () => {
           if (Array.isArray(squad)) {
             setMySquad(squad);
             // Update squad display
-            setPitchPlayers(squad.slice(0, 11));
-            setSubPlayers(squad.slice(11, 18));
-            setResPlayers(squad.slice(18));
+            handleSquadUpdate(squad);
             console.log("✅ Squad updated after trade:", squad.length, "players");
           }
         });
@@ -1065,32 +1054,45 @@ const Auction = () => {
   }, [pitchPlayers, subPlayers, resPlayers]);
 
   const handleSquadUpdate = (allPlayers) => {
+    if (!Array.isArray(allPlayers)) return;
+
     const { pitch, sub, res } = squadStateRef.current;
+    const hasExistingLayout = [...pitch, ...sub, ...res].some(Boolean);
 
-    // 1. Identify Existing IDs
-    const existingIds = new Set();
-    pitch.forEach(p => { if (p) existingIds.add(p.id); });
-    sub.forEach(p => { if (p) existingIds.add(p.id); });
-    res.forEach(p => { if (p) existingIds.add(p.id); });
+    // Initial load: hydrate from backend order.
+    if (!hasExistingLayout) {
+      setPitchPlayers(allPlayers.slice(0, 11));
+      setSubPlayers(allPlayers.slice(11, 18));
+      setResPlayers(allPlayers.slice(18));
+      return;
+    }
 
-    // 2. Find New Players
-    const newPlayers = allPlayers.filter(p => !existingIds.has(p.id));
+    const byId = new Map();
+    allPlayers.forEach((p) => {
+      if (p && p.id !== undefined && p.id !== null) byId.set(p.id, p);
+    });
 
-    if (newPlayers.length === 0) return; // No changes needed
-
-    console.log("Adding new players to formation:", newPlayers);
-
-    // 3. Add to Arrays (Clone first)
-    // We assume formation on pitch is sacred. Only fill empty subs or rest to reserves.
+    // Keep already-placed players fixed in their current slots if still present.
+    const nextPitch = pitch.map((p) => (p && byId.has(p.id) ? byId.get(p.id) : undefined));
     const nextSub = [...sub];
-    // Ensure 7 slots in sub array
     while (nextSub.length < 7) nextSub.push(undefined);
+    for (let i = 0; i < 7; i++) {
+      const p = nextSub[i];
+      nextSub[i] = p && byId.has(p.id) ? byId.get(p.id) : undefined;
+    }
+    const nextRes = res
+      .map((p) => (p && byId.has(p.id) ? byId.get(p.id) : undefined))
+      .filter(Boolean);
 
-    const nextRes = [...res];
+    const usedIds = new Set();
+    [...nextPitch, ...nextSub, ...nextRes].forEach((p) => {
+      if (p?.id !== undefined && p?.id !== null) usedIds.add(p.id);
+    });
+    const newPlayers = allPlayers.filter((p) => p && !usedIds.has(p.id));
 
-    newPlayers.forEach(p => {
+    // Keep pitch placements fixed; add newcomers to subs first, then reserves.
+    newPlayers.forEach((p) => {
       let placed = false;
-      // Try Sub
       for (let i = 0; i < 7; i++) {
         if (!nextSub[i]) {
           nextSub[i] = p;
@@ -1098,13 +1100,12 @@ const Auction = () => {
           break;
         }
       }
-      // Else Reserve
       if (!placed) nextRes.push(p);
     });
 
+    setPitchPlayers(nextPitch);
     setSubPlayers(nextSub);
     setResPlayers(nextRes);
-    // Pitch doesn't change
   };
 
   const openManagerPlayers = (managerName) => {
