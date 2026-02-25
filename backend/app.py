@@ -219,6 +219,8 @@ def get_players():
         SELECT
             id,
             name,
+            position_specific,
+            positions,
             position_group,
             overall,
             pac,
@@ -913,7 +915,7 @@ def get_market_players():
     total = total_row["total"] if total_row else 0
 
     # fetch page
-    query = f"SELECT id, name, overall, pac, sho, dri, position_group, club, nation, value, image_url FROM players {where_sql} ORDER BY overall DESC LIMIT %s OFFSET %s"
+    query = f"SELECT id, name, overall, pac, sho, dri, position_specific, positions, position_group, club, nation, value, image_url FROM players {where_sql} ORDER BY overall DESC LIMIT %s OFFSET %s"
     page_params = params + [limit, offset]
     cur.execute(query, page_params)
     players = cur.fetchall()

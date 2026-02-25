@@ -1035,6 +1035,7 @@ const Auction = () => {
 
   // --- STATE ---
   const [showBoughtPlayersModal, setShowBoughtPlayersModal] = useState(false);
+  const [showPlayerDetailsModal, setShowPlayerDetailsModal] = useState(false);
   const [showCompareModal, setShowCompareModal] = useState(false);
   // Auction Result State (sold, unsold, null)
   const [auctionResult, setAuctionResult] = useState(null);
@@ -1452,6 +1453,55 @@ const Auction = () => {
     );
   };
 
+  const formatDetailValue = (value) => {
+    if (value === null || value === undefined || value === '') return 'N/A';
+    if (typeof value === 'number') return Number.isInteger(value) ? value.toString() : value.toFixed(1);
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    return String(value);
+  };
+
+  const PlayerDetailsModal = () => {
+    if (!currentPlayer) return null;
+    const detailEntries = Object.entries(currentPlayer).sort(([a], [b]) => a.localeCompare(b));
+
+    return (
+      <div className="fixed inset-0 z-[4500] flex items-center justify-center p-4">
+        <div
+          className="absolute inset-0 bg-black/85 backdrop-blur-sm"
+          onClick={() => setShowPlayerDetailsModal(false)}
+        ></div>
+        <div className="relative w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl border border-white/10 bg-[#0b1a12] shadow-2xl">
+          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 bg-black/30">
+            <div>
+              <h3 className="text-lg font-black uppercase tracking-wider text-white">
+                {currentPlayer.name || 'Player'} Details
+              </h3>
+              <p className="text-xs text-white/60">
+                {currentPlayer.position_group || 'N/A'} | {currentPlayer.position_specific || 'N/A'} | {currentPlayer.club || 'N/A'}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowPlayerDetailsModal(false)}
+              className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <div className="max-h-[70vh] overflow-y-auto p-4 custom-scroll">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {detailEntries.map(([key, value]) => (
+                <div key={key} className="rounded border border-white/10 bg-white/5 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-widest text-white/40 font-bold">{key}</div>
+                  <div className="text-sm text-white break-words">{formatDetailValue(value)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-[#0a0f0b] font-display text-white overflow-hidden h-screen" style={{
       background: "linear-gradient(rgba(10, 15, 11, 0.9), rgba(10, 15, 11, 0.95)), url('https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&q=80&w=2000')",
@@ -1481,7 +1531,11 @@ const Auction = () => {
               </div>
             </div>
 
-            <div className="relative h-2/3">
+            <div
+              className="relative h-2/3 cursor-pointer"
+              onClick={() => currentPlayer && setShowPlayerDetailsModal(true)}
+              title="Click to view full player details"
+            >
               <img className="w-full h-full object-cover object-top" src={currentPlayer?.image_url || "https://placehold.co/400x600/102016/FFFFFF/png?text=Player"} alt="Player" />
               <div className="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black via-black/80 to-transparent">
                 <p className="text-[#39ff14] text-xs font-bold tracking-[0.2em] mb-1">
@@ -1490,7 +1544,8 @@ const Auction = () => {
                 <h3 className="text-3xl font-bold uppercase tracking-tight italic truncate">
                   {currentPlayer?.name || "---"}
                 </h3>
-                <p className="text-white/60 text-sm">{currentPlayer?.position_group || "POS"} | {currentPlayer?.nation || "Nation"} • {currentPlayer?.club || "Club"}</p>
+                <p className="text-white/60 text-sm">{currentPlayer?.position_group || "POS"} | {currentPlayer?.position_specific || "N/A"} | {currentPlayer?.nation || "Nation"} • {currentPlayer?.club || "Club"}</p>
+                <p className="text-[10px] text-[#39ff14] font-bold uppercase tracking-wider mt-1">Click player image for full details</p>
               </div>
             </div>
             <div className="p-6 flex-1 bg-black/40">
@@ -1830,6 +1885,7 @@ const Auction = () => {
       </footer>
 
       {showBoughtPlayersModal && <BoughtPlayersModal />}
+      {showPlayerDetailsModal && <PlayerDetailsModal />}
       {showCompareModal && (
         <CompareModal
           onClose={() => setShowCompareModal(false)}
