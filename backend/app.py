@@ -2715,9 +2715,13 @@ def handle_propose_trade(data):
     proposer_id = data.get("proposer_id")
     receiver_id = data.get("receiver_id")
     proposer_players = data.get("proposer_players", [])
-    proposer_cash = data.get("proposer_cash", 0)
+    proposer_cash = int(data.get("proposer_cash", 0) or 0)
     receiver_players = data.get("receiver_players", [])
-    receiver_cash = data.get("receiver_cash", 0)
+    receiver_cash = int(data.get("receiver_cash", 0) or 0)
+
+    if proposer_cash < 0 or receiver_cash < 0:
+        emit("trade_error", {"message": "Cash values cannot be negative"}, room=request.sid)
+        return
     
     room = f"lobby_{auction_id}"
     
@@ -2901,10 +2905,11 @@ def handle_accept_trade(data):
         conn = get_db()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         
-        # Get trade details
+        # Get trade details (lock row to avoid double-accept race)
         cur.execute("""
             SELECT * FROM trades
             WHERE id = %s AND receiver_id = %s AND status = 'pending'
+            FOR UPDATE
         """, (trade_id, user_id))
         
         trade = cur.fetchone()
@@ -2918,6 +2923,20 @@ def handle_accept_trade(data):
         auction_id = trade['auction_id']
         room = f"lobby_{auction_id}"
         
+        # Re-validate proposer still owns the players they're offering
+        if trade['proposer_players']:
+            cur.execute("""
+                SELECT COUNT(*) as count
+                FROM team_players
+                WHERE team_id = %s AND player_id = ANY(%s)
+            """, (trade['proposer_team_id'], trade['proposer_players']))
+            owned_count = cur.fetchone()['count']
+            if owned_count != len(trade['proposer_players']):
+                emit("trade_error", {"message": "Proposer no longer owns all offered players"}, room=request.sid)
+                cur.close()
+                conn.close()
+                return
+
         # Re-validate receiver owns the players
         if trade['receiver_players']:
             cur.execute("""
@@ -2933,15 +2952,32 @@ def handle_accept_trade(data):
                 conn.close()
                 return
         
+        # Re-validate proposer has enough cash at execution time
+        if trade['proposer_cash'] > 0:
+            cur.execute("""
+                SELECT budget FROM auction_participants
+                WHERE auction_id = %s AND user_id = %s
+                FOR UPDATE
+            """, (auction_id, trade['proposer_id']))
+            proposer_row = cur.fetchone()
+            proposer_budget = proposer_row['budget'] if proposer_row else 0
+            if proposer_budget < trade['proposer_cash']:
+                emit("trade_error", {"message": "Proposer has insufficient budget"}, room=request.sid)
+                cur.close()
+                conn.close()
+                return
+
         # Re-validate receiver has enough cash
         if trade['receiver_cash'] > 0:
             cur.execute("""
                 SELECT budget FROM auction_participants
                 WHERE auction_id = %s AND user_id = %s
+                FOR UPDATE
             """, (auction_id, user_id))
             
-            budget = cur.fetchone()['budget']
-            if budget < trade['receiver_cash']:
+            receiver_row = cur.fetchone()
+            receiver_budget = receiver_row['budget'] if receiver_row else 0
+            if receiver_budget < trade['receiver_cash']:
                 emit("trade_error", {"message": "Insufficient budget"}, room=request.sid)
                 cur.close()
                 conn.close()
@@ -2972,8 +3008,15 @@ def handle_accept_trade(data):
             cur.execute("""
                 UPDATE auction_participants
                 SET budget = budget - %s
-                WHERE auction_id = %s AND user_id = %s
-            """, (trade['proposer_cash'], auction_id, trade['proposer_id']))
+                WHERE auction_id = %s AND user_id = %s AND budget >= %s
+                RETURNING budget
+            """, (trade['proposer_cash'], auction_id, trade['proposer_id'], trade['proposer_cash']))
+            if not cur.fetchone():
+                emit("trade_error", {"message": "Proposer budget changed. Trade failed safely."}, room=request.sid)
+                conn.rollback()
+                cur.close()
+                conn.close()
+                return
             
             cur.execute("""
                 UPDATE auction_participants
@@ -2986,8 +3029,15 @@ def handle_accept_trade(data):
             cur.execute("""
                 UPDATE auction_participants
                 SET budget = budget - %s
-                WHERE auction_id = %s AND user_id = %s
-            """, (trade['receiver_cash'], auction_id, trade['receiver_id']))
+                WHERE auction_id = %s AND user_id = %s AND budget >= %s
+                RETURNING budget
+            """, (trade['receiver_cash'], auction_id, trade['receiver_id'], trade['receiver_cash']))
+            if not cur.fetchone():
+                emit("trade_error", {"message": "Receiver budget changed. Trade failed safely."}, room=request.sid)
+                conn.rollback()
+                cur.close()
+                conn.close()
+                return
             
             cur.execute("""
                 UPDATE auction_participants
