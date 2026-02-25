@@ -118,6 +118,7 @@ const PlayerCard = ({ player, sizeClass, locationType, index, isDragging, isHove
   }
 
   const style = getCardStyle(player.rating);
+  const displayPos = player.position_specific || player.pos || player.position_group || 'N/A';
 
   return (
     <div
@@ -142,7 +143,7 @@ const PlayerCard = ({ player, sizeClass, locationType, index, isDragging, isHove
 
       <div className="absolute top-1.5 left-2 flex flex-col leading-none z-20 pointer-events-none">
         <span className="text-xl font-black italic text-white drop-shadow-md">{player.rating}</span>
-        <span className={`text-[9px] font-bold ${style.text} uppercase tracking-widest mt-0.5`}>{player.pos}</span>
+        <span className={`text-[9px] font-bold ${style.text} uppercase tracking-widest mt-0.5`}>{displayPos}</span>
       </div>
       <div className="flex-1 flex items-end justify-center overflow-hidden relative pointer-events-none">
         <img src={player.img} alt={player.name} className="w-[85%] h-[85%] object-contain relative z-10 drop-shadow-2xl" />
@@ -153,6 +154,26 @@ const PlayerCard = ({ player, sizeClass, locationType, index, isDragging, isHove
       </div>
     </div>
   );
+};
+
+const canPlayRole = (player, role) => {
+  if (!player || !role) return false;
+  const target = String(role).trim().toUpperCase();
+  const roles = new Set();
+
+  if (player.position_specific) roles.add(String(player.position_specific).trim().toUpperCase());
+  if (player.pos) roles.add(String(player.pos).trim().toUpperCase());
+
+  const positionsRaw = player.positions || player.position_list;
+  if (positionsRaw) {
+    String(positionsRaw)
+      .split(',')
+      .map((r) => r.trim().toUpperCase())
+      .filter(Boolean)
+      .forEach((r) => roles.add(r));
+  }
+
+  return roles.has(target);
 };
 
 
@@ -298,7 +319,8 @@ const CompareModal = ({
 
               {formations[liveFormation].map((coord, index) => {
                 const player = pitchPlayers[index];
-                const posColor = (player && player.pos === coord.role) ? "bg-[#39ff14] text-black border-[#39ff14]" : "bg-red-500 text-white border-red-500";
+                const isValidForRole = canPlayRole(player, coord.role);
+                const posColor = (player && isValidForRole) ? "bg-[#39ff14] text-black border-[#39ff14]" : "bg-red-500 text-white border-red-500";
 
                 return (
                   <div key={index} className="absolute w-20 h-32 transition-all duration-500 ease-in-out" style={{ left: `${coord.left}%`, top: `${coord.top}%`, transform: 'translate(-50%, -50%)' }}>
@@ -1460,48 +1482,6 @@ const Auction = () => {
     return String(value);
   };
 
-  const PlayerDetailsModal = () => {
-    if (!currentPlayer) return null;
-    const detailEntries = Object.entries(currentPlayer).sort(([a], [b]) => a.localeCompare(b));
-
-    return (
-      <div className="fixed inset-0 z-[4500] flex items-center justify-center p-4">
-        <div
-          className="absolute inset-0 bg-black/85 backdrop-blur-sm"
-          onClick={() => setShowPlayerDetailsModal(false)}
-        ></div>
-        <div className="relative w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl border border-white/10 bg-[#0b1a12] shadow-2xl">
-          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 bg-black/30">
-            <div>
-              <h3 className="text-lg font-black uppercase tracking-wider text-white">
-                {currentPlayer.name || 'Player'} Details
-              </h3>
-              <p className="text-xs text-white/60">
-                {currentPlayer.position_group || 'N/A'} | {currentPlayer.position_specific || 'N/A'} | {currentPlayer.club || 'N/A'}
-              </p>
-            </div>
-            <button
-              onClick={() => setShowPlayerDetailsModal(false)}
-              className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20"
-            >
-              <span className="material-symbols-outlined">close</span>
-            </button>
-          </div>
-          <div className="max-h-[70vh] overflow-y-auto p-4 custom-scroll">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {detailEntries.map(([key, value]) => (
-                <div key={key} className="rounded border border-white/10 bg-white/5 px-3 py-2">
-                  <div className="text-[10px] uppercase tracking-widest text-white/40 font-bold">{key}</div>
-                  <div className="text-sm text-white break-words">{formatDetailValue(value)}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="bg-[#0a0f0b] font-display text-white overflow-hidden h-screen" style={{
       background: "linear-gradient(rgba(10, 15, 11, 0.9), rgba(10, 15, 11, 0.95)), url('https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&q=80&w=2000')",
@@ -1549,7 +1529,8 @@ const Auction = () => {
               </div>
             </div>
             <div className="p-6 flex-1 bg-black/40">
-              <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-4 gap-4 mb-4">
+                <div className="flex flex-col items-center bg-white/5 border border-white/5 p-2 rounded"><span className="text-xl font-bold text-[#39ff14] italic">{currentPlayer?.position_specific || currentPlayer?.position_group || '-'}</span><span className="text-[9px] text-white/40 font-bold">POS</span></div>
                 <div className="flex flex-col items-center bg-white/5 border border-white/5 p-2 rounded"><span className="text-xl font-bold text-[#39ff14] italic">{currentPlayer?.overall || currentPlayer?.rating || '-'}</span><span className="text-[9px] text-white/40 font-bold">RATING</span></div>
                 <div className="flex flex-col items-center bg-white/5 border border-white/5 p-2 rounded"><span className="text-xl font-bold text-[#39ff14] italic">{currentPlayer?.sho || '-'}</span><span className="text-[9px] text-white/40 font-bold">SHO</span></div>
                 <div className="flex flex-col items-center bg-white/5 border border-white/5 p-2 rounded"><span className="text-xl font-bold text-[#39ff14] italic">{currentPlayer?.dri || '-'}</span><span className="text-[9px] text-white/40 font-bold">DRI</span></div>
@@ -1885,7 +1866,44 @@ const Auction = () => {
       </footer>
 
       {showBoughtPlayersModal && <BoughtPlayersModal />}
-      {showPlayerDetailsModal && <PlayerDetailsModal />}
+      {showPlayerDetailsModal && currentPlayer && (
+        <div className="fixed inset-0 z-[4500] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/85 backdrop-blur-sm"
+            onClick={() => setShowPlayerDetailsModal(false)}
+          ></div>
+          <div className="relative w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl border border-white/10 bg-[#0b1a12] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 bg-black/30">
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-wider text-white">
+                  {currentPlayer.name || 'Player'} Details
+                </h3>
+                <p className="text-xs text-white/60">
+                  {currentPlayer.position_group || 'N/A'} | {currentPlayer.position_specific || 'N/A'} | {currentPlayer.club || 'N/A'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowPlayerDetailsModal(false)}
+                className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="max-h-[70vh] overflow-y-auto p-4 custom-scroll">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {Object.entries(currentPlayer)
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([key, value]) => (
+                    <div key={key} className="rounded border border-white/10 bg-white/5 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-widest text-white/40 font-bold">{key}</div>
+                      <div className="text-sm text-white break-words">{formatDetailValue(value)}</div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {showCompareModal && (
         <CompareModal
           onClose={() => setShowCompareModal(false)}

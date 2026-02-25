@@ -571,7 +571,10 @@ def auction_squad(auction_id):
             p.id,
             p.name,
             p.overall AS rating,
-            p.position_group AS pos,
+            COALESCE(p.position_specific, NULLIF(TRIM(SPLIT_PART(COALESCE(p.positions, ''), ',', 1)), ''), p.position_group) AS pos,
+            p.position_specific,
+            p.position_group,
+            p.positions,
             p.image_url AS img,
             tp.acquired_price AS price
         FROM team_players tp
@@ -591,6 +594,9 @@ def auction_squad(auction_id):
             "name": r["name"],
             "rating": r["rating"],
             "pos": r["pos"],
+            "position_specific": r.get("position_specific"),
+            "position_group": r.get("position_group"),
+            "positions": r.get("positions"),
             "img": r["img"],
             "price": r["price"]
         }
@@ -689,7 +695,10 @@ def team_players(team_id):
                 p.id,
                 p.name,
                 p.overall AS rating,
-                p.position_group AS pos,
+                COALESCE(p.position_specific, NULLIF(TRIM(SPLIT_PART(COALESCE(p.positions, ''), ',', 1)), ''), p.position_group) AS pos,
+                p.position_specific,
+                p.position_group,
+                p.positions,
                 p.image_url AS img,
                 tp.acquired_price AS price,
                 COALESCE(tfp.position_type, 'reserve') AS position_type,
@@ -723,7 +732,10 @@ def team_players(team_id):
                 p.id,
                 p.name,
                 p.overall AS rating,
-                p.position_group AS pos,
+                COALESCE(p.position_specific, NULLIF(TRIM(SPLIT_PART(COALESCE(p.positions, ''), ',', 1)), ''), p.position_group) AS pos,
+                p.position_specific,
+                p.position_group,
+                p.positions,
                 p.image_url AS img,
                 tp.acquired_price AS price
             FROM team_players tp
@@ -743,6 +755,9 @@ def team_players(team_id):
             'name': r['name'],
             'rating': r['rating'],
             'pos': r['pos'],
+            'position_specific': r.get('position_specific'),
+            'position_group': r.get('position_group'),
+            'positions': r.get('positions'),
             'img': r['img'],
             'price': r['price']
         }
