@@ -102,26 +102,6 @@ class MockRedis:
     def incr(self, name, amount=1):
         val = int(self.store.get(name, 0))
         val += amount
-        self.store[name] = val
-        return val
-
-try:
-    r = redis.Redis(host='10.130.81.230', port=6379, decode_responses=True)
-    r.ping() # Test connection
-    print("✓ Redis connected successfully")
-except redis.exceptions.ConnectionError:
-    print("WARNING: Redis connection failed. Using in-memory fallback (MockRedis).")
-    r = MockRedis()
-
-app.teardown_appcontext(close_db)
-
-# Tracks socket session -> auction/user context for disconnect handling.
-sid_context = {}
-
-@app.route("/api/auth/register", methods=["POST", "OPTIONS"])
-def register():
-    if request.method == "OPTIONS":
-        return "", 200
         
     data = request.json
 
@@ -1261,6 +1241,10 @@ def get_lobby_details(auction_id):
     cur.execute("SELECT * FROM auctions WHERE id = %s", (auction_id,))
     lobby = cur.fetchone()
     cur.close()
+    if not lobby:
+        return jsonify({"error": "Auction not found"}), 404
+    if lobby.get("status") == "COMPLETED":
+        return jsonify({"error": "This auction has ended"}), 403
     return jsonify(lobby)
 
 
@@ -1570,12 +1554,15 @@ def get_auction_players(auction_id):
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # 1. Get auction settings (min rating threshold)
-    cur.execute("SELECT min_players FROM auctions WHERE id = %s", (auction_id,))
+    cur.execute("SELECT min_players, status FROM auctions WHERE id = %s", (auction_id,))
     auction = cur.fetchone()
     
     if not auction:
         cur.close()
         return jsonify({"error": "Auction not found"}), 404
+    if auction.get("status") == "COMPLETED":
+        cur.close()
+        return jsonify({"error": "This auction has ended"}), 403
         
     min_rating = auction["min_players"] or 0
 
@@ -1625,34 +1612,35 @@ def get_auction_players(auction_id):
             elif 'Goalkeeper' in str(pos): gks.append(p)
             else: mids.append(p) # Default to Mid
 
-    # 4. Cycle Logic (12 of each)
+    # 4. Cycle Logic (6 of each)
     ordered_players = []
+    pool_batch_size = 6
     
     # Pointers for each list
     f_idx, m_idx, d_idx, g_idx = 0, 0, 0, 0
     f_len, m_len, d_len, g_len = len(fwds), len(mids), len(defs), len(gks)
     
     while f_idx < f_len or m_idx < m_len or d_idx < d_len or g_idx < g_len:
-        # 12 Forwards
-        for _ in range(12):
+        # 6 Forwards
+        for _ in range(pool_batch_size):
             if f_idx < f_len:
                 ordered_players.append(fwds[f_idx])
                 f_idx += 1
         
-        # 12 Midfielders
-        for _ in range(12):
+        # 6 Midfielders
+        for _ in range(pool_batch_size):
             if m_idx < m_len:
                 ordered_players.append(mids[m_idx])
                 m_idx += 1
                 
-        # 12 Defenders
-        for _ in range(12):
+        # 6 Defenders
+        for _ in range(pool_batch_size):
             if d_idx < d_len:
                 ordered_players.append(defs[d_idx])
                 d_idx += 1
                 
-        # 12 Goalkeepers
-        for _ in range(12):
+        # 6 Goalkeepers
+        for _ in range(pool_batch_size):
             if g_idx < g_len:
                 ordered_players.append(gks[g_idx])
                 g_idx += 1

@@ -432,6 +432,9 @@ const Auction = () => {
   const [newsQueue, setNewsQueue] = useState([]);
   const [activeNews, setActiveNews] = useState(initialNews);
   const newsDedupeRef = useRef(new Set());
+  const [showTopPlayersMenu, setShowTopPlayersMenu] = useState(false);
+  const topPlayersMenuRef = useRef(null);
+  const topPlayersButtonRef = useRef(null);
 
   // Helper function to calculate and update server time offset
   const calculateOffset = (serverTime) => {
@@ -462,6 +465,27 @@ const Auction = () => {
       setNewsQueue(prev => prev.slice(1));
     }
   }, [activeNews, newsQueue]);
+
+  useEffect(() => {
+    if (!showTopPlayersMenu) return;
+
+    const handleOutsideClick = (e) => {
+      if (topPlayersMenuRef.current?.contains(e.target)) return;
+      if (topPlayersButtonRef.current?.contains(e.target)) return;
+      setShowTopPlayersMenu(false);
+    };
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') setShowTopPlayersMenu(false);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [showTopPlayersMenu]);
   
   const handleBidClick = (increment) => {
       console.log("=== BID BUTTON CLICKED ===");
@@ -613,9 +637,20 @@ const Auction = () => {
 
     // 2. Fetch Auction Settings
     fetch(`${API_URL}/api/lobby/${auctionId}/details`)
-      .then(res => res.json())
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Failed to load auction details");
+        }
+        return res.json();
+      })
       .then(data => {
         if (data) {
+          if (data.status === 'COMPLETED') {
+            alert("This auction has ended.");
+            navigate(`/post_auction_statistics?auction_id=${auctionId}`, { state: { auctionId } });
+            return;
+          }
           // Normalize increments to Millions if stored as small integers
           if (data.bid_inc_min < 1000) data.bid_inc_min *= 1000000;
           if (data.bid_inc_mid < 1000) data.bid_inc_mid *= 1000000;
@@ -631,6 +666,11 @@ const Auction = () => {
           setAuctionSettings(data);
           setIsPaused(data.status === 'PAUSED');
         }
+      })
+      .catch((err) => {
+        console.error("Error fetching auction details:", err);
+        alert("This auction link is not available.");
+        navigate('/view_all_auctions');
       });
 
     // 3. Fetch Available Players
@@ -1131,6 +1171,29 @@ const Auction = () => {
     setResPlayers(nextRes);
   };
 
+  const getCustomBidStepMillions = () => {
+    const minInc = Number(auctionSettings?.bid_inc_min) || 1000000;
+    const step = Math.round(minInc / 1000000);
+    return step > 0 ? step : 1;
+  };
+
+  const handleCustomBidSubmit = () => {
+    const stepMillions = getCustomBidStepMillions();
+    const valueMillions = Number(customBid);
+
+    if (!Number.isInteger(valueMillions) || valueMillions <= 0) {
+      alert("Enter a whole-number custom bid value.");
+      return;
+    }
+
+    if (valueMillions % stepMillions !== 0) {
+      alert(`Custom bid must be in multiples of ${stepMillions}M.`);
+      return;
+    }
+
+    placeBid(Number(highestBid || 0) + (valueMillions * 1000000));
+  };
+
   const openManagerPlayers = (managerName) => {
     setSelectedManager(managerName);
     setShowBoughtPlayersModal(true);
@@ -1391,6 +1454,38 @@ const Auction = () => {
     return { name: nextGroup, count };
   }, [availablePlayers, currentIndex]);
 
+  const currentPool = React.useMemo(() => {
+    if (!availablePlayers || availablePlayers.length === 0 || currentIndex >= availablePlayers.length) {
+      return { name: '---', count: 0 };
+    }
+
+    const currentP = availablePlayers[currentIndex];
+    const currentGroup = getPositionCategory(currentP?.position_group || currentP?.pos);
+
+    let count = 0;
+    for (let i = currentIndex; i < availablePlayers.length; i++) {
+      const p = availablePlayers[i];
+      const g = getPositionCategory(p?.position_group || p?.pos);
+      if (g === currentGroup) count++;
+      else break;
+    }
+
+    return { name: currentGroup, count };
+  }, [availablePlayers, currentIndex]);
+
+  const upcomingTopPlayers = React.useMemo(() => {
+    if (!availablePlayers || availablePlayers.length === 0) return [];
+    const startIndex = Math.min(currentIndex + 1, availablePlayers.length);
+    const remainingPlayers = availablePlayers.slice(startIndex);
+    return [...remainingPlayers]
+      .sort((a, b) => {
+        const overallDiff = (Number(b?.overall) || 0) - (Number(a?.overall) || 0);
+        if (overallDiff !== 0) return overallDiff;
+        return (Number(a?.id) || 0) - (Number(b?.id) || 0);
+      })
+      .slice(0, 25);
+  }, [availablePlayers, currentIndex]);
+
   const BoughtPlayersModal = () => {
     // Use fetched managerPlayers instead of hardcoded data
     const players = managerPlayers;
@@ -1576,6 +1671,15 @@ const Auction = () => {
             {/* Top Admin Bar */}
             <div className="absolute left-1/2 top-6 -translate-x-1/2 flex items-center gap-8 bg-black/40 border border-white/10 px-6 py-2 rounded-full backdrop-blur-xl shadow-lg z-20">
               <div className="flex flex-col items-center">
+                <span className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-0.5">Current Pool Left</span>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-white/60 text-sm">group</span>
+                  <span className="text-xs font-black text-white tracking-wider">{currentPool.name}</span>
+                  <span className="text-[9px] text-black bg-[#fbbf24] px-1.5 py-0.5 rounded font-bold">{currentPool.count}</span>
+                </div>
+              </div>
+              <div className="h-8 w-px bg-white/10"></div>
+              <div className="flex flex-col items-center">
                 <span className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-0.5">Upcoming Pool</span>
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-white/60 text-sm">groups_3</span>
@@ -1638,14 +1742,20 @@ const Auction = () => {
               <div className="flex gap-4">
                 <input
                   value={customBid}
-                  onChange={(e) => setCustomBid(e.target.value)}
+                  onChange={(e) => {
+                    // Keep only digits so custom bid remains discrete (in millions).
+                    const next = e.target.value.replace(/\D/g, '');
+                    setCustomBid(next);
+                  }}
                   disabled={!auctionSettings.custom_bid_enabled || isPaused || hasPassed}
                   className={`flex-1 bg-black/50 border border-white/20 rounded px-6 font-bold text-lg text-white ${(!auctionSettings.custom_bid_enabled || isPaused || hasPassed) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  placeholder={isPaused ? "PAUSED" : (hasPassed ? "PASSED" : (auctionSettings.custom_bid_enabled ? "Custom bid..." : "Disabled"))}
-                  type="number"
+                  placeholder={isPaused ? "PAUSED" : (hasPassed ? "PASSED" : (auctionSettings.custom_bid_enabled ? `Custom bid (${getCustomBidStepMillions()}M steps)` : "Disabled"))}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                 />
                 <button
-                  onClick={() => placeBid(Number(highestBid || 0) + ((parseFloat(customBid) || 0) * 1000000))}
+                  onClick={handleCustomBidSubmit}
                   disabled={!auctionSettings.custom_bid_enabled || isPaused || hasPassed}
                   className={`h-14 w-24 bg-[#39ff14] text-black font-black text-xl italic rounded hover:scale-105 shadow-[0_0_20px_rgba(57,255,20,0.4)] ${(!auctionSettings.custom_bid_enabled || isPaused || hasPassed) ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                 >
@@ -1828,14 +1938,62 @@ const Auction = () => {
               </div>
             )}
 
-            <div className="p-4 bg-black/40 border-t border-white/10">
-              <button onClick={() => setShowCompareModal(true)} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/20 transition-all">
-                <span className="material-symbols-outlined text-lg">grid_view</span> Compare Squads
-              </button>
-            </div>
           </div>
         </aside>
       </main>
+
+      {showTopPlayersMenu && (
+        <div ref={topPlayersMenuRef} className="fixed left-1/2 bottom-24 -translate-x-1/2 w-[440px] max-w-[calc(100vw-1.5rem)] bg-black/80 border border-white/10 rounded-2xl backdrop-blur-xl shadow-2xl z-40 overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/10 bg-black/40 flex items-center justify-between">
+            <p className="text-xs font-black uppercase tracking-widest text-white">Upcoming Top Players</p>
+            <span className="text-[10px] font-bold text-[#39ff14] bg-[#39ff14]/15 px-2 py-0.5 rounded">Top 25</span>
+          </div>
+          <div className="max-h-80 overflow-y-auto custom-scroll p-2 space-y-1">
+            {upcomingTopPlayers.length === 0 ? (
+              <div className="text-center text-white/40 text-xs py-6">No players left to auction.</div>
+            ) : (
+              upcomingTopPlayers.map((player, idx) => (
+                <div key={player.id || `${player.name}-${idx}`} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 hover:bg-white/10 transition-colors">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[10px] font-black text-white/50 w-7 text-center">#{idx + 1}</span>
+                    <img
+                      src={player.image_url || "https://placehold.co/100x100/101010/FFFFFF/png?text=P"}
+                      alt={player.name || "Player"}
+                      className="w-8 h-8 rounded object-cover border border-white/10"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-white truncate">{player.name || 'Unknown'}</p>
+                      <p className="text-[10px] text-white/45 truncate">{player.position_group || player.pos || 'N/A'} | {player.club || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div className="text-right ml-2 shrink-0">
+                    <p className="text-[10px] text-white/40 uppercase font-bold">OVR</p>
+                    <p className="text-sm font-black text-[#ffd700]">{Number(player.overall) || 0}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="fixed left-1/2 bottom-20 -translate-x-1/2 flex items-center gap-2 bg-black/40 border border-white/10 px-3 py-2 rounded-full backdrop-blur-xl shadow-lg z-40">
+        <button
+          onClick={() => setShowCompareModal(true)}
+          className="h-9 px-5 rounded-full bg-white/10 border border-white/20 text-xs font-bold uppercase tracking-wider hover:bg-white/20 transition-all flex items-center gap-2"
+        >
+          <span className="material-symbols-outlined text-base">grid_view</span>
+          Compare Squads
+        </button>
+        <button
+          ref={topPlayersButtonRef}
+          onClick={() => setShowTopPlayersMenu(prev => !prev)}
+          className={`h-9 px-5 rounded-full border text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${showTopPlayersMenu ? 'bg-[#39ff14]/15 border-[#39ff14]/40 text-[#39ff14]' : 'bg-white/10 border-white/20 text-white hover:bg-white/20'}`}
+        >
+          <span className="material-symbols-outlined text-base">star</span>
+          Upcoming Top Players
+        </button>
+      </div>
 
       <footer className="h-10 w-full border-t border-white/10 bg-black/90 backdrop-blur-xl fixed bottom-0 left-0 flex items-center overflow-hidden z-50">
         <style>{`

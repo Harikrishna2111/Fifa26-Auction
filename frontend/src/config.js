@@ -3,7 +3,7 @@
 // For local development only: use "http://localhost:5000"
 // For network access: use "http://YOUR_IP:5000" (e.g., "http://192.168.1.100:5000")
 
-export const API_URL = "http://10.130.81.230:5000";
+export const API_URL = "http://10.201.29.230:5000";
 
 // Instructions:
 // 1. Find your IP address (ipconfig on Windows)
