@@ -5,14 +5,14 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy requirements and install
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the app
-COPY . .
+# Copy the backend code
+COPY backend/ .
 
-# Expose port (Fly.io will set PORT env var)
-EXPOSE 8080
+# Expose port (Render sets PORT env var)
+EXPOSE 10000
 
 # Run the app
 CMD ["python", "app.py"]
