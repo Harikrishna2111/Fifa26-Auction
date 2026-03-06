@@ -113,7 +113,7 @@ try:
     if redis_url:
         r = redis.from_url(redis_url)
     else:
-        r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+        r = MockRedis()  # Use MockRedis if no Redis URL
 except ImportError:
     r = MockRedis()
 
