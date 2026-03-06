@@ -10,6 +10,7 @@ import json
 import traceback
 import threading
 import time
+import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -102,8 +103,27 @@ class MockRedis:
     def incr(self, name, amount=1):
         val = int(self.store.get(name, 0))
         val += amount
-        
-    data = request.json
+        self.store[name] = val
+        return val
+
+# Initialize Redis
+try:
+    import redis
+    redis_url = os.environ.get("REDIS_URL")
+    if redis_url:
+        r = redis.from_url(redis_url)
+    else:
+        r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+except ImportError:
+    r = MockRedis()
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+# Initialize SocketIO (Async Mode for Timers)
+socketio = SocketIO(
+    app,
 
     fullname = data.get("fullname")
     username = data.get("username")
@@ -3170,8 +3190,8 @@ if __name__ == '__main__':
     socketio.run(
         app,
         host='0.0.0.0',
-        debug=True,
+        debug=False,
         use_reloader=False,
-        port=5000,
-        allow_unsafe_werkzeug=True,
+        port=int(os.environ.get('PORT', 5000)),
+        allow_unsafe_werkzeug=False,
     )
