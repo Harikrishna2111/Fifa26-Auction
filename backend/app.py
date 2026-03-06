@@ -111,7 +111,11 @@ try:
     import redis
     redis_url = os.environ.get("REDIS_URL")
     if redis_url:
-        r = redis.from_url(redis_url)
+        try:
+            r = redis.from_url(redis_url)
+        except ValueError as e:
+            print(f"Invalid Redis URL: {e}. Using MockRedis.")
+            r = MockRedis()
     else:
         r = MockRedis()  # Use MockRedis if no Redis URL
 except ImportError:
