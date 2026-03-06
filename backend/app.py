@@ -124,6 +124,18 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # Initialize SocketIO (Async Mode for Timers)
 socketio = SocketIO(
     app,
+    cors_allowed_origins="*",
+    async_mode='threading',
+    ping_timeout=60,
+    ping_interval=25
+)
+
+@app.route("/api/auth/register", methods=["POST", "OPTIONS"])
+def register():
+    if request.method == "OPTIONS":
+        return "", 200
+        
+    data = request.json
 
     fullname = data.get("fullname")
     username = data.get("username")
