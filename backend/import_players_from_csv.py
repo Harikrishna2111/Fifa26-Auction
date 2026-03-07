@@ -86,6 +86,26 @@ def get_primary_position(player_positions, club_position):
 def ensure_columns(cur):
     cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS position_specific TEXT;")
     cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS positions TEXT;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS value_eur REAL;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS wage_eur REAL;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS potential INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS movement_acceleration INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS movement_sprint_speed INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS attacking_finishing INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS power_shot_power INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS power_long_shots INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS attacking_short_passing INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS mentality_vision INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS attacking_crossing INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS skill_ball_control INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS movement_agility INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS defending_marking_awareness INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS defending_standing_tackle INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS defending_sliding_tackle INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS power_jumping INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS power_stamina INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS power_strength INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS mentality_aggression INTEGER;")
 
 
 def create_table_if_not_exists(cur):
