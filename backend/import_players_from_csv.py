@@ -300,7 +300,6 @@ def flush_batch(cur, batch):
             skill_moves = COALESCE(EXCLUDED.skill_moves, players.skill_moves),
             work_rate = COALESCE(EXCLUDED.work_rate, players.work_rate),
             body_type = COALESCE(EXCLUDED.body_type, players.body_type),
-            preferred_foot = COALESCE(EXCLUDED.preferred_foot, players.preferred_foot),
             movement_acceleration = COALESCE(EXCLUDED.movement_acceleration, players.movement_acceleration),
             movement_sprint_speed = COALESCE(EXCLUDED.movement_sprint_speed, players.movement_sprint_speed),
             attacking_finishing = COALESCE(EXCLUDED.attacking_finishing, players.attacking_finishing),
