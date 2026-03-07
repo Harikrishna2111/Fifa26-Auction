@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import './App.css'
-// Fixed imports for deployment
+// Final fix for deployment
 import Landing_page from './pages/Landing_page'
 import Player_stats from './pages/Player_stats'
 import Auction_rules from './pages/Auction_rules'
