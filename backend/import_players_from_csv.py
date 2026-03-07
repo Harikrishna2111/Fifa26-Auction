@@ -88,6 +88,98 @@ def ensure_columns(cur):
     cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS positions TEXT;")
 
 
+def create_table_if_not_exists(cur):
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS players (
+            player_id INTEGER PRIMARY KEY,
+            short_name TEXT,
+            overall INTEGER,
+            pace REAL,
+            shooting REAL,
+            passing REAL,
+            dribbling REAL,
+            defending REAL,
+            physic REAL,
+            attacking_work_rate TEXT,
+            defensive_work_rate TEXT,
+            preferred_foot TEXT,
+            weak_foot INTEGER,
+            skill_moves INTEGER,
+            international_reputation INTEGER,
+            work_rate TEXT,
+            body_type TEXT,
+            real_face BOOLEAN,
+            release_clause_eur REAL,
+            player_tags TEXT,
+            player_traits TEXT,
+            pace_diving REAL,
+            gk_handling REAL,
+            gk_kicking REAL,
+            gk_positioning REAL,
+            gk_reflexes REAL,
+            ls REAL,
+            st REAL,
+            rs REAL,
+            lw REAL,
+            lf REAL,
+            cf REAL,
+            rf REAL,
+            rw REAL,
+            lam REAL,
+            cam REAL,
+            ram REAL,
+            lm REAL,
+            lcm REAL,
+            cm REAL,
+            rcm REAL,
+            rm REAL,
+            lwb REAL,
+            ldm REAL,
+            cdm REAL,
+            rdm REAL,
+            rwb REAL,
+            lb REAL,
+            lcb REAL,
+            cb REAL,
+            rcb REAL,
+            rb REAL,
+            gk REAL,
+            player_face_url TEXT,
+            club_logo_url TEXT,
+            club_flag_url TEXT,
+            nation_logo_url TEXT,
+            nation_flag_url TEXT,
+            club INTEGER,
+            club_name TEXT,
+            league_name TEXT,
+            league_level INTEGER,
+            club_position TEXT,
+            club_jersey_number INTEGER,
+            club_loaned_from TEXT,
+            club_joined INTEGER,
+            club_contract_valid_until INTEGER,
+            nationality_id INTEGER,
+            nationality_name TEXT,
+            nation_team_id INTEGER,
+            nation_position TEXT,
+            nation_jersey_number INTEGER,
+            preferred_position TEXT,
+            work_rate_attacking TEXT,
+            work_rate_defensive TEXT,
+            age INTEGER,
+            dob TEXT,
+            height_cm INTEGER,
+            weight_kg INTEGER,
+            league_id INTEGER,
+            league_name_duplicate TEXT,
+            best_overall_rating INTEGER,
+            position_group TEXT,
+            position_specific TEXT,
+            positions TEXT
+        );
+    """)
+
+
 def build_row(csv_row):
     positions_raw = (csv_row.get("player_positions") or "").strip()
     position_specific = get_primary_position(positions_raw, csv_row.get("club_position"))
@@ -230,6 +322,7 @@ def import_players_from_csv():
 
     try:
         cur = conn.cursor()
+        create_table_if_not_exists(cur)
         ensure_columns(cur)
 
         with CSV_PATH.open("r", encoding="utf-8-sig", newline="") as f:
