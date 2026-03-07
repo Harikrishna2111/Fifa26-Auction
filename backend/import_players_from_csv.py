@@ -106,6 +106,7 @@ def ensure_columns(cur):
     cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS power_stamina INTEGER;")
     cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS power_strength INTEGER;")
     cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS mentality_aggression INTEGER;")
+    cur.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS skill_dribbling INTEGER;")
 
 
 def create_table_if_not_exists(cur):
@@ -229,7 +230,6 @@ def build_row(csv_row):
         to_int(csv_row.get("skill_moves")),
         (csv_row.get("work_rate") or "").strip() or None,
         csv_row.get("body_type"),
-        csv_row.get("preferred_foot"),
         to_int(csv_row.get("movement_acceleration")),
         to_int(csv_row.get("movement_sprint_speed")),
         to_int(csv_row.get("attacking_finishing")),
@@ -267,10 +267,10 @@ def flush_batch(cur, batch):
         INSERT INTO players (
             player_id, short_name, overall, pace, shooting, dribbling, position_group, nationality_name, club_name, value_eur, wage_eur,
             potential, age, height_cm, preferred_foot, player_face_url,
-            passing, defending, physic, weak_foot, skill_moves, work_rate, body_type, preferred_foot,
+            passing, defending, physic, weak_foot, skill_moves, work_rate, body_type,
             movement_acceleration, movement_sprint_speed, attacking_finishing, power_shot_power,
             power_long_shots, attacking_short_passing, mentality_vision, attacking_crossing,
-            skill_ball_control, dribbling, movement_agility,
+            skill_ball_control, skill_dribbling, movement_agility,
             defending_marking_awareness, defending_standing_tackle, defending_sliding_tackle,
             power_jumping, power_stamina, power_strength, mentality_aggression,
             weight_kg, international_reputation, player_traits, player_tags, league_name,
@@ -310,7 +310,7 @@ def flush_batch(cur, batch):
             mentality_vision = COALESCE(EXCLUDED.mentality_vision, players.mentality_vision),
             attacking_crossing = COALESCE(EXCLUDED.attacking_crossing, players.attacking_crossing),
             skill_ball_control = COALESCE(EXCLUDED.skill_ball_control, players.skill_ball_control),
-            dribbling = COALESCE(EXCLUDED.dribbling, players.dribbling),
+            skill_dribbling = COALESCE(EXCLUDED.skill_dribbling, players.skill_dribbling),
             movement_agility = COALESCE(EXCLUDED.movement_agility, players.movement_agility),
             defending_marking_awareness = COALESCE(EXCLUDED.defending_marking_awareness, players.defending_marking_awareness),
             defending_standing_tackle = COALESCE(EXCLUDED.defending_standing_tackle, players.defending_standing_tackle),
