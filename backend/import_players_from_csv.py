@@ -1,16 +1,29 @@
 import csv
 from pathlib import Path
+import os
 
 import psycopg2
 from psycopg2.extras import execute_values
 
-DB_CONFIG = {
-    "dbname": "fifa_auction",
-    "user": "postgres",
-    "password": "fifa",
-    "host": "localhost",
-    "port": 5432,
-}
+def get_db_config():
+    database_url = os.environ.get("DATABASE_URL")
+    if database_url:
+        return database_url
+    else:
+        return {
+            "dbname": "fifa_auction",
+            "user": "postgres",
+            "password": "fifa",
+            "host": "localhost",
+            "port": 5432,
+        }
+
+def connect_db():
+    config = get_db_config()
+    if isinstance(config, str):
+        return psycopg2.connect(config)
+    else:
+        return psycopg2.connect(**config)
 
 CSV_PATH = Path(__file__).resolve().parent.parent / "data.csv"
 BATCH_SIZE = 1000
@@ -210,7 +223,7 @@ def import_players_from_csv():
     if not CSV_PATH.exists():
         raise FileNotFoundError(f"CSV not found: {CSV_PATH}")
 
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = connect_db()
     total = 0
     batch = []
     skipped = 0
